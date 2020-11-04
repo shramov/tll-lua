@@ -21,9 +21,9 @@ class LuaTcp : public tll::channel::Base<LuaTcp>
 	static constexpr std::string_view param_prefix() { return "tcp"; }
 	static constexpr std::string_view impl_protocol() { return "tcp-lua"; }
 
-	tll_channel_impl_t * _init_replace(const tll::UrlView &url);
+	tll_channel_impl_t * _init_replace(const tll::Channel::Url &url);
 
-	int _init(const tll::UrlView &url, tll::Channel * master) { return _log.fail(EINVAL, "Failed to choose proper tcp channel"); }
+	int _init(const tll::Channel::Url &url, tll::Channel * master) { return _log.fail(EINVAL, "Failed to choose proper tcp channel"); }
 };
 
 template <typename T>
@@ -42,10 +42,10 @@ class LuaCommon : public T
 
 	std::shared_ptr<Common> _common;
 
-	int _init_lua(const UrlView &url, tll::Channel * master);
+	int _init_lua(const tll::Channel::Url &url, tll::Channel * master);
 	int _open_lua();
 
-	int _init(const tll::UrlView &url, tll::Channel *master)
+	int _init(const tll::Channel::Url &url, tll::Channel *master)
 	{
 		this->_log.info("Common init {}", this->channelT()->lua_hooks);
 		if (this->channelT()->lua_hooks) {
@@ -136,7 +136,7 @@ TLL_DEFINE_IMPL(LuaTcpServer);
 TLL_DEFINE_IMPL(ChLuaSocket);
 TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
 
-tll_channel_impl_t * LuaTcp::_init_replace(const tll::UrlView &url)
+tll_channel_impl_t * LuaTcp::_init_replace(const tll::Channel::Url &url)
 {
 	auto reader = channel_props_reader(url);
 	auto client = reader.getT("mode", true, {{"client", true}, {"server", false}});
@@ -149,7 +149,7 @@ tll_channel_impl_t * LuaTcp::_init_replace(const tll::UrlView &url)
 }
 
 template <typename T>
-int LuaCommon<T>::_init_lua(const tll::UrlView &url, tll::Channel *master)
+int LuaCommon<T>::_init_lua(const tll::Channel::Url &url, tll::Channel *master)
 {
 	auto reader = this->channel_props_reader(url);
 	auto code = reader.template getT<std::string>("lua.code");
