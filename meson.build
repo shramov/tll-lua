@@ -24,3 +24,14 @@ benchmark('bench', executable('bench'
 		)
 	, workdir : meson.current_source_dir()
 )
+
+gtest = dependency('gtest')
+
+if gtest.found()
+	test('test-reflection', executable('test-reflection',
+		sources: ['src/test-reflection.cc'],
+		include_directories: include,
+		dependencies: [fmt, gtest, lua, tll],
+		)
+	)
+endif

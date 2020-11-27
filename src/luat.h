@@ -10,7 +10,10 @@
 
 #include <lua.hpp>
 
+#include <memory>
 #include <string_view>
+
+using unique_lua_ptr_t = std::unique_ptr<lua_State, decltype(&lua_close)>;
 
 struct MetaBase
 {
@@ -62,18 +65,20 @@ T & luaT_checkuserdata(lua_State * lua, int index)
 	return luaT_checkuserdata<T>(lua, index, MetaT<T>::name.data());
 }
 
-std::string_view luaT_checkstringview(lua_State * lua, int index)
+inline std::string_view luaT_checkstringview(lua_State * lua, int index)
 {
 	size_t size = 0;
 	auto s = luaL_checklstring(lua, index, &size);
 	return {s, size};
 }
 
-std::string_view luaT_tostringview(lua_State * lua, int index)
+inline std::string_view luaT_tostringview(lua_State * lua, int index)
 {
 	size_t size = 0;
 	auto s = lua_tolstring(lua, index, &size);
 	return {s, size};
 }
+
+inline const char * luaT_pushstringview(lua_State * lua, std::string_view s) { return lua_pushlstring(lua, s.data(), s.size()); }
 
 #endif//_TLL_LUA_T_H
