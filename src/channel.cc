@@ -5,10 +5,10 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#include "channel/tcp.h"
+#include "filter.h"
 
-#include "tll/channel/tcp.h"
-#include "tll/channel/tcp.hpp"
+#include <tll/channel/tcp.h>
+#include <tll/channel/tcp.hpp>
 
 #include "luat.h"
 #include "msg.h"
@@ -129,13 +129,6 @@ class LuaTcpServer : public LuaCommon<tll::channel::TcpServer<LuaTcpServer, ChLu
 	static constexpr auto lua_hooks = true;
 };
 
-TLL_DEFINE_IMPL(LuaTcp);
-
-TLL_DEFINE_IMPL(LuaTcpClient);
-TLL_DEFINE_IMPL(LuaTcpServer);
-TLL_DEFINE_IMPL(ChLuaSocket);
-TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
-
 tll_channel_impl_t * LuaTcp::_init_replace(const tll::Channel::Url &url)
 {
 	auto reader = channel_props_reader(url);
@@ -247,7 +240,7 @@ int LuaSocket<T>::_pending()
 	}
 
 	_pending_msg.data = (void *) data;
-	_pending_msg.addr = (int64_t) this;
+	_pending_msg.addr = this->msg_addr();
 	this->rdone(frame_size + _pending_msg.size);
 	this->_dcaps_pending(this->template rdataT<char>(0, frame_size));
 	this->_callback_data(&_pending_msg);
@@ -271,4 +264,12 @@ int LuaSocket<T>::_process(long timeout, int flags)
 	return this->_pending();
 }
 
-auto channel_module = tll::make_channel_module<LuaTcp>();
+TLL_DEFINE_IMPL(LuaTcpClient);
+TLL_DEFINE_IMPL(LuaTcpServer);
+TLL_DEFINE_IMPL(ChLuaSocket);
+TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
+
+TLL_DEFINE_IMPL(LuaTcp);
+TLL_DEFINE_IMPL(LuaFilter);
+
+auto channel_module = tll::make_channel_module<LuaTcp, LuaFilter>();
