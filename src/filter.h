@@ -30,12 +30,6 @@ public:
 	int _open(const tll::PropsView &props);
 	int _close();
 
-	void _free()
-	{
-		//_common.reset();
-		return Base::_free();
-	}
-
 	int _on_active()
 	{
 		_scheme.reset(tll_scheme_ref(_child->scheme()));
