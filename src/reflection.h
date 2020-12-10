@@ -88,6 +88,9 @@ size_t read_size(const tll::scheme::Field * field, const View &data)
 	case Field::Int16: return *data.template dataT<int16_t>();
 	case Field::Int32: return *data.template dataT<int32_t>();
 	case Field::Int64: return *data.template dataT<int64_t>();
+	case Field::UInt8:  return *data.template dataT<uint8_t>();
+	case Field::UInt16: return *data.template dataT<uint16_t>();
+	case Field::UInt32: return *data.template dataT<uint32_t>();
 	default: return 0;
 	}
 }
@@ -101,6 +104,9 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 	case Field::Int16: return pushnumber(lua, field, *data.template dataT<int16_t>());
 	case Field::Int32: return pushnumber(lua, field, *data.template dataT<int32_t>());
 	case Field::Int64: return pushnumber(lua, field, *data.template dataT<int64_t>());
+	case Field::UInt8:  return pushnumber(lua, field, *data.template dataT<uint8_t>());
+	case Field::UInt16: return pushnumber(lua, field, *data.template dataT<uint16_t>());
+	case Field::UInt32: return pushnumber(lua, field, *data.template dataT<uint32_t>());
 	case Field::Double: return pushnumber(lua, field, *data.template dataT<double>());
 	case Field::Decimal128:
 		lua_pushnil(lua);
