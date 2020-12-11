@@ -13,6 +13,7 @@
 #include <tll/channel.h>
 #include <tll/scheme.h>
 #include <tll/scheme/types.h>
+#include <tll/scheme/util.h>
 #include <tll/util/memoryview.h>
 
 namespace reflection {
@@ -53,49 +54,6 @@ int pushnumber<double>(lua_State * lua, const tll::scheme::Field * field, double
 }
 
 template <typename View>
-tll_scheme_offset_ptr_t read_ptr(const tll::scheme::Field * field, View data)
-{
-	tll_scheme_offset_ptr_t r = {};
-	switch (field->offset_ptr_version) {
-	case TLL_SCHEME_OFFSET_PTR_DEFAULT: {
-		return *data.template dataT<const tll_scheme_offset_ptr_t>();
-	}
-	case TLL_SCHEME_OFFSET_PTR_LEGACY_LONG: {
-		auto ptr = data.template dataT<const tll_scheme_offset_ptr_t>();
-		r.size = ptr->size;
-		r.offset = ptr->offset;
-		r.entity = ptr->entity;
-		break;
-	}
-	case TLL_SCHEME_OFFSET_PTR_LEGACY_SHORT: {
-		auto ptr = data.template dataT<const tll_scheme_offset_ptr_t>();
-		r.size = ptr->size;
-		r.offset = ptr->offset;
-		r.entity = field->type_ptr->size;
-		break;
-	}
-	}
-	return r;
-}
-
-template <typename View>
-size_t read_size(const tll::scheme::Field * field, const View &data)
-{
-	using tll::scheme::Field;
-
-	switch (field->type) {
-	case Field::Int8:  return *data.template dataT<int8_t>();
-	case Field::Int16: return *data.template dataT<int16_t>();
-	case Field::Int32: return *data.template dataT<int32_t>();
-	case Field::Int64: return *data.template dataT<int64_t>();
-	case Field::UInt8:  return *data.template dataT<uint8_t>();
-	case Field::UInt16: return *data.template dataT<uint16_t>();
-	case Field::UInt32: return *data.template dataT<uint32_t>();
-	default: return 0;
-	}
-}
-
-template <typename View>
 int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 {
 	using tll::scheme::Field;
@@ -124,8 +82,10 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 		break;
 	case Field::Pointer:
 		if (field->sub_type == Field::ByteString) {
-			auto ptr = read_ptr(field, data);
-			lua_pushlstring(lua, data.view(ptr.offset).template dataT<const char>(), ptr.size);
+			auto ptr = tll::scheme::read_pointer(field, data);
+			if (!ptr)
+				return luaL_error(lua, "Unknown offset ptr version for %s: %d", field->name, field->offset_ptr_version);
+			lua_pushlstring(lua, data.view(ptr->offset).template dataT<const char>(), ptr->size);
 		} else
 			luaT_push<reflection::Array>(lua, { field, data });
 		break;
@@ -167,20 +127,24 @@ struct MetaT<reflection::Array> : public MetaBase
 
 		auto field = r.field;
 		if (field->type == tll::scheme::Field::Array) {
-			size_t size = read_size(field->count_ptr, r.data.view(field->count_ptr->offset));
-			if ((size_t) key >= size)
+			auto size = tll::scheme::read_size(field->count_ptr, r.data.view(field->count_ptr->offset));
+			if (size < 0)
+				return luaL_error(lua, "Array %s has invalid size: %d", field->name, size);
+			if (key >= size)
 				return luaL_error(lua, "Array %s index out of bounds (size %d): %d", field->name, size, key);
 			auto f = r.field->type_array;
 			if (r.data.size() < f->offset + f->size * f->count)
 				return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, f->offset + f->size * f->count, r.data.size());
 			return pushfield(lua, f, r.data.view(f->offset + f->size * key));
 		} else {
-			auto ptr = read_ptr(field, r.data);
-			if ((size_t) key >= ptr.size)
-				return luaL_error(lua, "Array %s index out of bounds (size %d): %d", field->name, ptr.size, key);
-			if (r.data.size() < ptr.offset + ptr.entity * ptr.size)
-				return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, ptr.offset + ptr.entity * ptr.size, r.data.size());
-			return pushfield(lua, r.field->type_ptr, r.data.view(ptr.offset + ptr.entity * key));
+			auto ptr = tll::scheme::read_pointer(field, r.data);
+			if (!ptr)
+				return luaL_error(lua, "Unknown offset ptr version for %s: %d", field->name, field->offset_ptr_version);
+			if ((size_t) key >= ptr->size)
+				return luaL_error(lua, "Array %s index out of bounds (size %d): %d", field->name, ptr->size, key);
+			if (r.data.size() < ptr->offset + ptr->entity * ptr->size)
+				return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, ptr->offset + ptr->entity * ptr->size, r.data.size());
+			return pushfield(lua, r.field->type_ptr, r.data.view(ptr->offset + ptr->entity * key));
 		}
 	}
 };
