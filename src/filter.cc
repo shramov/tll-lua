@@ -52,7 +52,7 @@ int LuaFilter::_open(const tll::PropsView &props)
 	return Base::_open(props);
 }
 
-int LuaFilter::_close()
+int LuaFilter::_close(bool force)
 {
 	if (_lua) {
 		lua_getglobal(_lua, "luatll_close");
@@ -64,7 +64,7 @@ int LuaFilter::_close()
 
 	_ptr.reset();
 	_lua = nullptr;
-	return Base::_close();
+	return Base::_close(force);
 }
 
 int LuaFilter::prefix_data(const tll_msg_t *msg)
