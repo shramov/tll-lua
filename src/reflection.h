@@ -22,7 +22,7 @@ struct Message
 	const tll::scheme::Message * message = nullptr;
 	tll::memoryview<const tll_msg_t> data;
 
-	tll::scheme::Field * lookup(std::string_view name) const
+	const tll::scheme::Field * lookup(std::string_view name) const
 	{
 		for (auto f = message->fields; f; f = f->next)
 			if (f->name == name)
@@ -36,18 +36,35 @@ struct Array
 	const tll::scheme::Field * field = nullptr;
 	tll::memoryview<const tll_msg_t> data;
 };
+
+struct Bits
+{
+	const tll::scheme::Field * field = nullptr;
+	tll::memoryview<const tll_msg_t> data;
+
+	const tll_scheme_bit_field_t * lookup(std::string_view name) const
+	{
+		for (auto f = field->bitfields; f; f = f->next)
+			if (f->name == name)
+				return f;
+		return nullptr;
+	}
+};
 } // namespace reflection
 
 namespace {
-template <typename T>
-int pushnumber(lua_State * lua, const tll::scheme::Field * field, T v)
+template <typename View, typename T>
+int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v)
 {
-	lua_pushinteger(lua, v);
+	if (field->sub_type == field->Bits)
+		luaT_push<reflection::Bits>(lua, { field, data });
+	else
+		lua_pushinteger(lua, v);
 	return 1;
 }
 
-template <>
-int pushnumber<double>(lua_State * lua, const tll::scheme::Field * field, double v)
+template <typename View>
+int pushdouble(lua_State * lua, const tll::scheme::Field * field, View data, double v)
 {
 	lua_pushnumber(lua, v);
 	return 1;
@@ -58,14 +75,14 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 {
 	using tll::scheme::Field;
 	switch (field->type) {
-	case Field::Int8:  return pushnumber(lua, field, *data.template dataT<int8_t>());
-	case Field::Int16: return pushnumber(lua, field, *data.template dataT<int16_t>());
-	case Field::Int32: return pushnumber(lua, field, *data.template dataT<int32_t>());
-	case Field::Int64: return pushnumber(lua, field, *data.template dataT<int64_t>());
-	case Field::UInt8:  return pushnumber(lua, field, *data.template dataT<uint8_t>());
-	case Field::UInt16: return pushnumber(lua, field, *data.template dataT<uint16_t>());
-	case Field::UInt32: return pushnumber(lua, field, *data.template dataT<uint32_t>());
-	case Field::Double: return pushnumber(lua, field, *data.template dataT<double>());
+	case Field::Int8:  return pushnumber(lua, field, data, *data.template dataT<int8_t>());
+	case Field::Int16: return pushnumber(lua, field, data, *data.template dataT<int16_t>());
+	case Field::Int32: return pushnumber(lua, field, data, *data.template dataT<int32_t>());
+	case Field::Int64: return pushnumber(lua, field, data, *data.template dataT<int64_t>());
+	case Field::UInt8:  return pushnumber(lua, field, data, *data.template dataT<uint8_t>());
+	case Field::UInt16: return pushnumber(lua, field, data, *data.template dataT<uint16_t>());
+	case Field::UInt32: return pushnumber(lua, field, data, *data.template dataT<uint32_t>());
+	case Field::Double: return pushdouble(lua, field, data, *data.template dataT<double>());
 	case Field::Decimal128:
 		lua_pushnil(lua);
 		break;
@@ -146,6 +163,29 @@ struct MetaT<reflection::Array> : public MetaBase
 				return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, ptr->offset + ptr->entity * ptr->size, r.data.size());
 			return pushfield(lua, r.field->type_ptr, r.data.view(ptr->offset + ptr->entity * key));
 		}
+	}
+};
+
+template <>
+struct MetaT<reflection::Bits> : public MetaBase
+{
+	static constexpr std::string_view name = "reflection_bits";
+	static int index(lua_State* lua)
+	{
+		auto & r = luaT_checkuserdata<reflection::Bits>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		auto bit = r.lookup(key);
+		if (bit == nullptr)
+			return luaL_error(lua, "Bits '%s' has no bit '%s'", r.field->name, key.data());
+
+		auto bits = tll::scheme::read_size(r.field, r.data);
+		auto v = tll_scheme_bit_field_get(bits, bit->offset, bit->size);
+		if (bit->size == 1)
+			lua_pushboolean(lua, v);
+		else
+			lua_pushinteger(lua, v);
+		return 1;
 	}
 };
 

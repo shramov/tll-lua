@@ -27,6 +27,7 @@ int LuaFilter::_open(const tll::PropsView &props)
 	luaL_openlibs(lua);
 	LuaT<reflection::Array>::init(lua);
 	LuaT<reflection::Message>::init(lua);
+	LuaT<reflection::Bits>::init(lua);
 
 	if (luaL_loadfile(lua, _code.c_str()))
 		return this->_log.fail(EINVAL, "Failed to load file '{}': {}", _code, lua_tostring(lua, -1));

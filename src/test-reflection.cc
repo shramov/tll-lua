@@ -37,6 +37,11 @@ static const char * SCHEME = R"(yamls://
     - {name: s, type: simple}
     - {name: l, type: 'simple[8]'}
     - {name: p, type: '*simple'}
+
+- name: bits
+  msgid: 20
+  fields:
+    - {name: bits, type: uint32, options.type: bits, bits: [a, b, c]}
 )";
 
 namespace generated {
@@ -61,6 +66,16 @@ struct __attribute__((__packed__)) outer
 	tll_scheme_offset_ptr_t p;
 };
 
+struct __attribute__((__packed__)) bits
+{
+	struct __attribute__((__packed__)) _bits_type : public tll::scheme::Bits<uint32_t>
+	{
+		bool a() const { return get(0); }; void a(bool v) { return set(0, v); };
+		bool b() const { return get(1); }; void b(bool v) { return set(1, v); };
+		bool c() const { return get(2); }; void c(bool v) { return set(2, v); };
+	} bits;
+};
+
 }
 
 template <typename T>
@@ -68,6 +83,9 @@ T lua_toany(lua_State * lua, int index, T v) { return luaL_checkinteger(lua, ind
 
 template <>
 double lua_toany<double>(lua_State * lua, int index, double) { return luaL_checknumber(lua, index); }
+
+template <>
+bool lua_toany<bool>(lua_State * lua, int index, bool) { return lua_toboolean(lua, index); }
 
 template <>
 std::string_view lua_toany<std::string_view>(lua_State * lua, int index, std::string_view) { return luaT_checkstringview(lua, index); }
@@ -94,6 +112,7 @@ unique_lua_ptr_t prepare_lua()
 	luaL_openlibs(lua.get());
 	LuaT<reflection::Array>::init(lua.get());
 	LuaT<reflection::Message>::init(lua.get());
+	LuaT<reflection::Bits>::init(lua.get());
 
 	return lua;
 }
@@ -187,6 +206,35 @@ TEST(Lua, Reflection)
 
 	//out.p.size = 100;
 	//ASSERT_LUA_VALUE(lua, out, out.ptr[0].d, "p.0.d");
+}
+
+TEST(Lua, ReflectionBits)
+{
+	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME), tll_scheme_unref);
+
+	ASSERT_TRUE(scheme);
+
+	auto message = scheme->messages->next->next;
+
+	ASSERT_EQ(std::string_view("bits"), message->name);
+
+	auto lua_ptr = prepare_lua();
+	auto lua = lua_ptr.get();
+	ASSERT_NE(lua, nullptr);
+
+	generated::bits s = {};
+	s.bits.a(true);
+	s.bits.c(true);
+	ASSERT_EQ((uint32_t ) s.bits, (1u << 0) | (1u << 2));
+	//s.bits = (1 << 0 | 1 << 2); // a | b
+
+	ASSERT_LUA_VALUE(lua, s, true, "bits.a");
+	ASSERT_LUA_VALUE(lua, s, false, "bits.b");
+	ASSERT_LUA_VALUE(lua, s, true, "bits.c");
+
+	s.bits.clear();
+
+	ASSERT_LUA_VALUE(lua, s, false, "bits.a");
 }
 
 int main(int argc, char *argv[])
