@@ -21,7 +21,7 @@ class LuaTcp : public tll::channel::Base<LuaTcp>
 	static constexpr std::string_view param_prefix() { return "tcp"; }
 	static constexpr std::string_view impl_protocol() { return "tcp-lua"; }
 
-	tll_channel_impl_t * _init_replace(const tll::Channel::Url &url);
+	std::optional<const tll_channel_impl_t *> _init_replace(const tll::Channel::Url &url, tll::Channel *master);
 
 	int _init(const tll::Channel::Url &url, tll::Channel * master) { return _log.fail(EINVAL, "Failed to choose proper tcp channel"); }
 };
@@ -129,7 +129,7 @@ class LuaTcpServer : public LuaCommon<tll::channel::TcpServer<LuaTcpServer, ChLu
 	static constexpr auto lua_hooks = true;
 };
 
-tll_channel_impl_t * LuaTcp::_init_replace(const tll::Channel::Url &url)
+std::optional<const tll_channel_impl_t *> LuaTcp::_init_replace(const tll::Channel::Url &url, tll::Channel *master)
 {
 	auto reader = channel_props_reader(url);
 	auto client = reader.getT("mode", true, {{"client", true}, {"server", false}});
