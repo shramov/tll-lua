@@ -38,6 +38,11 @@ static const char * SCHEME = R"(yamls://
     - {name: l, type: 'simple[8]'}
     - {name: p, type: '*simple'}
 
+- name: uniontest
+  msgid: 20
+  fields:
+    - {name: u, type: union, union: [{name: i32, type: int32}, {name: b32, type: byte32}, {name: m, type: simple}]}
+
 - name: bits
   msgid: 20
   fields:
@@ -66,6 +71,16 @@ struct __attribute__((__packed__)) outer
 	tll_scheme_offset_ptr_t p;
 };
 
+struct __attribute__((__packed__)) uniontest
+{
+	int8_t _tll_type;
+	union {
+		int32_t i32;
+		unsigned char b32[32];
+		simple m;
+	} u;
+};
+
 struct __attribute__((__packed__)) bits
 {
 	struct __attribute__((__packed__)) _bits_type : public tll::scheme::Bits<uint32_t>
@@ -90,6 +105,9 @@ bool lua_toany<bool>(lua_State * lua, int index, bool) { return lua_toboolean(lu
 template <>
 std::string_view lua_toany<std::string_view>(lua_State * lua, int index, std::string_view) { return luaT_checkstringview(lua, index); }
 
+template <>
+nullptr_t lua_toany<nullptr_t>(lua_State * lua, int index, nullptr_t) { if (!lua_isnil(lua, index)) luaL_error(lua, "Non NIL value: %d", lua_type(lua, index)); return nullptr; }
+
 #define ASSERT_LUA_VALUE(lua, msg, v, field) do { \
 		tll_msg_t m = {}; \
 		m.data = &msg; \
@@ -112,9 +130,19 @@ unique_lua_ptr_t prepare_lua()
 	luaL_openlibs(lua.get());
 	LuaT<reflection::Array>::init(lua.get());
 	LuaT<reflection::Message>::init(lua.get());
+	LuaT<reflection::Union>::init(lua.get());
 	LuaT<reflection::Bits>::init(lua.get());
 
 	return lua;
+}
+
+const tll::scheme::Message * lookup(const tll::Scheme *s, std::string_view name)
+{
+	for (auto m = s->messages; m; m = m->next) {
+		if (m->name == name)
+			return m;
+	}
+	return nullptr;
 }
 
 TEST(Lua, Reflection)
@@ -123,9 +151,9 @@ TEST(Lua, Reflection)
 
 	ASSERT_TRUE(scheme);
 
-	auto message = scheme->messages;
+	auto message = lookup(scheme.get(), "simple");
 
-	ASSERT_EQ(std::string_view("simple"), message->name);
+	ASSERT_NE(message, nullptr);
 
 	auto lua_ptr = prepare_lua();
 	auto lua = lua_ptr.get();
@@ -183,9 +211,8 @@ TEST(Lua, Reflection)
 	out.ptr[0].d = 456.78;
 	out.ptr[1].d = 567.89;
 
-	message = message->next;
+	message = lookup(scheme.get(), "outer");
 	ASSERT_NE(message, nullptr);
-	ASSERT_STREQ(message->name, "outer");
 
 	ASSERT_LUA_VALUE(lua, out, std::string_view("bytes\x01\x00\x00", 8), "s.b8");
 	ASSERT_LUA_VALUE(lua, out, std::string_view("string"), "s.s16");
@@ -208,15 +235,49 @@ TEST(Lua, Reflection)
 	//ASSERT_LUA_VALUE(lua, out, out.ptr[0].d, "p.0.d");
 }
 
+TEST(Lua, ReflectionUnion)
+{
+	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME));
+
+	ASSERT_TRUE(scheme);
+
+	auto message = lookup(scheme.get(), "uniontest");
+
+	ASSERT_NE(message, nullptr);
+
+	auto lua_ptr = prepare_lua();
+	auto lua = lua_ptr.get();
+	ASSERT_NE(lua, nullptr);
+
+	generated::uniontest u = {};
+	u._tll_type = 0;
+	u.u.i32 = 100;
+
+	ASSERT_LUA_VALUE(lua, u, std::string_view {"i32"}, "u._tll_type");
+	ASSERT_LUA_VALUE(lua, u, 100, "u.i32");
+	ASSERT_LUA_VALUE(lua, u, nullptr, "u.b32");
+
+	u._tll_type = 2;
+	u.u.m.i8 = 10;
+	u.u.m.i16 = 1000;
+	u.u.m.i32 = 100000;
+
+	ASSERT_LUA_VALUE(lua, u, std::string_view {"m"}, "u._tll_type");
+	ASSERT_LUA_VALUE(lua, u, nullptr, "u.i32");
+	ASSERT_LUA_VALUE(lua, u, 10, "u.m.i8");
+	ASSERT_LUA_VALUE(lua, u, 1000, "u.m.i16");
+	ASSERT_LUA_VALUE(lua, u, 100000, "u.m.i32");
+}
+
 TEST(Lua, ReflectionBits)
 {
 	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME));
 
 	ASSERT_TRUE(scheme);
 
-	auto message = scheme->messages->next->next;
+	auto message = lookup(scheme.get(), "bits");
 
-	ASSERT_EQ(std::string_view("bits"), message->name);
+	ASSERT_NE(message, nullptr);
 
 	auto lua_ptr = prepare_lua();
 	auto lua = lua_ptr.get();

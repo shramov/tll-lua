@@ -27,6 +27,7 @@ int LuaFilter::_open(const tll::ConstConfig &props)
 	luaL_openlibs(lua);
 	LuaT<reflection::Array>::init(lua);
 	LuaT<reflection::Message>::init(lua);
+	LuaT<reflection::Union>::init(lua);
 	LuaT<reflection::Bits>::init(lua);
 
 	if (luaL_loadfile(lua, _code.c_str()))

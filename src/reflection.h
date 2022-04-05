@@ -31,6 +31,12 @@ struct Message
 	}
 };
 
+struct Union
+{
+	const tll::scheme::Union * desc = nullptr;
+	tll::memoryview<const tll_msg_t> data;
+};
+
 struct Array
 {
 	const tll::scheme::Field * field = nullptr;
@@ -109,6 +115,9 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 	case Field::Message:
 		luaT_push<reflection::Message>(lua, { field->type_msg, data });
 		break;
+	case Field::Union:
+		luaT_push<reflection::Union>(lua, { field->type_union, data });
+		break;
 	}
 	return 1;
 }
@@ -130,6 +139,35 @@ struct MetaT<reflection::Message> : public MetaBase
 			return luaL_error(lua, "Message '%s' has no field '%s'", r.message->name, key.data());
 
 		return pushfield(lua, field, r.data.view(field->offset));
+	}
+};
+
+template <>
+struct MetaT<reflection::Union> : public MetaBase
+{
+	static constexpr std::string_view name = "reflection_union";
+	static int index(lua_State* lua)
+	{
+		auto & r = luaT_checkuserdata<reflection::Union>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		//if (r.data.size() < r.message->size)
+		//	return luaL_error(lua, "Union '%s' size %d > data size %d", r.desc->name, r.desc->size, r.data.size());
+		auto type = tll::scheme::read_size(r.desc->type_ptr, r.data.view(r.desc->type_ptr->offset));
+		if (type < 0)
+			return luaL_error(lua, "Union '%s' has invalid type field", r.desc->name);
+
+		if ((size_t) type > r.desc->size)
+			return luaL_error(lua, "Union '%s' type %d is out of range %d", r.desc->name, type, r.desc->size);
+		auto field = r.desc->fields + type;
+
+		if (key == "_tll_type")
+			luaT_pushstringview(lua, field->name);
+		else if (key == field->name)
+			pushfield(lua, field, r.data.view(field->offset));
+		else
+			lua_pushnil(lua);
+		return 1;
 	}
 };
 
