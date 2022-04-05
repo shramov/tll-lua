@@ -7,6 +7,7 @@
 
 #include "filter.h"
 
+#include <tll/channel/module.h>
 #include <tll/channel/tcp.h>
 #include <tll/channel/tcp.hpp>
 
@@ -19,7 +20,7 @@ class LuaTcp : public tll::channel::Base<LuaTcp>
 {
  public:
 	static constexpr std::string_view param_prefix() { return "tcp"; }
-	static constexpr std::string_view impl_protocol() { return "tcp-lua"; }
+	static constexpr std::string_view channel_protocol() { return "tcp-lua"; }
 
 	std::optional<const tll_channel_impl_t *> _init_replace(const tll::Channel::Url &url, tll::Channel *master);
 
@@ -55,7 +56,7 @@ class LuaCommon : public T
 		return T::_init(url, master);
 	}
 
-	int _open(const tll::PropsView &props)
+	int _open(const tll::ConstConfig &props)
 	{
 		this->_log.info("Common open {}", this->channelT()->lua_hooks);
 		if (this->channelT()->lua_hooks) {
@@ -91,7 +92,7 @@ class LuaSocket : public LuaCommon<tll::channel::TcpSocket<T>>
 	int _post(const tll_msg_t *msg, int flags);
 	int _process(long timeout, int flags);
 
-	int _open(const tll::PropsView &props)
+	int _open(const tll::ConstConfig &props)
 	{
 		_pending_unpacked = false;
 		return LuaCommon<tll::channel::TcpSocket<T>>::_open(props);

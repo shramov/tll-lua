@@ -119,7 +119,7 @@ unique_lua_ptr_t prepare_lua()
 
 TEST(Lua, Reflection)
 {
-	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME), tll_scheme_unref);
+	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME));
 
 	ASSERT_TRUE(scheme);
 
@@ -210,7 +210,7 @@ TEST(Lua, Reflection)
 
 TEST(Lua, ReflectionBits)
 {
-	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME), tll_scheme_unref);
+	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME));
 
 	ASSERT_TRUE(scheme);
 

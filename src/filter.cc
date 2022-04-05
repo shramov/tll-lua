@@ -17,7 +17,7 @@ int LuaFilter::_init(const tll::Channel::Url &url, tll::Channel *master)
 	return Base::_init(url, master);
 }
 
-int LuaFilter::_open(const tll::PropsView &props)
+int LuaFilter::_open(const tll::ConstConfig &props)
 {
 	unique_lua_ptr_t lua_ptr(luaL_newstate(), lua_close);
 	auto lua = lua_ptr.get();
