@@ -157,8 +157,8 @@ struct MetaT<reflection::Union> : public MetaBase
 		if (type < 0)
 			return luaL_error(lua, "Union '%s' has invalid type field", r.desc->name);
 
-		if ((size_t) type > r.desc->size)
-			return luaL_error(lua, "Union '%s' type %d is out of range %d", r.desc->name, type, r.desc->size);
+		if ((size_t) type > r.desc->fields_size)
+			return luaL_error(lua, "Union '%s' type %d is out of range %d", r.desc->name, type, r.desc->fields_size);
 		auto field = r.desc->fields + type;
 
 		if (key == "_tll_type")
