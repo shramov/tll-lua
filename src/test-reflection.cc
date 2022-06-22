@@ -26,6 +26,10 @@ static const char * SCHEME = R"(yamls://
     - {name: i16, type: int16}
     - {name: i32, type: int32}
     - {name: i64, type: int64}
+    - {name: u8, type: uint8}
+    - {name: u16, type: uint16}
+    - {name: u32, type: uint32}
+    - {name: u64, type: uint64}
     - {name: d, type: double}
     - {name: b8, type: byte8}
     - {name: s16, type: byte16, options.type: string}
@@ -56,6 +60,10 @@ struct __attribute__((__packed__)) simple
 	int16_t i16;
 	int32_t i32;
 	int64_t i64;
+	uint8_t u8;
+	uint16_t u16;
+	uint32_t u32;
+	uint64_t u64;
 	double d;
 	char b8[8];
 	char s16[16];
@@ -164,6 +172,10 @@ TEST(Lua, Reflection)
 	s.i16 = 0x1616;
 	s.i32 = 0x32323232;
 	s.i64 = 0x6464646464646464;
+	s.u8 = 0x80;
+	s.u16 = 0x8080;
+	s.u32 = 0x80808080;
+	s.u64 = 0x8080808080808080;
 	s.d = 123.456;
 	memcpy(s.b8, "bytes\x01", 6);
 	strcpy(s.s16, "string");
@@ -177,6 +189,10 @@ TEST(Lua, Reflection)
 	ASSERT_LUA(lua, s, i16);
 	ASSERT_LUA(lua, s, i32);
 	ASSERT_LUA(lua, s, i64);
+	ASSERT_LUA(lua, s, u8);
+	ASSERT_LUA(lua, s, u16);
+	ASSERT_LUA(lua, s, u32);
+	ASSERT_LUA(lua, s, u64);
 	ASSERT_LUA(lua, s, d);
 	ASSERT_LUA_VALUE(lua, s, std::string_view("bytes\x01\x00\x00", 8), "b8");
 	ASSERT_LUA_VALUE(lua, s, std::string_view("string"), "s16");

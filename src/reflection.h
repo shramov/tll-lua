@@ -88,6 +88,7 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 	case Field::UInt8:  return pushnumber(lua, field, data, *data.template dataT<uint8_t>());
 	case Field::UInt16: return pushnumber(lua, field, data, *data.template dataT<uint16_t>());
 	case Field::UInt32: return pushnumber(lua, field, data, *data.template dataT<uint32_t>());
+	case Field::UInt64: return pushnumber(lua, field, data, *data.template dataT<uint64_t>());
 	case Field::Double: return pushdouble(lua, field, data, *data.template dataT<double>());
 	case Field::Decimal128:
 		lua_pushnil(lua);
