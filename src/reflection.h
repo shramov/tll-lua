@@ -109,7 +109,7 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 			auto ptr = tll::scheme::read_pointer(field, data);
 			if (!ptr)
 				return luaL_error(lua, "Unknown offset ptr version for %s: %d", field->name, field->offset_ptr_version);
-			lua_pushlstring(lua, data.view(ptr->offset).template dataT<const char>(), ptr->size);
+			lua_pushlstring(lua, data.view(ptr->offset).template dataT<const char>(), ptr->size ? ptr->size - 1 : 0);
 		} else
 			luaT_push<reflection::Array>(lua, { field, data });
 		break;
