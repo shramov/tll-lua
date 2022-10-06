@@ -10,7 +10,7 @@
 int LuaFilter::_init(const tll::Channel::Url &url, tll::Channel *master)
 {
 	auto reader = this->channel_props_reader(url);
-	_code = reader.template getT<std::string>("lua.code");
+	_code = reader.template getT<std::string>("code");
 	if (!reader)
 		return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 
@@ -69,7 +69,7 @@ int LuaFilter::_close(bool force)
 	return Base::_close(force);
 }
 
-int LuaFilter::prefix_data(const tll_msg_t *msg)
+int LuaFilter::_on_data(const tll_msg_t *msg)
 {
 	tll::scheme::Message * message;
 	for (message = _scheme->messages; message; message = message->next) {

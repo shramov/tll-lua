@@ -22,7 +22,7 @@ class LuaFilter : public tll::channel::Prefix<LuaFilter>
 	unique_lua_ptr_t _ptr = { nullptr, lua_close };
 	lua_State * _lua = nullptr;
 public:
-	static constexpr std::string_view channel_protocol() { return "lua"; }
+	static constexpr std::string_view channel_protocol() { return "lua+"; }
 	static constexpr auto process_policy() { return ProcessPolicy::Never; }
 
 	int _init(const tll::Channel::Url &url, tll::Channel *master);
@@ -36,7 +36,13 @@ public:
 		return Base::_on_active();
 	}
 
-	int prefix_data(const tll_msg_t *msg);
+	int _on_closed()
+	{
+		_scheme.reset();
+		return Base::_on_closed();
+	}
+
+	int _on_data(const tll_msg_t *msg);
 };
 
 #endif//_TLL_LUA_FILTER_H
