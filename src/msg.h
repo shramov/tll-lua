@@ -27,6 +27,10 @@ struct MetaT<const tll_msg_t *> : public MetaBase
 			lua_pushinteger(lua, msg->seq);
 		else if (key == "size")
 			lua_pushinteger(lua, msg->size);
+		else if (key == "data")
+			lua_pushlstring(lua, (const char *) msg->data, msg->size);
+		else if (key == "addr")
+			lua_pushinteger(lua, msg->addr.i64);
 		else
 			luaL_argerror(lua, 2, key.data());
 		return 1;
