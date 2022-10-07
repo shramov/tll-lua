@@ -30,8 +30,13 @@ int LuaFilter::_open(const tll::ConstConfig &props)
 	LuaT<reflection::Union>::init(lua);
 	LuaT<reflection::Bits>::init(lua);
 
-	if (luaL_loadfile(lua, _code.c_str()))
-		return this->_log.fail(EINVAL, "Failed to load file '{}': {}", _code, lua_tostring(lua, -1));
+	if (_code.substr(0, 7) == "file://") {
+		if (luaL_loadfile(lua, _code.substr(7).c_str()))
+			return this->_log.fail(EINVAL, "Failed to load file '{}': {}", _code, lua_tostring(lua, -1));
+	} else {
+		if (luaL_loadstring(lua, _code.c_str()))
+			return this->_log.fail(EINVAL, "Failed to load source code '{}':\n{}", lua_tostring(lua, -1), _code);
+	}
 
 	if (lua_pcall(lua, 0, 0, 0))
 		return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
@@ -71,20 +76,28 @@ int LuaFilter::_close(bool force)
 
 int LuaFilter::_on_data(const tll_msg_t *msg)
 {
-	tll::scheme::Message * message;
-	for (message = _scheme->messages; message; message = message->next) {
-		if (message->msgid == msg->msgid)
-			break;
-	}
-	if (!message)
-		return _log.fail(ENOENT, "Message {} not found", msg->msgid);
-
+	tll::scheme::Message * message = nullptr;
 	lua_getglobal(_lua, "luatll_filter");
-	lua_pushstring(_lua, message->name);
-	lua_pushinteger(_lua, msg->seq);
-	luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
-	if (lua_pcall(_lua, 3, 1, 0)) {
-		_log.warning("Lua filter failed for {}:{}: {}", message->name, msg->seq, lua_tostring(_lua, -1));
+	lua_pushnumber(_lua, msg->seq);
+	if (_scheme) {
+		for (message = _scheme->messages; message; message = message->next) {
+			if (message->msgid == msg->msgid)
+				break;
+		}
+		if (!message)
+			return _log.fail(ENOENT, "Message {} not found", msg->msgid);
+		lua_pushstring(_lua, message->name);
+		luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
+	} else {
+		lua_pushnil(_lua);
+		lua_pushlstring(_lua, (const char *) msg->data, msg->size);
+	}
+	lua_pushnumber(_lua, msg->msgid);
+	lua_pushnumber(_lua, msg->addr.i64);
+	lua_pushnumber(_lua, msg->time);
+	//luaT_push(_lua, msg);
+	if (lua_pcall(_lua, 6, 1, 0)) {
+		_log.warning("Lua filter failed for {}:{}: {}", message ? message->name : "", msg->seq, lua_tostring(_lua, -1));
 		lua_pop(_lua, 1);
 		return EINVAL;
 	}

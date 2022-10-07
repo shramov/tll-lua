@@ -19,31 +19,6 @@ def asyncloop(context):
 def asyncloop_run(f, asyncloop, *a, **kw):
     asyncloop.run(f(asyncloop, *a, **kw))
 
-'''
-@asyncloop_run
-async def test_filter(asyncloop):
-    pcap = asyncloop.Channel('pcap://./tests/udp.pcap', name='pcap', speed='100')
-    u0 = asyncloop.Channel('pcap+udp://10.22.17.253:5555', dump='frame', master=pcap, name='udp0')
-    u1 = asyncloop.Channel('pcap+udp://10.22.17.253:5556', dump='frame', master=pcap, name='udp1')
-
-    pcap.open()
-    u0.open()
-    u1.open()
-
-    r0, r1 = [], []
-
-    assert await pcap.recv_state() == pcap.State.Active
-
-    for _ in range(6):
-        r0 += [await u0.recv(0.011)]
-        r1 += [await u1.recv(0.001)]
-        with pytest.raises(TimeoutError):
-            await u0.recv(0.005)
-
-    assert [m.data.tobytes() for m in r0] == [b'ipv4:5555'] * 6
-    assert [m.data.tobytes() for m in r1] == [b'ipv4:5556'] * 6
-'''
-
 @pytest.mark.parametrize("t,v", [
     ('int8', 123),
     ('int16', 12323),
@@ -63,20 +38,14 @@ async def test_filter(asyncloop):
 #    ('int64, options.type: time_point, options.resolution: s', (TimePoint(1609556645, Resolution.second), '2021-01-02T03:04:05')),
 ])
 @asyncloop_run
-async def test_simple(asyncloop, tmp_path, t, v):
+async def test_simple(asyncloop, t, v):
     if isinstance(v, tuple):
         v, s = v
     else:
         s = str(v)
-    scheme = f'''yamls://
-- name: msg
-  id: 10
-  fields:
-    - {{name: f0, type: {t} }}
-'''
     url = Config.load(f'''yamls://
 tll.proto: lua+yaml
-name: yaml
+name: lua
 yaml.dump: scheme
 lua.dump: scheme
 autoclose: yes
@@ -88,19 +57,66 @@ config.1:
   seq: 1
   name: msg
 ''')
-    url['code'] = str(tmp_path / "code.lua")
-    url['scheme'] = scheme
     url['config.1.data.f0'] = s
-    with open(tmp_path / "code.lua", "w") as fp:
-        fp.write(f'''
-function luatll_filter(name, seq, msg)
-    print(msg.f0)
+    url['scheme'] = f'''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {{name: f0, type: {t} }}
+'''
+    url['code'] = f'''
+function luatll_filter(seq, name, data)
+    print(data.f0)
     print({v})
-    return msg.f0 == {v}
+    return data.f0 == {v}
 end
-''')
+'''
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 1)
+
+@asyncloop_run
+async def test_seq(asyncloop, tmp_path):
+    with open(tmp_path / "code.lua", "w") as fp:
+        fp.write(f'''
+function luatll_filter(seq)
+    return seq % 4 == 0
+end
+''')
+    c = asyncloop.Channel(f'lua+zero://;size=8b;name=lua;zero.dump=frame;lua.dump=frame;code=file://{tmp_path}/code.lua')
+    c.open()
+    assert c.state == c.State.Active
+    r = []
+    while len(r) < 4:
+        m = await c.recv(0.001)
+        r.append(m)
+    assert [m.seq for m in r] == [4, 8, 12, 16]
+
+@asyncloop_run
+async def test_binary(asyncloop):
+    url = Config.load(f'''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: frame
+lua.dump: frame
+autoclose: yes
+config:
+  - seq: 0
+    msgid: 10
+    data: bbbb
+  - seq: 1
+    msgid: 10
+    data: aaaa
+''')
+    url['code'] = '''
+function luatll_filter(seq, name, data)
+    return data == "aaaa"
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert m.data.tobytes() == b'aaaa'
