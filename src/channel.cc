@@ -198,8 +198,7 @@ int LuaSocket<T>::_post(const tll_msg_t *msg, int flags)
 	auto frame = luaT_tostringview(lua, -1);
 
 	this->_log.debug("Post {} + {} bytes of data", frame.size(), msg->size);
-	using iov_t = typename tll::channel::TcpSocket<T>::iov_t;
-	int r = this->template _sendv(iov_t(frame.data(), frame.size()), iov_t(msg->data, msg->size));
+	int r = this->template _sendv(frame, *msg);
 
 	lua_pop(lua, 1); // Pop result
 
@@ -245,7 +244,6 @@ int LuaSocket<T>::_pending()
 	this->rdone(frame_size + _pending_msg.size);
 	this->_dcaps_pending(this->template rdataT<char>(0, frame_size));
 	this->_callback_data(&_pending_msg);
-	this->rshift();
 	return 0;
 }
 
@@ -256,7 +254,8 @@ int LuaSocket<T>::_process(long timeout, int flags)
 	if (r != EAGAIN)
 		return r;
 
-	auto s = this->_recv(this->_rbuf.size() - this->_rsize);
+	this->_rbuf.shift();
+	auto s = this->_recv(this->_rbuf.available());
 	if (!s)
 		return EINVAL;
 	if (!*s)
