@@ -92,7 +92,7 @@ end
     while len(r) < 4:
         m = await c.recv(0.001)
         r.append(m)
-    assert [m.seq for m in r] == [4, 8, 12, 16]
+    assert [m.seq for m in r] == [0, 4, 8, 12]
 
 @asyncloop_run
 async def test_binary(asyncloop):
