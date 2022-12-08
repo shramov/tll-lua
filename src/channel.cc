@@ -167,8 +167,13 @@ int LuaCommon<T>::_open_lua()
 	LuaT<const tll_msg_t *>::init(lua);
 
 	std::string_view code = this->_common->code;
-	if (luaL_loadfile(lua, code.data()))
-		return this->_log.fail(EINVAL, "Failed to load file '{}': {}", code, lua_tostring(lua, -1));
+	if (code.substr(0, 7) == "file://") {
+		if (luaL_loadfile(lua, code.substr(7).data()))
+			return this->_log.fail(EINVAL, "Failed to load file '{}': {}", code, lua_tostring(lua, -1));
+	} else {
+		if (luaL_loadstring(lua, code.data()))
+			return this->_log.fail(EINVAL, "Failed to load source code '{}':\n{}", lua_tostring(lua, -1), code);
+	}
 
 	if (lua_pcall(lua, 0, 0, 0))
 		return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
