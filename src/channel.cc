@@ -27,19 +27,19 @@ class LuaTcp : public tll::channel::Base<LuaTcp>
 	int _init(const tll::Channel::Url &url, tll::Channel * master) { return _log.fail(EINVAL, "Failed to choose proper tcp channel"); }
 };
 
+struct Common
+{
+	std::unique_ptr<lua_State, decltype(&lua_close)> lua = { nullptr, lua_close };
+	size_t frame_size = 0;
+
+	std::string code;
+};
+
 template <typename T>
 class LuaCommon : public T
 {
  public:
 	static constexpr auto lua_hooks = false;
-
-	struct Common
-	{
-		std::unique_ptr<lua_State, decltype(&lua_close)> lua = { nullptr, lua_close };
-		size_t frame_size = 0;
-
-		std::string code;
-	};
 
 	std::shared_ptr<Common> _common;
 
@@ -117,8 +117,12 @@ class LuaTcpClient : public tll::channel::TcpClient<LuaTcpClient, LuaSocket<LuaT
 class ChLuaSocket : public LuaSocket<ChLuaSocket>
 {
  public:
+	using Base = LuaSocket<ChLuaSocket>;
+
 	static constexpr std::string_view param_prefix() { return "tcp"; }
 	static constexpr std::string_view impl_protocol() { return "tcp-socket-lua"; } // Only visible in logs
+
+	int _init(const tll::Channel::Url &url, tll::Channel *master);
 };
 
 class LuaTcpServer : public LuaCommon<tll::channel::TcpServer<LuaTcpServer, ChLuaSocket>>
@@ -128,7 +132,19 @@ class LuaTcpServer : public LuaCommon<tll::channel::TcpServer<LuaTcpServer, ChLu
 	static constexpr std::string_view impl_protocol() { return "tcp-server-lua"; } // Only visible in logs
 
 	static constexpr auto lua_hooks = true;
+
+	std::shared_ptr<Common> lua_common() { return _common; }
 };
+
+int ChLuaSocket::_init(const tll::Channel::Url &url, tll::Channel *master)
+{
+	auto server = tll::channel_cast<LuaTcpServer>(master);
+	if (!server)
+		return _log.fail(EINVAL, "Need tcp-lua server as master channel");
+	_common = server->lua_common();
+
+	return Base::_init(url, master);
+}
 
 std::optional<const tll_channel_impl_t *> LuaTcp::_init_replace(const tll::Channel::Url &url, tll::Channel *master)
 {
@@ -146,7 +162,7 @@ template <typename T>
 int LuaCommon<T>::_init_lua(const tll::Channel::Url &url, tll::Channel *master)
 {
 	auto reader = this->channel_props_reader(url);
-	auto code = reader.template getT<std::string>("lua.code");
+	auto code = reader.template getT<std::string>("code");
 	if (!reader)
 		return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 	_common.reset(new Common);

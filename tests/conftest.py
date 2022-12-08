@@ -3,12 +3,15 @@
 
 import pytest
 
+import decorator
 import os
 import pathlib
 import tempfile
 
+from tll import asynctll
 from tll.channel import Context
 import tll.logger
+
 tll.logger.init()
 
 version = tuple([int(x) for x in pytest.__version__.split('.')[:2]])
@@ -24,3 +27,10 @@ def context():
     ctx = Context()
     ctx.load(os.path.join(os.environ.get("BUILD_DIR", "build"), "tll-lua"), 'channel_module')
     return ctx
+
+@pytest.fixture
+def asyncloop(context):
+    loop = asynctll.Loop(context)
+    yield loop
+    loop.destroy()
+    loop = None

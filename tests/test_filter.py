@@ -4,16 +4,7 @@
 import decorator
 import pytest
 
-from tll.test_util import Accum
-from tll import asynctll
 from tll.config import Config
-
-@pytest.fixture
-def asyncloop(context):
-    loop = asynctll.Loop(context)
-    yield loop
-    loop.destroy()
-    loop = None
 
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
