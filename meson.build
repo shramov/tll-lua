@@ -35,3 +35,9 @@ if gtest.found()
 		)
 	)
 endif
+
+test('pytest', import('python').find_installation('python3')
+	, args: ['-m', 'pytest', '-v', 'tests']
+	, env: 'BUILD_DIR=@0@'.format(meson.current_build_dir())
+	, workdir: meson.current_source_dir()
+)
