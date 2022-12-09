@@ -3,11 +3,13 @@
 
 from tll import logger
 from tll.channel import Context
+from tll.chrono import TimePoint, Duration
 from tll.config import Config, Url
 from tll.processor import Loop
 
 import argparse
 import collections
+import decimal
 import enum
 import logging
 import os
@@ -158,6 +160,22 @@ if args.seq[0].type == Seq.Type.Count:
     skip = args.seq[0].value
 if args.seq[1].type == Seq.Type.Count:
     count = args.seq[1].value
+
+def decimal_representer(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:float', str(data))
+yaml.add_representer(decimal.Decimal, decimal_representer)
+
+def timepoint_representer(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', str(data))
+yaml.add_representer(TimePoint, timepoint_representer)
+
+def duration_representer(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', str(data))
+yaml.add_representer(Duration, duration_representer)
+
+def enum_representer(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data.name)
+yaml.add_multi_representer(enum.Enum, enum_representer)
 
 def format_data(c, msg):
     global skip, count
