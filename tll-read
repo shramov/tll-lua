@@ -36,7 +36,7 @@ parser.add_argument('--seq-list', dest='seq_list', type=lambda s: [int(x.strip()
                     help='limit output to seq list, conflicts with --message')
 parser.add_argument('--message', dest='messages', action='append',
                     help='filter by message name, conflicts with --seq-list')
-parser.add_argument('-E', '--extra-channel', dest='extra_channel', action='append', default=[],
+parser.add_argument('-E', '--extra-channel', dest='extra_channels', action='append', default=[],
                     help='extra channels')
 parser.add_argument('-M', '--master', dest='master',
                     help='master channel')
@@ -88,7 +88,7 @@ if args.config:
         if not hasattr(args, k):
             continue
         a = getattr(args, k)
-        if k in ('modules', 'messages'):
+        if k in ('modules', 'messages', 'extra_channels'):
             setattr(args, k, list(set(a + v),))
         elif not a:
             setattr(args, k, v)
@@ -105,9 +105,9 @@ def loop_stop(c, m):
         loop.stop = 1
 
 extra = []
-for url in args.extra_channel:
+for url in args.extra_channels:
     c = ctx.Channel(url)
-    c.callback_add(loop_stop, mask=master.MsgMask.State)
+    c.callback_add(loop_stop, mask=c.MsgMask.State)
     loop.add(c)
     extra += [c]
 
