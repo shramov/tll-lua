@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+# vim: sts=4 sw=4 et
+
+from tll import logger
+from tll.channel import Context
+from tll.config import Config, Url
+from tll.processor import Loop
+
+import argparse
+import collections
+import enum
+import logging
+import os
+import signal
+import sys
+import traceback
+import yaml
+
+parser = argparse.ArgumentParser(description='Read messages from channel')
+parser.add_argument('channel', metavar='CHANNEL', type=str,
+                    help='source channel')
+parser.add_argument('-l', '--loglevel', dest='loglevel', default='warning',
+                    help='logging level', choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'])
+parser.add_argument('-c', '--config', dest='config',
+                    help='load CONFIG for additional parameters, if CHANNEL is empty - take it from config')
+parser.add_argument('-S', '--scheme', metavar='SCHEME', type=str,
+                    help='scheme file')
+parser.add_argument('-m', '--module', dest='modules', action='append',
+                    default=[],
+                    help='additional channel modules')
+parser.add_argument('-f', '--filter', dest='filter',
+                    help='lua filter expression')
+parser.add_argument('--seq-list', dest='seq_list', type=lambda s: [int(x.strip()) for x in s.split(',')],
+                    help='limit output to seq list, conflicts with --message')
+parser.add_argument('--message', dest='messages', action='append',
+                    help='filter by message name, conflicts with --seq-list')
+parser.add_argument('-E', '--extra-channel', dest='extra_channel', action='append', default=[],
+                    help='extra channels')
+parser.add_argument('-M', '--master', dest='master',
+                    help='master channel')
+
+class SeqType(enum.Enum):
+    Nothing = 0
+    Seq = 1
+    Count = 2
+    Reverse = 3
+
+Seq = collections.namedtuple('Seq', ['type', 'value'])
+Seq.Type = SeqType
+
+def parseone(string):
+    if string == '':
+        return Seq(Seq.Type.Nothing, 0)
+    elif string.startswith('+'):
+        return Seq(Seq.Type.Count, int(string[1:]))
+    elif string.startswith('-'):
+        raise SystemExit(f"Negative slices are not supported: {string}")
+        return Seq(Seq.Type.Reverse, int(string[1:]))
+    return Seq(Seq.Type.Seq, int(string))
+
+def parseseq(string):
+    r = string.split(':')
+    if len(r) == 1:
+        return (parseone(r[0]), parseone(''))
+    elif len(r) == 2:
+        return (parseone(r[0]), parseone(r[1]))
+    else:
+        raise ValueError("Invalid seq format")
+
+parser.add_argument('-s', '--seq', dest='seq', type=parseseq,
+                    default=(parseone(''), parseone('')), metavar='BEGIN[:END]',
+                    help='seq limits')
+
+args, rest = parser.parse_known_args()
+
+logger.init()
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(name)s: %(message)s')
+logger.configure({'levels.tll': args.loglevel})
+
+if args.config:
+    cfg = yaml.safe_load(open(args.config))
+    c = cfg.pop('channel', None)
+    if c and not args.channel:
+        args.channel = c
+    for k,v in cfg.items():
+        if not hasattr(args, k):
+            continue
+        a = getattr(args, k)
+        if k in ('modules', 'messages'):
+            setattr(args, k, list(set(a + v),))
+        elif not a:
+            setattr(args, k, v)
+
+ctx = Context()
+for m in args.modules:
+    ctx.load(m, 'channel_module')
+loop = Loop(ctx)
+
+def loop_stop(c, m):
+    if m.type != m.Type.State:
+        return
+    if c.State(m.msgid) in (c.State.Closed, c.State.Error):
+        loop.stop = 1
+
+extra = []
+for url in args.extra_channel:
+    c = ctx.Channel(url)
+    c.callback_add(loop_stop, mask=master.MsgMask.State)
+    loop.add(c)
+    extra += [c]
+
+master = None
+if args.master:
+    master = ctx.Channel(args.master, name='master')
+    master.callback_add(loop_stop, mask=master.MsgMask.State)
+    loop.add(master)
+
+url = Url.parse(args.channel)
+if args.scheme:
+    url['scheme'] = args.scheme
+if 'name' not in url:
+    url['name'] = 'data'
+
+def build_code(args):
+    if not (args.filter or args.seq_list or args.filter):
+        return None
+    if args.filter and args.filter.startswith('file://'):
+        if args.seq_list or args.messages:
+            raise SystemExit("Conflicting file filter and seq-list or messages filter")
+        return args.filter
+    seq_list = ', '.join([f'[{i}] = true' for i in args.seq_list or []])
+    name_list = ', '.join([f'["{i}"] = true' for i in args.messages or []])
+    code = [f'''seq_list = {{{seq_list}}}
+name_list = {{{name_list}}}
+function luatll_filter(seq, name, data, msgid, addr, time)''']
+    if args.seq_list:
+        code += ['    if seq_list[seq] ~= true then return false end']
+    if args.messages:
+        code += ['    if name_list[name] ~= true then return false end']
+    if args.filter:
+        code += ['    return ' + args.filter]
+    else:
+        code += ['    return true']
+    code += ['end']
+    return '\n'.join(code)
+
+code = build_code(args)
+if code is not None:
+    if not ctx.has_impl('lua+'):
+        ctx.load('tll-lua', 'channel_module')
+    url.proto = 'lua+' + url.proto
+    url['lua.code'] = code
+
+# TODO: Move to lua
+count = -1
+skip = 0
+if args.seq[0].type == Seq.Type.Count:
+    skip = args.seq[0].value
+if args.seq[1].type == Seq.Type.Count:
+    count = args.seq[1].value
+
+def format_data(c, msg):
+    global skip, count
+    if skip != 0:
+        skip -= 1
+        return
+    if count == 0:
+        loop.stop = 1
+        return
+    count -= 1
+    s = c.scheme
+    #meta = collections.OrderedDict({'seq':msg.seq})
+    meta = {'seq':msg.seq}
+    if not s:
+        meta['msgid'] = msg.msgid
+        meta['data'] = msg.data.tobytes()
+    else:
+        m = s.unpack(msg)
+        meta['name'] = m.SCHEME.name
+        meta['data'] = m.as_dict()
+    print(yaml.dump([meta], sort_keys=False))
+
+channel = ctx.Channel(url, master=master)
+channel.callback_add(loop_stop, mask=channel.MsgMask.State)
+channel.callback_add(format_data, mask=channel.MsgMask.Data)
+loop.add(channel)
+
+for c in extra:
+    c.open()
+
+if master:
+    master.open()
+    while master.state != master.State.Active:
+        loop.step(1)
+
+cfg = Config()
+if args.seq[0].type == Seq.Type.Seq:
+    cfg['seq'] = str(args.seq[0].value)
+channel.open(cfg)
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+loop.run(1)
