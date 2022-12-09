@@ -16,3 +16,9 @@ Multi-Arch: same
 Description: Lua filter channel for TLL
  Package containes Lua filtering channel and tcp server/client with
  Lua defined frame
+
+Package: tll-read
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, libtll-lua (= ${binary:Version}), python3-tll, python3-yaml
+Pre-Depends: ${misc:Pre-Depends}
+Description: Script for reading messages from TLL channels
