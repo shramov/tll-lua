@@ -56,7 +56,6 @@ def parseone(string):
     elif string.startswith('+'):
         return Seq(Seq.Type.Count, int(string[1:]))
     elif string.startswith('-'):
-        raise SystemExit(f"Negative slices are not supported: {string}")
         return Seq(Seq.Type.Reverse, int(string[1:]))
     return Seq(Seq.Type.Seq, int(string))
 
@@ -74,6 +73,8 @@ parser.add_argument('-s', '--seq', dest='seq', type=parseseq,
                     help='seq limits')
 
 args, rest = parser.parse_known_args()
+if args.seq[1].type == Seq.Type.Reverse:
+    raise SystemExit(f"Negative index not supported for second position: --seq XXX:-{args.seq[1].value}")
 
 logger.init()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(name)s: %(message)s')
@@ -207,7 +208,6 @@ def format_data(c, msg):
 
 channel = ctx.Channel(url, master=master)
 channel.callback_add(loop_stop, mask=channel.MsgMask.State)
-channel.callback_add(format_data, mask=channel.MsgMask.Data)
 loop.add(channel)
 
 for c in extra:
@@ -221,6 +221,19 @@ if master:
 cfg = Config()
 if args.seq[0].type == Seq.Type.Seq:
     cfg['seq'] = str(args.seq[0].value)
+
+if args.seq[0].type == Seq.Type.Reverse:
+    channel.open()
+    while channel.state == channel.State.Opening:
+        loop.step(0.001)
+    last = channel.config.get('seq', None)
+    if not last:
+        raise SystemExit("Channel has not 'seq' field in config")
+    cfg['seq'] = str(int(last) - args.seq[0].value)
+    channel.close()
+    loop.stop = 0
+
+channel.callback_add(format_data, mask=channel.MsgMask.Data)
 channel.open(cfg)
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
