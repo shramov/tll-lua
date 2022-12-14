@@ -168,6 +168,12 @@ if args.seq[0].type == Seq.Type.Count:
 if args.seq[1].type == Seq.Type.Count:
     count = args.seq[1].value
 
+def bytearray_representer(dumper, data):
+    if all([x < 0x80 for x in data]):
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data.decode('ascii'))
+    return dumper.represent_binary(data)
+yaml.add_representer(bytearray, bytearray_representer)
+
 def decimal_representer(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:float', str(data))
 yaml.add_representer(decimal.Decimal, decimal_representer)
