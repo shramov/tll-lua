@@ -40,6 +40,8 @@ parser.add_argument('-E', '--extra-channel', dest='extra_channels', action='appe
                     help='extra channels')
 parser.add_argument('-M', '--master', dest='master',
                     help='master channel')
+parser.add_argument('--dump-code', dest='dump_code', action='store_true', default=False,
+                    help='dump generated lua filter code')
 
 class SeqType(enum.Enum):
     Nothing = 0
@@ -125,7 +127,7 @@ if 'name' not in url:
     url['name'] = 'data'
 
 def build_code(args):
-    if not (args.filter or args.seq_list or args.filter):
+    if not (args.messages or args.seq_list or args.filter):
         return None
     if args.filter and args.filter.startswith('file://'):
         if args.seq_list or args.messages:
@@ -148,6 +150,10 @@ function luatll_filter(seq, name, data, msgid, addr, time)''']
     return '\n'.join(code)
 
 code = build_code(args)
+if args.dump_code:
+    print(code or '')
+    sys.exit(0)
+
 if code is not None:
     if not ctx.has_impl('lua+'):
         ctx.load('tll-lua', 'channel_module')
