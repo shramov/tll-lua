@@ -72,7 +72,7 @@ parser.add_argument('-s', '--seq', dest='seq', type=parseseq,
                     default=(parseone(''), parseone('')), metavar='BEGIN[:END]',
                     help='seq limits')
 
-args, rest = parser.parse_known_args()
+args = parser.parse_args()
 if args.seq[1].type == Seq.Type.Reverse:
     raise SystemExit(f"Negative index not supported for second position: --seq XXX:-{args.seq[1].value}")
 
