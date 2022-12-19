@@ -194,6 +194,9 @@ def enum_representer(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data.name)
 yaml.add_multi_representer(enum.Enum, enum_representer)
 
+# Don't generate aliases
+yaml.Dumper.ignore_aliases = lambda *args: True
+
 def format_data(c, msg):
     global skip, count
     if skip != 0:
