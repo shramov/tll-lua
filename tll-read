@@ -211,7 +211,7 @@ def format_data(c, msg):
             m = s.unpack(msg)
             meta['name'] = m.SCHEME.name
             meta['data'] = m.as_dict()
-        print(yaml.dump([meta], sort_keys=False))
+        print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
     except Exception as e:
         print("Failed to process message")
         import traceback
