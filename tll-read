@@ -27,20 +27,24 @@ parser.add_argument('-c', '--config', dest='config',
                     help='load CONFIG for additional parameters, if CHANNEL is empty - take it from config')
 parser.add_argument('-S', '--scheme', metavar='SCHEME', type=str,
                     help='scheme file')
-parser.add_argument('-m', '--module', dest='modules', action='append',
+
+channels = parser.add_argument_group('Channel options')
+channels.add_argument('-m', '--module', dest='modules', action='append',
                     default=[],
                     help='additional channel modules')
-parser.add_argument('-f', '--filter', dest='filter',
-                    help='lua filter expression')
-parser.add_argument('--seq-list', dest='seq_list', type=lambda s: [int(x.strip()) for x in s.split(',')],
-                    help='limit output to seq list, conflicts with --message')
-parser.add_argument('--message', dest='messages', action='append',
-                    help='filter by message name, conflicts with --seq-list')
-parser.add_argument('-E', '--extra-channel', dest='extra_channels', action='append', default=[],
+channels.add_argument('-E', '--extra-channel', dest='extra_channels', action='append', default=[],
                     help='extra channels')
-parser.add_argument('-M', '--master', dest='master',
+channels.add_argument('-M', '--master', dest='master',
                     help='master channel')
-parser.add_argument('--dump-code', dest='dump_code', action='store_true', default=False,
+
+filtering = parser.add_argument_group('Filtering')
+filtering.add_argument('-f', '--filter', dest='filter',
+                    help='lua filter expression')
+filtering.add_argument('--seq-list', dest='seq_list', type=lambda s: [int(x.strip()) for x in s.split(',')],
+                    help='limit output to seq list, conflicts with --message')
+filtering.add_argument('--message', dest='messages', action='append',
+                    help='filter by message name, conflicts with --seq-list')
+filtering.add_argument('--dump-code', dest='dump_code', action='store_true', default=False,
                     help='dump generated lua filter code')
 
 class SeqType(enum.Enum):
