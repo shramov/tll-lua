@@ -84,7 +84,7 @@ if args.seq[1].type == Seq.Type.Reverse:
 
 logger.init()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(name)s: %(message)s')
-logger.configure({'levels.''': args.loglevel})
+logger.configure({'levels.""': args.loglevel})
 
 if args.config:
     cfg = yaml.safe_load(open(args.config))
@@ -131,7 +131,7 @@ if 'name' not in url:
     url['name'] = 'data'
 
 def build_code(args):
-    if not (args.messages or args.seq_list or args.filter):
+    if not (args.messages or args.seq_list or args.filter or args.dump_code):
         return None
     if args.filter and args.filter.startswith('file://'):
         if args.seq_list or args.messages:
