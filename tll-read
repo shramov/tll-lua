@@ -83,7 +83,7 @@ if args.seq[1].type == Seq.Type.Reverse:
 
 logger.init()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(name)s: %(message)s')
-logger.configure({'levels.""': args.loglevel})
+logger.configure({'levels.*': args.loglevel})
 
 if args.config:
     cfg = yaml.safe_load(open(args.config))
