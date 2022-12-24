@@ -138,15 +138,11 @@ def build_code(args):
         return 'file://' + args.filter_file
     if not (args.messages or args.seq_list or args.filter or args.dump_code):
         return None
-    seq_list = ', '.join([f'[{i}] = true' for i in args.seq_list or []])
-    name_list = ', '.join([f'["{i}"] = true' for i in args.messages or []])
-    code = [f'''seq_list = {{{seq_list}}}
-name_list = {{{name_list}}}
-function luatll_filter(seq, name, data, msgid, addr, time)''']
+    code = [f'''function luatll_filter(seq, name, data, msgid, addr, time)''']
     if args.seq_list:
-        code += ['    if seq_list[seq] ~= true then return false end']
+        code += ['    if ' + ' and '.join(f'seq ~= {s}' for s in args.seq_list) + ' then return false end']
     if args.messages:
-        code += ['    if name_list[name] ~= true then return false end']
+        code += ['    if ' + ' and '.join(f'name ~= "{n}"' for s in args.messages) + ' then return false end']
     if args.filter:
         code += ['    return ' + args.filter]
     else:
