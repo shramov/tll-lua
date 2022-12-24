@@ -39,6 +39,8 @@ channels.add_argument('-M', '--master', dest='master',
 filtering = parser.add_argument_group('Filtering')
 filtering.add_argument('-f', '--filter', dest='filter',
                     help='lua filter expression')
+filtering.add_argument('-F', '--filter-file', dest='filter_file', metavar='FILE',
+                    help='lua file with filter script')
 filtering.add_argument('--seq-list', dest='seq_list', type=lambda s: [int(x.strip()) for x in s.split(',')],
                     help='limit output to seq list, conflicts with --message')
 filtering.add_argument('--message', dest='messages', action='append',
@@ -130,12 +132,12 @@ if 'name' not in url:
     url['name'] = 'data'
 
 def build_code(args):
+    if args.filter_file:
+        if args.seq_list or args.messages or args.filter:
+            raise SystemExit("Conflicting script file and custom filters")
+        return 'file://' + args.filter_file
     if not (args.messages or args.seq_list or args.filter or args.dump_code):
         return None
-    if args.filter and args.filter.startswith('file://'):
-        if args.seq_list or args.messages:
-            raise SystemExit("Conflicting file filter and seq-list or messages filter")
-        return args.filter
     seq_list = ', '.join([f'[{i}] = true' for i in args.seq_list or []])
     name_list = ', '.join([f'["{i}"] = true' for i in args.messages or []])
     code = [f'''seq_list = {{{seq_list}}}
