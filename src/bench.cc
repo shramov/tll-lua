@@ -40,6 +40,23 @@ function call_meta_get(msg)
 	return msg.size
 end
 
+function call_meta_get_sum(msg)
+	return msg.size + msg.size
+end
+
+function call_meta_get_sum_var(msg)
+	tmp = msg.size
+	return tmp + tmp
+end
+
+function call_meta_get_sum_func(msg)
+	return call_sum(msg.size)
+end
+
+function call_sum(a0)
+	return a0 + a0
+end
+
 function call0()
 	return 10
 end
@@ -54,6 +71,14 @@ end
 
 function call10(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9)
 	return a5
+end
+
+function call_call1(a0)
+	return call1(a0)
+end
+
+function call_call_call1(a0)
+	return call_call1(a0)
 end
 )";
 
@@ -144,8 +169,14 @@ int call_meta(lua_State *lua, std::string_view name, tll_msg_t &msg)
 	return msg.size - r;
 }
 
-constexpr const char * call_name(size_t s)
+enum Tag { Default, CallCall1, CallCallCall1 };
+constexpr const char * call_name(size_t s, Tag tag)
 {
+	switch (tag) {
+	case Tag::CallCall1: return "call_call1";
+	case Tag::CallCallCall1: return "call_call_call1";
+	case Tag::Default: break;
+	}
 	switch (s) {
 	case 0: return "call0";
 	case 1: return "call1";
@@ -157,10 +188,10 @@ constexpr const char * call_name(size_t s)
 	return "unknown";
 }
 
-template <size_t Size>
+template <size_t Size, Tag T = Tag::Default>
 int callT(lua_State *lua, int x)
 {
-	lua_getglobal(lua, call_name(Size));
+	lua_getglobal(lua, call_name(Size, T));
 	x++;
 	for (auto i = 0u; i < Size; i++)
 		lua_pushinteger(lua, x);
@@ -185,8 +216,15 @@ int bench_call(tll::Logger &log)
 	tll::bench::timeit(count, "call1", callT<1>, lua, x); x = 0;
 	tll::bench::timeit(count, "call5", callT<5>, lua, x); x = 0;
 	tll::bench::timeit(count, "call10", callT<10>, lua, x); x = 0;
+	tll::bench::timeit(count, "call1", callT<1>, lua, x); x = 0;
+	tll::bench::timeit(count, "call(call1)", callT<1, Tag::CallCall1>, lua, x); x = 0;
+	tll::bench::timeit(count, "call(call(call1))", callT<1, Tag::CallCallCall1>, lua, x); x = 0;
+	tll::bench::timeit(count, "call10", callT<10>, lua, x); x = 0;
 	tll::bench::timeit(count, "meta", call_meta, lua, "call_meta", msg);
 	tll::bench::timeit(count, "meta.get", call_meta, lua, "call_meta_get", msg);
+	tll::bench::timeit(count, "meta.get + meta.get", call_meta, lua, "call_meta_get_sum", msg);
+	tll::bench::timeit(count, "sum(meta.get)", call_meta, lua, "call_meta_get_sum_func", msg);
+	tll::bench::timeit(count, "var meta.get", call_meta, lua, "call_meta_get_sum_var", msg);
 
 	return 0;
 }
