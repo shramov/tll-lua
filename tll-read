@@ -203,11 +203,6 @@ def format_data(c, msg):
     if skip != 0:
         skip -= 1
         return
-    if count == 0:
-        loop.stop = 1
-        return
-    count -= 1
-
     try:
         s = c.scheme
         #meta = collections.OrderedDict({'seq':msg.seq})
@@ -224,6 +219,11 @@ def format_data(c, msg):
         print("Failed to process message")
         traceback.print_exc()
         loop.stop = 1
+
+    count -= 1
+    if count == 0:
+        loop.stop = 1
+
 
 channel = ctx.Channel(url, master=master)
 channel.callback_add(loop_stop, mask=channel.MsgMask.State)
