@@ -26,6 +26,8 @@ parser.add_argument('-c', '--config', dest='config',
                     help='load CONFIG for additional parameters, if CHANNEL is empty - take it from config')
 parser.add_argument('-S', '--scheme', metavar='SCHEME', type=str,
                     help='scheme file')
+parser.add_argument('--no-autoclose', dest='autoclose', action='store_false', default=True,
+                    help='do not autoclose channel')
 
 channels = parser.add_argument_group('Channel options')
 channels.add_argument('-m', '--module', dest='modules', action='append',
@@ -130,6 +132,8 @@ if args.scheme:
     url['scheme'] = args.scheme
 if 'name' not in url:
     url['name'] = 'data'
+if 'autoclose' not in url and args.autoclose:
+    url['autoclose'] = 'yes'
 
 def build_code(args):
     if args.filter_file:
