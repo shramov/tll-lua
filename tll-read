@@ -28,6 +28,8 @@ parser.add_argument('-S', '--scheme', metavar='SCHEME', type=str,
                     help='scheme file')
 parser.add_argument('--no-autoclose', dest='autoclose', action='store_false', default=True,
                     help='do not autoclose channel')
+parser.add_argument('--ignore-errors', dest='ignore_errors', action='store_true', default=False,
+                    help="Skip messages that can not be unpacked")
 
 channels = parser.add_argument_group('Channel options')
 channels.add_argument('-m', '--module', dest='modules', action='append',
@@ -203,10 +205,11 @@ def format_data(c, msg):
     if skip != 0:
         skip -= 1
         return
+
+    meta = {'seq':msg.seq}
     try:
         s = c.scheme
         #meta = collections.OrderedDict({'seq':msg.seq})
-        meta = {'seq':msg.seq}
         if not s:
             meta['msgid'] = msg.msgid
             meta['data'] = msg.data.tobytes()
@@ -215,10 +218,16 @@ def format_data(c, msg):
             meta['name'] = m.SCHEME.name
             meta['data'] = m.as_dict()
         print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
-    except Exception:
-        print("Failed to process message")
-        traceback.print_exc()
-        loop.stop = 1
+    except Exception as e:
+        if args.ignore_errors:
+            meta['msgid'] = msg.msgid
+            meta['error'] = f'Failed to unpack message: {e}'
+            meta['data'] = msg.data.tobytes()
+            print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
+        else:
+            print("Failed to process message")
+            traceback.print_exc()
+            loop.stop = 1
 
     count -= 1
     if count == 0:
