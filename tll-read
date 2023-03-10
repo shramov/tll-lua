@@ -245,9 +245,9 @@ if args.seq[0].type == Seq.Type.Reverse:
     channel.open()
     while channel.state == channel.State.Opening:
         loop.step(0.001)
-    last = channel.config.get('seq', None)
+    last = channel.config.get('info.seq', None)
     if not last:
-        raise SystemExit("Channel has not 'seq' field in config")
+        raise SystemExit("Channel has no 'info.seq' field in config")
     cfg['seq'] = str(int(last) - args.seq[0].value)
     channel.close()
     loop.stop = 0
