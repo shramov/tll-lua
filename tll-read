@@ -30,6 +30,8 @@ parser.add_argument('--no-autoclose', dest='autoclose', action='store_false', de
                     help='do not autoclose channel')
 parser.add_argument('--ignore-errors', dest='ignore_errors', action='store_true', default=False,
                     help="Skip messages that can not be unpacked")
+parser.add_argument('--hex', dest='hexdump', action='store_true', default=False,
+                    help="Print hex dump for all messages")
 
 channels = parser.add_argument_group('Channel options')
 channels.add_argument('-m', '--module', dest='modules', action='append',
@@ -197,8 +199,22 @@ def enum_representer(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data.name)
 yaml.add_multi_representer(enum.Enum, enum_representer)
 
+class LiteralString(str):
+    pass
+def literal_representer(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', str(data), style='|')
+yaml.add_representer(LiteralString, literal_representer)
+
 # Don't generate aliases
 yaml.Dumper.ignore_aliases = lambda *args: True
+
+def hexdump(data):
+    r = []
+    for i in range(0, len(data), 16):
+        b = data[i : i + 16]
+        parts = ["".join(f"{x:02x} " for x in b[4 * j:4 * j + 4]) for j in range(4)]
+        printable = "".join(chr(x) if 32 <= x < 127 else "." for x in b)
+        yield f"{i:08x}:  {parts[0]:12} {parts[1]:12} {parts[2]:12} {parts[3]:12} {printable}"
 
 def format_data(c, msg):
     global skip, count
@@ -217,12 +233,16 @@ def format_data(c, msg):
             m = s.unpack(msg)
             meta['name'] = m.SCHEME.name
             meta['data'] = m.as_dict()
+        if args.hexdump:
+            meta['hex'] = LiteralString('\n'.join(hexdump(msg.data)))
         print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
     except Exception as e:
         if args.ignore_errors:
             meta['msgid'] = msg.msgid
             meta['error'] = f'Failed to unpack message: {e}'
             meta['data'] = msg.data.tobytes()
+            if args.hexdump:
+                meta['hex'] = LiteralString('\n'.join(hexdump(msg.data)))
             print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
         else:
             print("Failed to process message")
