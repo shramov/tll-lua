@@ -19,7 +19,7 @@ from tll.processor import Loop
 
 parser = argparse.ArgumentParser(description='Read messages from channel')
 parser.add_argument('channel', metavar='CHANNEL', type=str,
-                    help='source channel')
+                    help='source channel, if proto:// is missing treat as file://CHANNEL')
 parser.add_argument('-l', '--loglevel', dest='loglevel', default='warning',
                     help='logging level', choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'])
 parser.add_argument('-c', '--config', dest='config',
@@ -130,6 +130,9 @@ if args.master:
     master = ctx.Channel(args.master, name='master')
     master.callback_add(loop_stop, mask=master.MsgMask.State)
     loop.add(master)
+
+if '://' not in args.channel:
+    args.channel = 'file://' + args.channel
 
 url = Url.parse(args.channel)
 if args.scheme:
