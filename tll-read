@@ -109,7 +109,7 @@ if args.config:
 
 ctx = Context()
 for m in args.modules:
-    ctx.load(m, 'channel_module')
+    ctx.load(m)
 loop = Loop(ctx)
 
 def loop_stop(c, m):
