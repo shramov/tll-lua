@@ -131,6 +131,8 @@ class LuaTcpServer : public LuaCommon<tll::channel::TcpServer<LuaTcpServer, ChLu
 	static constexpr std::string_view param_prefix() { return "tcp"; }
 	static constexpr std::string_view impl_protocol() { return "tcp-server-lua"; } // Only visible in logs
 
+	static constexpr auto socket_impl_policy() { return SocketImplPolicy::Fixed; }
+
 	static constexpr auto lua_hooks = true;
 
 	std::shared_ptr<Common> lua_common() { return _common; }
