@@ -25,7 +25,7 @@ if version < (3, 9):
 @pytest.fixture
 def context():
     ctx = Context()
-    ctx.load(os.path.join(os.environ.get("BUILD_DIR", "build"), "tll-lua"), 'channel_module')
+    ctx.load(os.path.join(os.environ.get("BUILD_DIR", "build"), "tll-lua"))
     return ctx
 
 @pytest.fixture
