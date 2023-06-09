@@ -78,7 +78,7 @@ int LuaFilter::_on_data(const tll_msg_t *msg)
 {
 	tll::scheme::Message * message = nullptr;
 	lua_getglobal(_lua, "luatll_filter");
-	lua_pushnumber(_lua, msg->seq);
+	lua_pushinteger(_lua, msg->seq);
 	if (_scheme) {
 		for (message = _scheme->messages; message; message = message->next) {
 			if (message->msgid == msg->msgid)
@@ -92,9 +92,9 @@ int LuaFilter::_on_data(const tll_msg_t *msg)
 		lua_pushnil(_lua);
 		lua_pushlstring(_lua, (const char *) msg->data, msg->size);
 	}
-	lua_pushnumber(_lua, msg->msgid);
-	lua_pushnumber(_lua, msg->addr.i64);
-	lua_pushnumber(_lua, msg->time);
+	lua_pushinteger(_lua, msg->msgid);
+	lua_pushinteger(_lua, msg->addr.i64);
+	lua_pushinteger(_lua, msg->time);
 	//luaT_push(_lua, msg);
 	if (lua_pcall(_lua, 6, 1, 0)) {
 		_log.warning("Lua filter failed for {}:{}: {}", message ? message->name : "", msg->seq, lua_tostring(_lua, -1));
