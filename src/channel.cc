@@ -6,6 +6,7 @@
  */
 
 #include "filter.h"
+#include "measure.h"
 
 #include <tll/channel/module.h>
 #include <tll/channel/tcp.h>
@@ -294,5 +295,6 @@ TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
 
 TLL_DEFINE_IMPL(LuaTcp);
 TLL_DEFINE_IMPL(LuaFilter);
+TLL_DEFINE_IMPL(measure::LuaMeasure);
 
-TLL_DEFINE_MODULE(LuaTcp, LuaFilter);
+TLL_DEFINE_MODULE(LuaTcp, LuaFilter, measure::LuaMeasure);
