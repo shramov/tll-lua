@@ -31,6 +31,7 @@ class LuaMeasure : public tll::channel::Tagged<LuaMeasure, Input, Output>
  public:
 	static constexpr std::string_view channel_protocol() { return "lua-measure"; }
 	static constexpr auto open_policy() { return OpenPolicy::Manual; }
+	static constexpr auto scheme_policy() { return SchemePolicy::Manual; }
 
 	struct StatType : public Base::StatType
 	{

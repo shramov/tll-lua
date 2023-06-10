@@ -2,6 +2,15 @@
 
 using namespace measure;
 
+static constexpr std::string_view data_scheme = R"(yamls://
+- name: Time
+  id: 10
+  fields:
+    - {name: time, type: int64, options.type: duration, options.resolution: ns}
+)";
+
+static constexpr int time_msgid = 10;
+
 int LuaMeasure::_init(const tll::Channel::Url &url, tll::Channel *master)
 {
 	auto reader = channel_props_reader(url);
@@ -25,6 +34,10 @@ int LuaMeasure::_init(const tll::Channel::Url &url, tll::Channel *master)
 
 	if (auto count = _channels.get<Input>().size(); count != 1)
 		return _log.fail(EINVAL, "Need exactly one input, got {}", count);
+
+	_scheme.reset(context().scheme_load(data_scheme));
+	if (!_scheme.get())
+		return _log.fail(EINVAL, "Failed to load scheme");
 
 	return Base::_init(url, master);
 }
@@ -188,7 +201,7 @@ int LuaMeasure::callback_tag(TaggedChannel<Output> * c, const tll_msg_t *msg)
 
 int LuaMeasure::_report(long long seq, long long req, long long resp)
 {
-	auto dt = resp - req;
+	int64_t dt = resp - req;
 	_log.info("TIME: RTT {}: {}ns", seq, dt);
 	auto stat = this->stat();
 	if (stat) {
@@ -198,5 +211,11 @@ int LuaMeasure::_report(long long seq, long long req, long long resp)
 			stat->release(page);
 		}
 	}
+	tll_msg_t msg = { TLL_MESSAGE_DATA };
+	msg.data = &dt;
+	msg.size = sizeof(dt);
+	msg.msgid = time_msgid;
+	msg.seq = seq;
+	_callback_data(&msg);
 	return 0;
 }
