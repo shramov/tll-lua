@@ -1,15 +1,7 @@
 #include "measure.h"
+#include "quantile.h"
 
 using namespace tll::lua;
-
-static constexpr std::string_view data_scheme = R"(yamls://
-- name: Time
-  id: 10
-  fields:
-    - {name: time, type: int64, options.type: duration, options.resolution: ns}
-)";
-
-static constexpr int time_msgid = 10;
 
 int LuaMeasure::_init(const tll::Channel::Url &url, tll::Channel *master)
 {
@@ -34,7 +26,7 @@ int LuaMeasure::_init(const tll::Channel::Url &url, tll::Channel *master)
 	if (auto count = _channels.get<Input>().size(); count != 1)
 		return _log.fail(EINVAL, "Need exactly one input, got {}", count);
 
-	_scheme.reset(context().scheme_load(data_scheme));
+	_scheme.reset(context().scheme_load(quantile_scheme::scheme_string));
 	if (!_scheme.get())
 		return _log.fail(EINVAL, "Failed to load scheme");
 
@@ -187,9 +179,13 @@ int LuaMeasure::_report(long long seq, long long req, long long resp)
 		}
 	}
 	tll_msg_t msg = { TLL_MESSAGE_DATA };
-	msg.data = &dt;
-	msg.size = sizeof(dt);
-	msg.msgid = time_msgid;
+	std::array<char, quantile_scheme::Data::meta_size()> buf = {};
+	auto data = quantile_scheme::Data::bind(buf);
+	data.set_value(dt);
+
+	msg.data = buf.data();
+	msg.size = buf.size();
+	msg.msgid = data.meta_id();
 	msg.seq = seq;
 	_callback_data(&msg);
 	return 0;

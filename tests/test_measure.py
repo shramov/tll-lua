@@ -6,7 +6,6 @@ import pytest
 
 from tll.config import Config
 from tll.test_util import Accum
-from tll.chrono import Duration
 
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
@@ -37,7 +36,7 @@ def test(context):
     o = context.Channel('direct://;name=output', **{'scheme-control': CONTROL})
     oc = context.Channel('direct://;name=output-client', master=o, **{'scheme-control': CONTROL})
 
-    measure = Accum('lua-measure://;name=lua;tll.channel.input=input;tll.channel.output=output;open-mode=lua', context=context, code = f'''
+    measure = Accum('lua-measure://;name=lua;tll.channel.input=input;tll.channel.output=output;open-mode=lua', context=context, dump='yes', code = f'''
 function luatll_on_data(seq, name, data)
     if name == 'Activate' then
         return 'active', -1
@@ -59,7 +58,7 @@ end
     assert measure.state == measure.State.Opening
 
     assert measure.scheme != None
-    assert [m.name for m in measure.scheme.messages] == ['Time']
+    assert [m.name for m in measure.scheme.messages] == ['Data']
 
     oc.post({'time': 100}, seq=10, name='Time', type=oc.Type.Control)
     ic.post({}, name='Activate')
@@ -71,7 +70,7 @@ end
     ic.post({'seq': 10}, time=200, name='Data')
 
     assert [(m.type, m.seq) for m in measure.result] == [(measure.Type.Data, 10)]
-    assert measure.unpack(measure.result[0]).as_dict() == {'time': Duration(100, 'ns')}
+    assert measure.unpack(measure.result[0]).as_dict() == {'name': '', 'value': 100}
 
     ic.post({}, name='Done')
     assert measure.state == measure.State.Closed
