@@ -3,18 +3,17 @@
 
 #include <tll/channel/tagged.h>
 
-#include "luat.h"
-#include "reflection.h"
+#include "common.h"
 
-namespace measure {
+namespace tll::lua {
 
 using tll::channel::Input;
 using tll::channel::Output;
 using tll::channel::TaggedChannel;
 
-class LuaMeasure : public tll::channel::Tagged<LuaMeasure, Input, Output>
+class LuaMeasure : public LuaCommon<LuaMeasure, tll::channel::Tagged<LuaMeasure, Input, Output>>
 {
-	using Base = tll::channel::Tagged<LuaMeasure, Input, Output>;
+	using Base = LuaCommon<LuaMeasure, tll::channel::Tagged<LuaMeasure, Input, Output>>;
 
 	std::map<long long, long long> _response_time; // seq -> timestamp
 	std::map<long long, long long> _request_time; // seq -> timestamp
@@ -23,10 +22,6 @@ class LuaMeasure : public tll::channel::Tagged<LuaMeasure, Input, Output>
 
 	int _output_time_msgid = -1;
 
-	lua_State * _lua = nullptr;
-	unique_lua_ptr_t _ptr = { nullptr, lua_close };
-
-	std::string _code;
 	bool _manual_open = false;
  public:
 	static constexpr std::string_view channel_protocol() { return "lua-measure"; }
@@ -49,6 +44,6 @@ class LuaMeasure : public tll::channel::Tagged<LuaMeasure, Input, Output>
 	int _report(long long seq, long long req, long long resp);
 };
 
-} // namespace measure
+} // namespace tll::lua
 
 #endif//_LUAMEASURE_H

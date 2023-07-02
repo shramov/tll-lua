@@ -295,6 +295,6 @@ TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
 
 TLL_DEFINE_IMPL(LuaTcp);
 TLL_DEFINE_IMPL(LuaFilter);
-TLL_DEFINE_IMPL(measure::LuaMeasure);
+TLL_DEFINE_IMPL(tll::lua::LuaMeasure);
 
-TLL_DEFINE_MODULE(LuaTcp, LuaFilter, measure::LuaMeasure);
+TLL_DEFINE_MODULE(LuaTcp, LuaFilter, tll::lua::LuaMeasure);

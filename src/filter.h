@@ -8,24 +8,16 @@
 #ifndef _TLL_LUA_FILTER_H
 #define _TLL_LUA_FILTER_H
 
-#include "luat.h"
-#include "reflection.h"
+#include "common.h"
 
 #include <tll/channel/prefix.h>
 
-class LuaFilter : public tll::channel::Prefix<LuaFilter>
+class LuaFilter : public tll::lua::LuaCommon<LuaFilter, tll::channel::Prefix<LuaFilter>>
 {
-	using Base = tll::channel::Prefix<LuaFilter>;
+	using Base = tll::lua::LuaCommon<LuaFilter, tll::channel::Prefix<LuaFilter>>;
 
-	std::string _code;
-
-	unique_lua_ptr_t _ptr = { nullptr, lua_close };
-	lua_State * _lua = nullptr;
 public:
 	static constexpr std::string_view channel_protocol() { return "lua+"; }
-	static constexpr auto process_policy() { return ProcessPolicy::Never; }
-
-	int _init(const tll::Channel::Url &url, tll::Channel *master);
 
 	int _open(const tll::ConstConfig &props);
 	int _close(bool force);

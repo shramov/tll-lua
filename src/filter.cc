@@ -7,54 +7,21 @@
 
 #include "filter.h"
 
-int LuaFilter::_init(const tll::Channel::Url &url, tll::Channel *master)
-{
-	auto reader = this->channel_props_reader(url);
-	_code = reader.template getT<std::string>("code");
-	if (!reader)
-		return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
-
-	return Base::_init(url, master);
-}
-
 int LuaFilter::_open(const tll::ConstConfig &props)
 {
-	unique_lua_ptr_t lua_ptr(luaL_newstate(), lua_close);
-	auto lua = lua_ptr.get();
-	if (!lua)
-		return _log.fail(EINVAL, "Failed to create lua state");
+	if (auto r = _lua_open(); r)
+		return r;
 
-	luaL_openlibs(lua);
-	LuaT<reflection::Array>::init(lua);
-	LuaT<reflection::Message>::init(lua);
-	LuaT<reflection::Union>::init(lua);
-	LuaT<reflection::Bits>::init(lua);
-
-	if (_code.substr(0, 7) == "file://") {
-		if (luaL_loadfile(lua, _code.substr(7).c_str()))
-			return this->_log.fail(EINVAL, "Failed to load file '{}': {}", _code, lua_tostring(lua, -1));
-	} else {
-		if (luaL_loadstring(lua, _code.c_str()))
-			return this->_log.fail(EINVAL, "Failed to load source code '{}':\n{}", lua_tostring(lua, -1), _code);
-	}
-
-	if (lua_pcall(lua, 0, 0, 0))
-		return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
-
-	lua_getglobal(lua, "luatll_filter");
-	if (!lua_isfunction(lua, -1))
+	lua_getglobal(_lua, "luatll_filter");
+	if (!lua_isfunction(_lua, -1))
 		return _log.fail(EINVAL, "Function luatll_filter not defined");
-	lua_pop(lua, 1);
+	lua_pop(_lua, 1);
 
-	lua_getglobal(lua, "luatll_open");
-	if (lua_isfunction(lua, -1)) {
-		if (lua_pcall(lua, 0, 0, 0))
-			return _log.fail(EINVAL, "Lua open (luatll_open) failed: {}", lua_tostring(lua, -1));
+	lua_getglobal(_lua, "luatll_open");
+	if (lua_isfunction(_lua, -1)) {
+		if (lua_pcall(_lua, 0, 0, 0))
+			return _log.fail(EINVAL, "Lua open (luatll_open) failed: {}", lua_tostring(_lua, -1));
 	}
-
-
-	_ptr.reset(lua_ptr.release());
-	_lua = _ptr.get();
 
 	return Base::_open(props);
 }
@@ -69,8 +36,6 @@ int LuaFilter::_close(bool force)
 		}
 	}
 
-	_ptr.reset();
-	_lua = nullptr;
 	return Base::_close(force);
 }
 
