@@ -58,8 +58,10 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::st
 	lua_pushinteger(_lua, msg->seq);
 	if (scheme) {
 		auto message = scheme->lookup(msg->msgid);
-		if (!message)
+		if (!message) {
+			lua_settop(_lua, 0);
 			return _log.fail(ENOENT, "Message {} not found", msg->msgid);
+		}
 		name = message->name;
 		lua_pushstring(_lua, message->name);
 		luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
@@ -73,10 +75,10 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::st
 	//luaT_push(_lua, msg);
 	if (lua_pcall(_lua, 6, 1, 0)) {
 		_log.warning("Lua function {} failed for {}:{}: {}", func, name, msg->seq, lua_tostring(_lua, -1));
-		lua_settop(_lua, 1);
+		lua_settop(_lua, 0);
 		return EINVAL;
 	}
-	lua_settop(_lua, 1);
+	lua_settop(_lua, 0);
 	return 0;
 }
 
@@ -108,7 +110,8 @@ tll_msg_t * LuaPrefix::_lua_msg(lua_State * lua, const tll::Scheme * scheme)
 		if (!message)
 			return _log.fail(nullptr, "Message '{}' not found in scheme", name);
 		_msg.msgid = message->msgid;
-	}
+	} else
+		return _log.fail(nullptr, "Invalid message name/id argument");
 
 	if (args > 4 && lua_isinteger(lua, 4))
 		_msg.addr.i64 = lua_tointeger(lua, 4);
@@ -121,7 +124,7 @@ tll_msg_t * LuaPrefix::_lua_msg(lua_State * lua, const tll::Scheme * scheme)
 	}
 
 	if (auto data = luaT_testuserdata<reflection::Message>(lua, 3); data) {
-		if (!scheme || message == data->message) {
+		if (!message || message == data->message) {
 			_msg.msgid = data->message->msgid;
 			_msg.data = data->data.data();
 			_msg.size = data->data.size();
