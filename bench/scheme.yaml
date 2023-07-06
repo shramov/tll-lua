@@ -1,0 +1,22 @@
+- name: Simple
+  id: 10
+  fields:
+    - {name: s0, type: uint16}
+- name: Nested
+  id: 20
+  fields:
+    - {name: header, type: int32}
+    - {name: f0, type: Simple}
+- name: Many
+  id: 30
+  fields:
+    - {name: f0, type: uint16}
+    - {name: f1, type: uint16}
+    - {name: f2, type: uint16}
+    - {name: f3, type: uint16}
+    - {name: f4, type: uint16}
+    - {name: f5, type: uint16}
+    - {name: f6, type: uint16}
+    - {name: f7, type: uint16}
+    - {name: f8, type: uint16}
+    - {name: f9, type: uint16}
