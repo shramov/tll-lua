@@ -54,6 +54,18 @@ template <typename T>
 int luaT_push(lua_State * lua, const T & value) { return LuaT<T>::push(lua, value); }
 
 template <typename T>
+T * luaT_testuserdata(lua_State * lua, int index, std::string_view tag)
+{
+	return (T *) luaL_testudata(lua, index, tag.data());
+}
+
+template <typename T>
+T * luaT_testuserdata(lua_State * lua, int index)
+{
+	return luaT_testuserdata<T>(lua, index, MetaT<T>::name.data());
+}
+
+template <typename T>
 T & luaT_checkuserdata(lua_State * lua, int index, std::string_view tag)
 {
 	return * (T *) luaL_checkudata(lua, index, tag.data());
