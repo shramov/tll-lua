@@ -10,7 +10,7 @@
 - name: Many
   id: 30
   fields:
-    - {name: f0, type: uint16}
+    - {name: f0, type: int64}
     - {name: f1, type: uint16}
     - {name: f2, type: uint16}
     - {name: f3, type: uint16}
