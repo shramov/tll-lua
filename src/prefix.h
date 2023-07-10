@@ -9,6 +9,7 @@
 #define _TLL_LUA_PREFIX_H
 
 #include "common.h"
+#include "encoder.h"
 
 #include <tll/channel/prefix.h>
 
@@ -23,6 +24,8 @@ class LuaPrefix : public tll::lua::LuaCommon<LuaPrefix, tll::channel::Prefix<Lua
 
 	bool _with_on_post = false;
 	bool _with_on_data = false;
+
+	tll::lua::Encoder _encoder;
 
 public:
 	static constexpr std::string_view channel_protocol() { return "lua-prefix+"; }
@@ -108,15 +111,6 @@ public:
 
 	tll_msg_t * _lua_msg(lua_State * lua, const tll::Scheme * scheme);
 	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func);
-
-	template <typename Buf>
-	int _fill(const tll::scheme::Message * message, Buf view, lua_State * lua, int index);
-
-	template <typename Buf>
-	int _fill(const tll::scheme::Field * field, Buf view, lua_State * lua, int index);
-
-	template <typename T, typename Buf>
-	int _fill_numeric(const tll::scheme::Field * field, Buf view, lua_State * lua);
 };
 
 #endif//_TLL_LUA_PREFIX_H
