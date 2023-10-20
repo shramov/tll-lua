@@ -173,7 +173,7 @@ if args.dump_code:
 
 if code is not None:
     if not ctx.has_impl('lua+'):
-        ctx.load('tll-lua', 'channel_module')
+        ctx.load('tll-lua')
     url.proto = 'lua+' + url.proto
     url['lua.code'] = code
 
