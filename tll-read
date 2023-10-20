@@ -158,7 +158,7 @@ def build_code(args):
     if args.seq_list:
         code += ['    if ' + ' and '.join(f'seq ~= {s}' for s in args.seq_list) + ' then return false end']
     if args.messages:
-        code += ['    if ' + ' and '.join(f'name ~= "{n}"' for s in args.messages) + ' then return false end']
+        code += ['    if ' + ' and '.join(f'name ~= "{s}"' for s in args.messages) + ' then return false end']
     if args.filter:
         code += ['    return ' + args.filter]
     else:
