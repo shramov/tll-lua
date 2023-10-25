@@ -16,6 +16,78 @@ namespace tll::lua {
 
 struct Encoder : public tll::scheme::ErrorStack
 {
+	tll_msg_t msg;
+	std::vector<char> buf;
+
+	tll_msg_t * encode_stack(lua_State * lua, const tll::Scheme * scheme, int offset)
+	{
+		auto index = offset + 1;
+
+		auto args = lua_gettop(lua);
+		if (args < index + 2)
+			return fail(nullptr, "Too small number of arguments: {} < min {}", args, index + 2);
+		msg = { TLL_MESSAGE_DATA };
+
+		if (lua_isinteger(lua, index))
+			msg.seq = lua_tointeger(lua, index);
+		index++;
+
+		const tll::scheme::Message * message = nullptr;
+		if (lua_isnil(lua, index)) {
+			// Pass
+		} else if (lua_isinteger(lua, index)) {
+			msg.msgid = lua_tointeger(lua, index);
+			if (scheme) {
+				message = scheme->lookup(msg.msgid);
+				if (!message)
+					return fail(nullptr, "Message '{}' not found in scheme", msg.msgid);
+			}
+		} else if (lua_isstring(lua, index)) {
+			auto name = luaT_tostringview(lua, index);
+			if (!scheme)
+				return fail(nullptr, "Message name '{}' without scheme", name);
+			message = scheme->lookup(name);
+			if (!message)
+				return fail(nullptr, "Message '{}' not found in scheme", name);
+			msg.msgid = message->msgid;
+		} else
+			return fail(nullptr, "Invalid message name/id argument");
+		index++;
+
+		if (args > index + 1 && lua_isinteger(lua, index + 1))
+			msg.addr.i64 = lua_tointeger(lua, index + 1);
+
+		if (lua_isstring(lua, index)) {
+			auto data = luaT_tostringview(lua, index);
+			msg.data = data.data();
+			msg.size = data.size();
+			return &msg;
+		}
+
+		if (auto data = luaT_testuserdata<reflection::Message>(lua, index); data) {
+			if (!message || message == data->message) {
+				msg.msgid = data->message->msgid;
+				msg.data = data->data.data();
+				msg.size = data->data.size();
+				return &msg;
+			}
+		} else if (!lua_istable(lua, index)) {
+			return fail(nullptr, "Invalid type of data: allowed string, table and Message");
+		}
+
+		buf.resize(0);
+		buf.resize(message->size);
+		auto view = tll::make_view(buf);
+
+		if (encode(message, view, lua, index))
+			return fail(nullptr, "Failed to encode Lua message at {}: {}", format_stack(), error);
+
+		msg.data = buf.data();
+		msg.size = buf.size();
+
+		return &msg;
+	}
+
 	template <typename Buf>
 	int encode(const tll::scheme::Message * message, Buf view, lua_State * lua, int index)
 	{

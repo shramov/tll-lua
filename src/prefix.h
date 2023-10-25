@@ -87,9 +87,11 @@ public:
 	static int _lua_post(lua_State * lua)
 	{
 		if (auto self = _self(lua); self) {
-			auto msg = self->_lua_msg(lua, self->_scheme_child.get());
-			if (!msg)
+			auto msg = self->_encoder.encode_stack(lua, self->_scheme_child.get(), 0);
+			if (!msg) {
+				self->_log.error("Failed to convert messge: {}", self->_encoder.error);
 				return luaL_error(lua, "Failed to convert message");
+			}
 			if (auto r = self->_child->post(msg); r)
 				return luaL_error(lua, "Failed to post: %d", r);
 			return 0;
@@ -100,16 +102,17 @@ public:
 	static int _lua_callback(lua_State * lua)
 	{
 		if (auto self = _self(lua); self) {
-			auto msg = self->_lua_msg(lua, self->_scheme.get());
-			if (!msg)
+			auto msg = self->_encoder.encode_stack(lua, self->_scheme.get(), 0);
+			if (!msg) {
+				self->_log.error("Failed to convert messge: {}", self->_encoder.error);
 				return luaL_error(lua, "Failed to convert message");
+			}
 			self->_callback(msg);
 			return 0;
 		}
 		return luaL_error(lua, "Non-userdata value in luatll_self");
 	}
 
-	tll_msg_t * _lua_msg(lua_State * lua, const tll::Scheme * scheme);
 	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func);
 };
 
