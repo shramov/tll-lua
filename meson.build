@@ -1,7 +1,7 @@
 project('tll-lua', 'cpp'
 	, version: '0.0.0'
 	, license: 'MIT'
-	, default_options: ['cpp_std=c++17', 'werror=true', 'optimization=2']
+	, default_options: ['cpp_std=c++2a', 'werror=true', 'optimization=2']
 )
 
 include = [include_directories('src')]
