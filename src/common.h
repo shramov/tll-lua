@@ -46,6 +46,7 @@ class LuaCommon : public B
 		luaL_openlibs(lua);
 		LuaT<reflection::Array>::init(lua);
 		LuaT<reflection::Message>::init(lua);
+		LuaT<reflection::Message::Iterator>::init(lua);
 		LuaT<reflection::Union>::init(lua);
 		LuaT<reflection::Bits>::init(lua);
 

@@ -19,6 +19,12 @@
 namespace reflection {
 struct Message
 {
+	struct Iterator
+	{
+		const Message * message = nullptr;
+		const tll::scheme::Field * field = nullptr;
+	};
+
 	const tll::scheme::Message * message = nullptr;
 	tll::memoryview<const tll_msg_t> data;
 
@@ -141,6 +147,32 @@ struct MetaT<reflection::Message> : public MetaBase
 
 		return pushfield(lua, field, r.data.view(field->offset));
 	}
+
+	static int pairs(lua_State* lua)
+	{
+		auto & r = luaT_checkuserdata<reflection::Message>(lua, 1);
+		lua_pushcfunction(lua, next);
+		luaT_push(lua, reflection::Message::Iterator { &r, r.message->fields });
+		lua_pushnil(lua);
+		return 3;
+	}
+
+	static int next(lua_State* lua)
+	{
+		auto & r = luaT_checkuserdata<reflection::Message::Iterator>(lua, 1);
+		if (!r.field)
+			return 0;
+		lua_pushstring(lua, r.field->name);
+		pushfield(lua, r.field, r.message->data.view(r.field->offset));
+		r.field = r.field->next;
+		return 2;
+	}
+};
+
+template <>
+struct MetaT<reflection::Message::Iterator> : public MetaBase
+{
+	static constexpr std::string_view name = "reflection_message_iterator";
 };
 
 template <>
