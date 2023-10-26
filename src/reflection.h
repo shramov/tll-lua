@@ -252,6 +252,14 @@ struct MetaT<reflection::Array> : public MetaBase
 		lua_pushinteger(lua, key);
 		return r.push(lua, key) + 1;
 	}
+
+	static int len(lua_State* lua)
+	{
+		auto & r = luaT_checkuserdata<reflection::Array>(lua, 1, name);
+
+		lua_pushinteger(lua, r.size(lua));
+		return 1;
+	}
 };
 
 inline int reflection::Array::push(lua_State* lua, int key)
