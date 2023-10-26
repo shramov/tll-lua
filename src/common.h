@@ -61,6 +61,9 @@ class LuaCommon : public B
 		if (lua_pcall(lua, 0, 0, 0))
 			return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
 
+		lua_pushcfunction(lua, MetaT<reflection::Message>::copy);
+		lua_setglobal(lua, "luatll_msg_copy");
+
 		_lua_ptr = std::move(lua_ptr);
 		_lua = _lua_ptr.get();
 

@@ -184,6 +184,18 @@ struct MetaT<reflection::Message> : public MetaBase
 		r.field = r.field->next;
 		return 2;
 	}
+
+	static int copy(lua_State* lua)
+	{
+		auto & r = luaT_checkuserdata<reflection::Message>(lua, 1);
+		lua_newtable(lua);
+		for (auto f = r.message->fields; f; f = f->next) {
+			luaT_pushstringview(lua, f->name);
+			pushfield(lua, f, r.data.view(f->offset));
+			lua_settable(lua, -3);
+		}
+		return 1;
+	}
 };
 
 template <>
