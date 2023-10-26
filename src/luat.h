@@ -20,6 +20,7 @@ struct MetaBase
 	static constexpr void * index = nullptr;
 	static constexpr void * newindex = nullptr;
 	static constexpr void * pairs = nullptr;
+	static constexpr void * ipairs = nullptr;
 };
 
 template <typename T>
@@ -42,6 +43,10 @@ struct LuaT
 		if constexpr (MetaT<T>::pairs != nullptr) {
 			lua_pushcfunction(lua, MetaT<T>::pairs);
 			lua_setfield(lua, -2, "__pairs");
+		}
+		if constexpr (MetaT<T>::ipairs != nullptr) {
+			lua_pushcfunction(lua, MetaT<T>::ipairs);
+			lua_setfield(lua, -2, "__ipairs");
 		}
 		lua_pop(lua, 1);
 		return 0;

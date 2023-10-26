@@ -233,6 +233,7 @@ struct MetaT<reflection::Array> : public MetaBase
 		return r.push(lua, key);
 	}
 
+	static int ipairs(lua_State* lua) { return pairs(lua); }
 	static int pairs(lua_State* lua)
 	{
 		//auto & r = luaT_checkuserdata<reflection::Array>(lua, 1);

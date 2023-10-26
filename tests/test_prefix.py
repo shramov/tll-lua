@@ -269,7 +269,7 @@ function luatll_on_data(seq, name, data)
         k0 = k0 + k
         s0 = s0 + v
     end
-    for k,v in pairs(data.f1) do
+    for k,v in ipairs(data.f1) do
         k1 = k1 + k
         s1 = s1 + v
     end
