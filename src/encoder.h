@@ -131,8 +131,10 @@ struct Encoder : public tll::scheme::ErrorStack
 			return 0;
 		}
 		case Field::Array: {
-			auto size = lua_rawlen(lua, -1);
-			if (size > field->count)
+			auto size = luaL_len(lua, -1);
+			if (size < 0)
+				return fail(ERANGE, "Negative array size: {}", size);
+			if ((size_t) size > field->count)
 				return fail(ERANGE, "Array too long: {} > max {}", size, field->count);
 			tll::scheme::write_size(field->count_ptr, view.view(field->count_ptr->offset), size);
 
@@ -169,9 +171,10 @@ struct Encoder : public tll::scheme::ErrorStack
 				return 0;
 			}
 
-			if (!lua_istable(lua, -1))
-				return fail(EINVAL, "Non-array type");
-			ptr.size = lua_rawlen(lua, -1);
+			if (auto r = luaL_len(lua, -1); r < 0)
+				return fail(ERANGE, "Negative array size: {}", r);
+			else
+				ptr.size = r;
 
 			auto af = field->type_ptr;
 			ptr.entity = af->size;
