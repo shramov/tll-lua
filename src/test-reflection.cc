@@ -196,9 +196,9 @@ TEST(Lua, Reflection)
 	ASSERT_LUA(lua, s, d);
 	ASSERT_LUA_VALUE(lua, s, std::string_view("bytes\x01\x00\x00", 8), "b8");
 	ASSERT_LUA_VALUE(lua, s, std::string_view("string"), "s16");
-	ASSERT_LUA_VALUE(lua, s, s.l16[0], "l16.0");
-	ASSERT_LUA_VALUE(lua, s, s.l16[1], "l16.1");
-	ASSERT_LUA_VALUE(lua, s, s.l16[2], "l16.2");
+	ASSERT_LUA_VALUE(lua, s, s.l16[0], "l16.1");
+	ASSERT_LUA_VALUE(lua, s, s.l16[1], "l16.2");
+	ASSERT_LUA_VALUE(lua, s, s.l16[2], "l16.3");
 	//ASSERT_LUA_VALUE(lua, s, s.l16[3], "l16.3");
 
 	struct outer_ptr : public generated::outer
@@ -233,18 +233,18 @@ TEST(Lua, Reflection)
 	ASSERT_LUA_VALUE(lua, out, std::string_view("bytes\x01\x00\x00", 8), "s.b8");
 	ASSERT_LUA_VALUE(lua, out, std::string_view("string"), "s.s16");
 
-	ASSERT_LUA_VALUE(lua, out, out.l[0].d, "l.0.d");
-	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[0], "l.0.l16.0");
-	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[1], "l.0.l16.1");
-	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[2], "l.0.l16.2");
-	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[3], "l.0.l16.3");
+	ASSERT_LUA_VALUE(lua, out, out.l[0].d, "l.1.d");
+	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[0], "l.1.l16.1");
+	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[1], "l.1.l16.2");
+	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[2], "l.1.l16.3");
+	ASSERT_LUA_VALUE(lua, out, out.l[0].l16[3], "l.1.l16.4");
 
-	ASSERT_LUA_VALUE(lua, out, out.l[1].d, "l.1.d");
-	ASSERT_LUA_VALUE(lua, out, out.l[1].l16[0], "l.1.l16.0");
-	ASSERT_LUA_VALUE(lua, out, out.l[1].l16[1], "l.1.l16.1");
+	ASSERT_LUA_VALUE(lua, out, out.l[1].d, "l.2.d");
+	ASSERT_LUA_VALUE(lua, out, out.l[1].l16[0], "l.2.l16.1");
+	ASSERT_LUA_VALUE(lua, out, out.l[1].l16[1], "l.2.l16.2");
 
-	ASSERT_LUA_VALUE(lua, out, out.ptr[0].d, "p.0.d");
-	ASSERT_LUA_VALUE(lua, out, out.ptr[1].d, "p.1.d");
+	ASSERT_LUA_VALUE(lua, out, out.ptr[0].d, "p.1.d");
+	ASSERT_LUA_VALUE(lua, out, out.ptr[1].d, "p.2.d");
 	//ASSERT_LUA_VALUE(lua, out, out.ptr[2].d, "p.2.d");
 
 	//out.p.size = 100;

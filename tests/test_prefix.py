@@ -235,3 +235,50 @@ end
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 100)
     assert c.unpack(m).as_dict() == {'key': "/f0/f1", "sum": 10.5}
+
+@asyncloop_run
+async def test_iter(asyncloop):
+    url = Config.load(f'''yamls://
+tll.proto: lua-prefix+yaml
+name: lua
+yaml.dump: yes
+lua-prefix.dump: yes
+autoclose: yes
+config.0:
+  seq: 0
+  name: msg
+  data:
+    f0: [10, 20, 30]
+    f1: [100, 200]
+''')
+
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: '*int32'}
+    - {name: f1, type: 'int32[4]'}
+'''
+    url['code'] = '''
+function luatll_on_data(seq, name, data)
+    local k0 = 0
+    local s0 = 0
+    local k1 = 0
+    local s1 = 0
+    for k,v in pairs(data.f0) do
+        k0 = k0 + k
+        s0 = s0 + v
+    end
+    for k,v in pairs(data.f1) do
+        k1 = k1 + k
+        s1 = s1 + v
+    end
+    luatll_callback(seq + 100, "msg", { f0 = { k0, s0 }, f1 = { k1, s1 } })
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.msgid, m.seq) == (10, 100)
+    assert c.unpack(m).as_dict() == {'f0': [1 + 2 + 3, 10 + 20 + 30], 'f1': [1 + 2, 100 + 200]}
