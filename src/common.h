@@ -8,6 +8,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include "encoder.h"
 #include "luat.h"
 #include "reflection.h"
 
@@ -25,6 +26,8 @@ class LuaCommon : public B
 
 	unique_lua_ptr_t _lua_ptr = { nullptr, lua_close };
 	lua_State * _lua = nullptr;
+
+	tll::lua::Encoder _encoder;
  public:
 	int _init(const tll::Channel::Url &url, tll::Channel *master)
 	{
@@ -64,6 +67,12 @@ class LuaCommon : public B
 		lua_pushcfunction(lua, MetaT<reflection::Message>::copy);
 		lua_setglobal(lua, "luatll_msg_copy");
 
+		lua_pushlightuserdata(lua, this->channelT());
+		lua_setglobal(lua, "luatll_self");
+
+		lua_pushcfunction(lua, _lua_callback);
+		lua_setglobal(lua, "luatll_callback");
+
 		_lua_ptr = std::move(lua_ptr);
 		_lua = _lua_ptr.get();
 
@@ -75,6 +84,32 @@ class LuaCommon : public B
 		_lua = nullptr;
 		_lua_ptr.reset();
 		return Base::_close(force);
+	}
+
+	static T * _lua_self(lua_State * lua)
+	{
+		lua_getglobal(lua, "luatll_self");
+		if (!lua_isuserdata(lua, -1)) {
+			lua_pop(lua, 1);
+			return nullptr;
+		}
+		auto ptr = (T *) lua_topointer(lua, -1);
+		lua_pop(lua, 1);
+		return ptr;
+	}
+
+	static int _lua_callback(lua_State * lua)
+	{
+		if (auto self = _lua_self(lua); self) {
+			auto msg = self->_encoder.encode_stack(lua, self->_scheme.get(), 0);
+			if (!msg) {
+				self->_log.error("Failed to convert messge: {}", self->_encoder.error);
+				return luaL_error(lua, "Failed to convert message");
+			}
+			self->_callback(msg);
+			return 0;
+		}
+		return luaL_error(lua, "Non-userdata value in luatll_self");
 	}
 };
 

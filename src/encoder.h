@@ -9,7 +9,10 @@
 #define _TLL_LUA_ENCODER_H
 
 #include "luat.h"
+#include "reflection.h"
 
+#include <tll/channel.h>
+#include <tll/scheme.h>
 #include <tll/scheme/error-stack.h>
 
 namespace tll::lua {
