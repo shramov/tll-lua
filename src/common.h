@@ -68,9 +68,7 @@ class LuaCommon : public B
 		lua_setglobal(lua, "luatll_msg_copy");
 
 		lua_pushlightuserdata(lua, this->channelT());
-		lua_setglobal(lua, "luatll_self");
-
-		lua_pushcfunction(lua, _lua_callback);
+		lua_pushcclosure(lua, _lua_callback, 1);
 		lua_setglobal(lua, "luatll_callback");
 
 		_lua_ptr = std::move(lua_ptr);
@@ -86,21 +84,16 @@ class LuaCommon : public B
 		return Base::_close(force);
 	}
 
-	static T * _lua_self(lua_State * lua)
+	static T * _lua_self(lua_State * lua, int index)
 	{
-		lua_getglobal(lua, "luatll_self");
-		if (!lua_isuserdata(lua, -1)) {
-			lua_pop(lua, 1);
+		if (!lua_isuserdata(lua, lua_upvalueindex(index)))
 			return nullptr;
-		}
-		auto ptr = (T *) lua_topointer(lua, -1);
-		lua_pop(lua, 1);
-		return ptr;
+		return (T *) lua_topointer(lua, lua_upvalueindex(index));
 	}
 
 	static int _lua_callback(lua_State * lua)
 	{
-		if (auto self = _lua_self(lua); self) {
+		if (auto self = _lua_self(lua, 1); self) {
 			auto msg = self->_encoder.encode_stack(lua, self->_scheme.get(), 0);
 			if (!msg) {
 				self->_log.error("Failed to convert messge: {}", self->_encoder.error);

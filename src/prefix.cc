@@ -12,7 +12,8 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 	if (auto r = _lua_open(); r)
 		return r;
 
-	lua_pushcfunction(_lua, _lua_post);
+	lua_pushlightuserdata(_lua, this);
+	lua_pushcclosure(_lua, _lua_post, 1);
 	lua_setglobal(_lua, "luatll_post");
 
 	lua_getglobal(_lua, "luatll_on_data");
