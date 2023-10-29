@@ -86,9 +86,7 @@ class LuaCommon : public B
 
 	static T * _lua_self(lua_State * lua, int index)
 	{
-		if (!lua_isuserdata(lua, lua_upvalueindex(index)))
-			return nullptr;
-		return (T *) lua_topointer(lua, lua_upvalueindex(index));
+		return (T *) lua_touserdata(lua, lua_upvalueindex(index));
 	}
 
 	static int _lua_callback(lua_State * lua)
