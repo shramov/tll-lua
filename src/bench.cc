@@ -88,6 +88,15 @@ end
 function call_cglobal(a0)
 	return cglobal(a0)
 end
+
+table_global = { counter = 10 }
+function table_index()
+	return table_global.counter
+end
+
+function mtable_index()
+	return mtable_global.counter
+end
 )";
 
 std::string_view pack(lua_State * lua, const tll_msg_t *msg)
@@ -184,8 +193,10 @@ int callT(lua_State *lua, int x, std::string_view name)
 	x++;
 	for (auto i = 0u; i < Size; i++)
 		lua_pushinteger(lua, x);
-	if (lua_pcall(lua, Size, 1, 0))
+	if (lua_pcall(lua, Size, 1, 0)) {
+		fmt::print("call {} failed: {}\n", name, lua_tostring(lua, -1));
 		return EINVAL;
+	}
 	auto r = lua_tointeger(lua, -1);
 	lua_pop(lua, 1);
 	return x - r;
@@ -202,12 +213,53 @@ struct Counter
 	}
 };
 
-int cclosure(lua_State *lua)
+template <>
+struct MetaT<Counter> : public MetaBase
+{
+	static constexpr std::string_view name = "counter";
+	static int index(lua_State* lua)
+	{
+		auto & r = * (Counter *) lua_touserdata(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		if (key == "counter") {
+			lua_pushnumber(lua, r.counter);
+			return 1;
+		}
+
+		return luaL_error(lua, "Key '%s' not supported", key.data());
+	}
+};
+
+/*
+ * Test different ways of getting pointer from upvalue
+ */
+int cclosure_is(lua_State *lua)
 {
 	if (!lua_isuserdata(lua, lua_upvalueindex(1)))
 		return luaL_error(lua, "Non-userdata upvalue");
 	auto counter = (Counter *) lua_topointer(lua, lua_upvalueindex(1));
 	return counter->call(lua);
+}
+
+int cclosure_to(lua_State *lua)
+{
+	auto counter = (Counter *) lua_touserdata(lua, lua_upvalueindex(1));
+	if (!counter)
+		return luaL_error(lua, "Non-userdata upvalue");
+	return counter->call(lua);
+}
+
+int cclosure_cast(lua_State *lua)
+{
+	auto counter = (Counter *) lua_topointer(lua, lua_upvalueindex(1));
+	return counter->call(lua);
+}
+
+int cclosure_meta(lua_State *lua)
+{
+	auto & counter = luaT_checkuserdata<Counter>(lua, lua_upvalueindex(1));
+	return counter.call(lua);
 }
 
 int cglobal(lua_State *lua)
@@ -230,6 +282,8 @@ int bench_call(tll::Logger &log)
 	if (!lua)
 		return log.fail(EINVAL, "Failed to init lua state");
 
+	LuaT<Counter>::init(lua);
+
 	tll_msg_t msg = {};
 	int x = 0;
 
@@ -241,8 +295,23 @@ int bench_call(tll::Logger &log)
 	lua_setglobal(lua, "cglobal");
 
 	lua_pushlightuserdata(lua, &counter);
-	lua_pushcclosure(lua, cclosure, 1);
-	lua_setglobal(lua, "cclosure");
+	lua_pushcclosure(lua, cclosure_is, 1);
+	lua_setglobal(lua, "cclosure_is");
+
+	lua_pushlightuserdata(lua, &counter);
+	lua_pushcclosure(lua, cclosure_to, 1);
+	lua_setglobal(lua, "cclosure_to");
+
+	lua_pushlightuserdata(lua, &counter);
+	lua_pushcclosure(lua, cclosure_cast, 1);
+	lua_setglobal(lua, "cclosure_cast");
+
+	luaT_push(lua, counter);
+	lua_pushcclosure(lua, cclosure_meta, 1);
+	lua_setglobal(lua, "cclosure_meta");
+
+	luaT_push(lua, counter);
+	lua_setglobal(lua, "mtable_global");
 
 	tll::bench::timeit(count, "call0", callT<0>, lua, x, "call0"); x = 0;
 	tll::bench::timeit(count, "call1", callT<1>, lua, x, "call1"); x = 0;
@@ -258,7 +327,13 @@ int bench_call(tll::Logger &log)
 	tll::bench::timeit(count, "sum(meta.get)", call_meta, lua, "call_meta_get_sum_func", msg);
 
 	tll::bench::timeit(count, "global userdata", callT<0>, lua, x, "cglobal"); x = 0;
-	tll::bench::timeit(count, "upvalue userdata", callT<0>, lua, x, "cclosure"); x = 0;
+	tll::bench::timeit(count, "upvalue isuserdata", callT<0>, lua, x, "cclosure_is"); x = 0;
+	tll::bench::timeit(count, "upvalue touserdata", callT<0>, lua, x, "cclosure_to"); x = 0;
+	tll::bench::timeit(count, "upvalue cast", callT<0>, lua, x, "cclosure_cast"); x = 0;
+	tll::bench::timeit(count, "upvalue metacast", callT<0>, lua, x, "cclosure_meta"); x = 0;
+
+	tll::bench::timeit(count, "table index", callT<0>, lua, x, "table_index"); x = 0;
+	tll::bench::timeit(count, "metatable index", callT<0>, lua, x, "mtable_index"); x = 0;
 
 	return 0;
 }
