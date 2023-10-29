@@ -80,6 +80,14 @@ end
 function call_call_call1(a0)
 	return call_call1(a0)
 end
+
+function call_cclosure(a0)
+	return cclosure(a0)
+end
+
+function call_cglobal(a0)
+	return cglobal(a0)
+end
 )";
 
 std::string_view pack(lua_State * lua, const tll_msg_t *msg)
@@ -169,29 +177,10 @@ int call_meta(lua_State *lua, std::string_view name, tll_msg_t &msg)
 	return msg.size - r;
 }
 
-enum Tag { Default, CallCall1, CallCallCall1 };
-constexpr const char * call_name(size_t s, Tag tag)
+template <size_t Size>
+int callT(lua_State *lua, int x, std::string_view name)
 {
-	switch (tag) {
-	case Tag::CallCall1: return "call_call1";
-	case Tag::CallCallCall1: return "call_call_call1";
-	case Tag::Default: break;
-	}
-	switch (s) {
-	case 0: return "call0";
-	case 1: return "call1";
-	case 5: return "call5";
-	case 10: return "call10";
-	default:
-		break;
-	}
-	return "unknown";
-}
-
-template <size_t Size, Tag T = Tag::Default>
-int callT(lua_State *lua, int x)
-{
-	lua_getglobal(lua, call_name(Size, T));
+	lua_getglobal(lua, name.data());
 	x++;
 	for (auto i = 0u; i < Size; i++)
 		lua_pushinteger(lua, x);
@@ -200,6 +189,38 @@ int callT(lua_State *lua, int x)
 	auto r = lua_tointeger(lua, -1);
 	lua_pop(lua, 1);
 	return x - r;
+}
+
+struct Counter
+{
+	unsigned counter = 0;
+
+	int call(lua_State * lua)
+	{
+		lua_pushinteger(lua, ++counter);
+		return 1;
+	}
+};
+
+int cclosure(lua_State *lua)
+{
+	if (!lua_isuserdata(lua, lua_upvalueindex(1)))
+		return luaL_error(lua, "Non-userdata upvalue");
+	auto counter = (Counter *) lua_topointer(lua, lua_upvalueindex(1));
+	return counter->call(lua);
+}
+
+int cglobal(lua_State *lua)
+{
+	lua_getglobal(lua, "global_counter");
+	if (!lua_isuserdata(lua, -1)) {
+		lua_pop(lua, 1);
+		return luaL_error(lua, "Non-userdata global");
+	}
+	auto counter = (Counter *) lua_topointer(lua, -1);
+	lua_pop(lua, 1);
+
+	return counter->call(lua);
 }
 
 int bench_call(tll::Logger &log)
@@ -212,19 +233,32 @@ int bench_call(tll::Logger &log)
 	tll_msg_t msg = {};
 	int x = 0;
 
-	tll::bench::timeit(count, "call0", callT<0>, lua, x); x = 0;
-	tll::bench::timeit(count, "call1", callT<1>, lua, x); x = 0;
-	tll::bench::timeit(count, "call5", callT<5>, lua, x); x = 0;
-	tll::bench::timeit(count, "call10", callT<10>, lua, x); x = 0;
-	tll::bench::timeit(count, "call1", callT<1>, lua, x); x = 0;
-	tll::bench::timeit(count, "call(call1)", callT<1, Tag::CallCall1>, lua, x); x = 0;
-	tll::bench::timeit(count, "call(call(call1))", callT<1, Tag::CallCallCall1>, lua, x); x = 0;
-	tll::bench::timeit(count, "call10", callT<10>, lua, x); x = 0;
+	Counter counter;
+	lua_pushlightuserdata(lua, &counter);
+	lua_setglobal(lua, "global_counter");
+
+	lua_pushcfunction(lua, cglobal);
+	lua_setglobal(lua, "cglobal");
+
+	lua_pushlightuserdata(lua, &counter);
+	lua_pushcclosure(lua, cclosure, 1);
+	lua_setglobal(lua, "cclosure");
+
+	tll::bench::timeit(count, "call0", callT<0>, lua, x, "call0"); x = 0;
+	tll::bench::timeit(count, "call1", callT<1>, lua, x, "call1"); x = 0;
+	tll::bench::timeit(count, "call5", callT<5>, lua, x, "call5"); x = 0;
+	tll::bench::timeit(count, "call10", callT<10>, lua, x, "call10"); x = 0;
+	tll::bench::timeit(count, "call1", callT<1>, lua, x, "call1"); x = 0;
+	tll::bench::timeit(count, "call(call1)", callT<1>, lua, x, "call_call1"); x = 0;
+	tll::bench::timeit(count, "call(call(call1))", callT<1>, lua, x, "call_call_call1"); x = 0;
+	tll::bench::timeit(count, "call10", callT<10>, lua, x, "call10"); x = 0;
 	tll::bench::timeit(count, "meta", call_meta, lua, "call_meta", msg);
 	tll::bench::timeit(count, "meta.get", call_meta, lua, "call_meta_get", msg);
 	tll::bench::timeit(count, "meta.get + meta.get", call_meta, lua, "call_meta_get_sum", msg);
 	tll::bench::timeit(count, "sum(meta.get)", call_meta, lua, "call_meta_get_sum_func", msg);
-	tll::bench::timeit(count, "var meta.get", call_meta, lua, "call_meta_get_sum_var", msg);
+
+	tll::bench::timeit(count, "global userdata", callT<0>, lua, x, "cglobal"); x = 0;
+	tll::bench::timeit(count, "upvalue userdata", callT<0>, lua, x, "cclosure"); x = 0;
 
 	return 0;
 }
