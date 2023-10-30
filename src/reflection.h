@@ -153,7 +153,7 @@ struct MetaT<reflection::Message> : public MetaBase
 	static constexpr std::string_view name = "reflection_message";
 	static int index(lua_State* lua)
 	{
-		auto & r = luaT_checkuserdata<reflection::Message>(lua, 1);
+		auto & r = *luaT_touserdata<reflection::Message>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (r.data.size() < r.message->size)
@@ -167,7 +167,7 @@ struct MetaT<reflection::Message> : public MetaBase
 
 	static int pairs(lua_State* lua)
 	{
-		auto & r = luaT_checkuserdata<reflection::Message>(lua, 1);
+		auto & r = *luaT_touserdata<reflection::Message>(lua, 1);
 		lua_pushcfunction(lua, next);
 		luaT_push(lua, reflection::Message::Iterator { &r, r.message->fields });
 		lua_pushnil(lua);
@@ -210,7 +210,7 @@ struct MetaT<reflection::Union> : public MetaBase
 	static constexpr std::string_view name = "reflection_union";
 	static int index(lua_State* lua)
 	{
-		auto & r = luaT_checkuserdata<reflection::Union>(lua, 1);
+		auto & r = *luaT_touserdata<reflection::Union>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		//if (r.data.size() < r.message->size)
@@ -239,7 +239,7 @@ struct MetaT<reflection::Array> : public MetaBase
 	static constexpr std::string_view name = "reflection_array";
 	static int index(lua_State* lua)
 	{
-		auto & r = luaT_checkuserdata<reflection::Array>(lua, 1, name);
+		auto & r = *luaT_touserdata<reflection::Array>(lua, 1);
 		auto key = luaL_checkinteger(lua, 2);
 
 		return r.push(lua, key);
@@ -267,7 +267,7 @@ struct MetaT<reflection::Array> : public MetaBase
 
 	static int len(lua_State* lua)
 	{
-		auto & r = luaT_checkuserdata<reflection::Array>(lua, 1, name);
+		auto & r = *luaT_touserdata<reflection::Array>(lua, 1);
 
 		lua_pushinteger(lua, r.size(lua));
 		return 1;
@@ -305,7 +305,7 @@ struct MetaT<reflection::Bits> : public MetaBase
 	static constexpr std::string_view name = "reflection_bits";
 	static int index(lua_State* lua)
 	{
-		auto & r = luaT_checkuserdata<reflection::Bits>(lua, 1);
+		auto & r = *luaT_touserdata<reflection::Bits>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		auto bit = r.lookup(key);

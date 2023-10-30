@@ -67,7 +67,7 @@ struct Encoder : public tll::scheme::ErrorStack
 			return &msg;
 		}
 
-		if (auto data = luaT_testuserdata<reflection::Message>(lua, index); data) {
+		if (auto data = luaT_testudata<reflection::Message>(lua, index); data) {
 			if (!message || message == data->message) {
 				msg.msgid = data->message->msgid;
 				msg.data = data->data.data();
