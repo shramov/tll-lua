@@ -41,16 +41,14 @@ int LuaFilter::_close(bool force)
 
 int LuaFilter::_on_data(const tll_msg_t *msg)
 {
-	tll::scheme::Message * message = nullptr;
+	std::string_view name;
 	lua_getglobal(_lua, "luatll_filter");
 	lua_pushinteger(_lua, msg->seq);
 	if (_scheme) {
-		for (message = _scheme->messages; message; message = message->next) {
-			if (message->msgid == msg->msgid)
-				break;
-		}
+		auto message = _scheme->lookup(msg->msgid);
 		if (!message)
 			return _log.fail(ENOENT, "Message {} not found", msg->msgid);
+		name = message->name;
 		lua_pushstring(_lua, message->name);
 		luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
 	} else {
@@ -62,7 +60,7 @@ int LuaFilter::_on_data(const tll_msg_t *msg)
 	lua_pushinteger(_lua, msg->time);
 	//luaT_push(_lua, msg);
 	if (lua_pcall(_lua, 6, 1, 0)) {
-		_log.warning("Lua filter failed for {}:{}: {}", message ? message->name : "", msg->seq, lua_tostring(_lua, -1));
+		_log.warning("Lua filter failed for {}:{}: {}", name, msg->seq, lua_tostring(_lua, -1));
 		lua_pop(_lua, 1);
 		return EINVAL;
 	}
