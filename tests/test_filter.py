@@ -111,3 +111,42 @@ end
     assert c.state == c.State.Active
     m = await c.recv(0.001)
     assert m.data.tobytes() == b'aaaa'
+
+@asyncloop_run
+async def test_pmap(asyncloop):
+    url = Config.load('''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+autoclose: yes
+config:
+  - seq: 0
+    name: msg
+    data: { f0: 10 }
+  - seq: 1
+    name: msg
+    data: { f1: 10 }
+''')
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  options.defaults.optional: yes
+  fields:
+    - {name: pmap, type: uint8, options.pmap: yes}
+    - {name: f0, type: int32}
+    - {name: f1, type: int32}
+'''
+    url['code'] = '''
+function luatll_filter(seq, name, data)
+    print(data.f0)
+    print(data.f1)
+    return data.f0 == nil
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.msgid, m.seq) == (10, 1)
+    assert c.unpack(m).as_dict() == {'f1': 10}

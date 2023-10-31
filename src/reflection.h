@@ -162,6 +162,13 @@ struct MetaT<reflection::Message> : public MetaBase
 		if (field == nullptr)
 			return luaL_error(lua, "Message '%s' has no field '%s'", r.message->name, key.data());
 
+		if (r.message->pmap) {
+			auto pmap = r.data.view(r.message->pmap->offset);
+			if (!tll::scheme::pmap_get(pmap.data(), field->index)) {
+				lua_pushnil(lua);
+				return 1;
+			}
+		}
 		return pushfield(lua, field, r.data.view(field->offset));
 	}
 
