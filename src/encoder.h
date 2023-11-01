@@ -94,12 +94,18 @@ struct Encoder : public tll::scheme::ErrorStack
 	template <typename Buf>
 	int encode(const tll::scheme::Message * message, Buf view, lua_State * lua, int index)
 	{
+		auto pmap = message->pmap;
+		auto pmap_view = pmap ? view.view(pmap->offset) : view;
 		for (auto f = message->fields; f; f = f->next) {
 			luaT_pushstringview(lua, f->name);
 			if (lua_gettable(lua, index) == LUA_TNIL) {
 				lua_pop(lua, 1);
 				continue;
 			}
+
+			if (pmap)
+				tll_scheme_pmap_set(pmap_view.data(), f->index);
+
 			auto fview = view.view(f->offset);
 			auto r = encode(f, fview, lua, index);
 			lua_pop(lua, 1);

@@ -322,3 +322,38 @@ end
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 100)
     assert c.unpack(m).as_dict() == {'f0': 10, 'f1': [10, 20, 30], 'f2': [100, 200]}
+
+@asyncloop_run
+async def test_copy(asyncloop):
+    url = Config.load('''yamls://
+tll.proto: lua-prefix+yaml
+name: lua
+yaml.dump: yes
+lua-prefix.dump: yes
+autoclose: yes
+config.0:
+  seq: 0
+  name: msg
+  data: {}
+''')
+
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: pmap, type: uint8, options.pmap: yes}
+    - {name: f0, type: int32, options.optional: yes}
+    - {name: f1, type: int32}
+    - {name: f2, type: int32, options.optional: yes}
+'''
+    url['code'] = '''
+function luatll_on_data(seq, name, data)
+    luatll_callback(seq + 100, "msg", {f0 = 10})
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.msgid, m.seq) == (10, 100)
+    assert c.unpack(m).as_dict() == {'f0': 10, 'f1': 0}
