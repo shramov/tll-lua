@@ -17,6 +17,8 @@ shared_library('tll-lua'
 	, install : true
 )
 
+install_subdir('src/tll', install_dir : get_option('includedir'))
+
 benchmark('bench', executable('bench'
 		, ['src/bench.cc']
 		, include_directories : include

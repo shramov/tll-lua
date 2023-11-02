@@ -13,9 +13,17 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Pre-Depends: ${misc:Pre-Depends}
 Multi-Arch: same
-Description: Lua filter channel for TLL
+Description: Lua channels for TLL
  Package containes Lua filtering channel and tcp server/client with
  Lua defined frame
+
+Package: libtll-lua-dev
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Lua channels for TLL
+ .
+ Package contains header files needed to integrate Lua in channels
 
 Package: tll-read
 Architecture: all
