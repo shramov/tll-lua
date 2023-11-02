@@ -3,7 +3,7 @@
 
 #include <tll/channel/tagged.h>
 
-#include "common.h"
+#include "tll/lua/base.h"
 
 namespace tll::lua {
 
@@ -11,9 +11,9 @@ using tll::channel::Input;
 using tll::channel::Output;
 using tll::channel::TaggedChannel;
 
-class LuaMeasure : public LuaCommon<LuaMeasure, tll::channel::Tagged<LuaMeasure, Input, Output>>
+class LuaMeasure : public LuaBase<LuaMeasure, tll::channel::Tagged<LuaMeasure, Input, Output>>
 {
-	using Base = LuaCommon<LuaMeasure, tll::channel::Tagged<LuaMeasure, Input, Output>>;
+	using Base = LuaBase<LuaMeasure, tll::channel::Tagged<LuaMeasure, Input, Output>>;
 
 	std::map<long long, long long> _response_time; // seq -> timestamp
 	std::map<long long, long long> _request_time; // seq -> timestamp

@@ -8,13 +8,13 @@
 #ifndef _TLL_LUA_PREFIX_H
 #define _TLL_LUA_PREFIX_H
 
-#include "common.h"
+#include "tll/lua/base.h"
 
 #include <tll/channel/prefix.h>
 
-class LuaPrefix : public tll::lua::LuaCommon<LuaPrefix, tll::channel::Prefix<LuaPrefix>>
+class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPrefix>>
 {
-	using Base = tll::lua::LuaCommon<LuaPrefix, tll::channel::Prefix<LuaPrefix>>;
+	using Base = tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPrefix>>;
 
 	std::vector<char> _buf;
 	tll_msg_t _msg;

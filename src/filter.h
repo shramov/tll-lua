@@ -8,13 +8,13 @@
 #ifndef _TLL_LUA_FILTER_H
 #define _TLL_LUA_FILTER_H
 
-#include "common.h"
+#include "tll/lua/base.h"
 
 #include <tll/channel/prefix.h>
 
-class LuaFilter : public tll::lua::LuaCommon<LuaFilter, tll::channel::Prefix<LuaFilter>>
+class LuaFilter : public tll::lua::LuaBase<LuaFilter, tll::channel::Prefix<LuaFilter>>
 {
-	using Base = tll::lua::LuaCommon<LuaFilter, tll::channel::Prefix<LuaFilter>>;
+	using Base = tll::lua::LuaBase<LuaFilter, tll::channel::Prefix<LuaFilter>>;
 
 public:
 	static constexpr std::string_view channel_protocol() { return "lua+"; }

@@ -5,8 +5,8 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#include "luat.h"
-#include "reflection.h"
+#include "tll/lua/luat.h"
+#include "tll/lua/reflection.h"
 
 #include "gtest/gtest.h"
 

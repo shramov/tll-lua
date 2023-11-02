@@ -5,8 +5,8 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#include "luat.h"
-#include "msg.h"
+#include "tll/lua/luat.h"
+#include "tll/lua/message.h"
 
 #include <chrono>
 #include <tll/logger.h>

@@ -13,8 +13,8 @@
 #include <tll/channel/tcp.h>
 #include <tll/channel/tcp.hpp>
 
-#include "luat.h"
-#include "msg.h"
+#include "tll/lua/luat.h"
+#include "tll/lua/message.h"
 
 using namespace tll;
 

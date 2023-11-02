@@ -5,8 +5,8 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#ifndef _TLL_LUA_T_H
-#define _TLL_LUA_T_H
+#ifndef _TLL_LUA_LUAT_H
+#define _TLL_LUA_LUAT_H
 
 #include <lua.hpp>
 
@@ -114,4 +114,4 @@ inline std::string_view luaT_tostringview(lua_State * lua, int index)
 
 inline const char * luaT_pushstringview(lua_State * lua, std::string_view s) { return lua_pushlstring(lua, s.data(), s.size()); }
 
-#endif//_TLL_LUA_T_H
+#endif//_TLL_LUA_LUAT_H

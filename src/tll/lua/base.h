@@ -5,19 +5,19 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#ifndef _COMMON_H
-#define _COMMON_H
+#ifndef _TLL_LUA_BASE_H
+#define _TLL_LUA_BASE_H
 
-#include "encoder.h"
-#include "luat.h"
-#include "reflection.h"
+#include "tll/lua/encoder.h"
+#include "tll/lua/luat.h"
+#include "tll/lua/reflection.h"
 
 #include <tll/channel/base.h>
 
 namespace tll::lua {
 
 template <typename T, typename B = tll::channel::Base<T>>
-class LuaCommon : public B
+class LuaBase : public B
 {
  protected:
 	using Base = B;
@@ -106,4 +106,4 @@ class LuaCommon : public B
 
 } // namespace tll::lua
 
-#endif//_COMMON_H
+#endif//_TLL_LUA_BASE_H

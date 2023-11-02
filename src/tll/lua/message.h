@@ -5,10 +5,10 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#ifndef _TLL_LUA_MSG_H
-#define _TLL_LUA_MSG_H
+#ifndef _TLL_LUA_MESSAGE_H
+#define _TLL_LUA_MESSAGE_H
 
-#include "luat.h"
+#include "tll/lua/luat.h"
 #include <tll/channel.h>
 
 template <>
@@ -60,4 +60,4 @@ struct MetaT<tll_msg_t *> : public MetaT<const tll_msg_t *>
 	}
 };
 
-#endif//_TLL_LUA_MSG_H
+#endif//_TLL_LUA_MESSAGE_H
