@@ -357,3 +357,45 @@ end
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 100)
     assert c.unpack(m).as_dict() == {'f0': 10, 'f1': 0}
+
+@asyncloop_run
+async def test_open_params(asyncloop):
+    url = Config.load('''yamls://
+tll.proto: lua-prefix+yaml
+name: lua
+yaml.dump: yes
+lua-prefix.dump: yes
+autoclose: yes
+config.0:
+  seq: 0
+  name: msg
+  data: {}
+''')
+
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: int32}
+    - {name: f1, type: string}
+'''
+    url['code'] = '''
+gf0 = 0
+gf1 = ""
+function luatll_open(cfg)
+    for k,v in pairs(cfg) do
+        print(k, v)
+    end
+    gf0 = tonumber(cfg.f0)
+    gf1 = cfg.f1
+end
+function luatll_on_data(seq, name, data)
+    luatll_callback(seq + 100, "msg", {f0 = gf0, f1 = gf1})
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open({"lua.f0": "10", "lua.f1": "string"})
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.msgid, m.seq) == (10, 100)
+    assert c.unpack(m).as_dict() == {'f0': 10, 'f1': "string"}

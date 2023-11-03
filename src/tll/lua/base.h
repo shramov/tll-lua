@@ -84,6 +84,18 @@ class LuaBase : public B
 		return Base::_close(force);
 	}
 
+	void _lua_pushconfig(lua_State * lua, const tll::ConstConfig &cfg)
+	{
+		lua_newtable(lua);
+		for (auto &[k, c] : cfg.browse("**")) {
+			auto v = c.get();
+			if (!v) continue;
+			luaT_pushstringview(lua, k);
+			luaT_pushstringview(lua, *v);
+			lua_settable(lua, -3);
+		}
+	}
+
 	static T * _lua_self(lua_State * lua, int index)
 	{
 		return (T *) lua_touserdata(lua, lua_upvalueindex(index));

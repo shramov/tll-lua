@@ -26,7 +26,8 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 
 	lua_getglobal(_lua, "luatll_open");
 	if (lua_isfunction(_lua, -1)) {
-		if (lua_pcall(_lua, 0, 0, 0))
+		_lua_pushconfig(_lua, props.sub("lua").value_or(tll::Config()));
+		if (lua_pcall(_lua, 1, 0, 0))
 			return _log.fail(EINVAL, "Lua open (luatll_open) failed: {}", lua_tostring(_lua, -1));
 	}
 
