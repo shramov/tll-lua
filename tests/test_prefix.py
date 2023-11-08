@@ -44,7 +44,7 @@ async def test_simple(asyncloop, t, v):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -88,7 +88,7 @@ async def test_pass(asyncloop):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -120,7 +120,7 @@ async def test_convert(asyncloop):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -129,7 +129,7 @@ config.0:
     header: 100
     f0: 1
 ''')
-    url['lua-prefix.scheme'] = '''yamls://
+    url['lua.scheme'] = '''yamls://
 - name: msg
   id: 10
   fields:
@@ -167,7 +167,7 @@ async def test_post(asyncloop):
 tll.proto: lua-prefix+direct
 name: lua
 direct.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 ''')
     url['direct.scheme'] = SCHEME
 
@@ -194,7 +194,7 @@ async def test_iter(asyncloop):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -203,7 +203,7 @@ config.0:
     f0: 10
     f1: 0.5
 ''')
-    url['lua-prefix.scheme'] = '''yamls://
+    url['lua.scheme'] = '''yamls://
 - name: msg
   id: 10
   fields:
@@ -242,7 +242,7 @@ async def test_iter(asyncloop):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -289,7 +289,7 @@ async def test_copy(asyncloop):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -329,7 +329,7 @@ async def test_copy(asyncloop):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -364,7 +364,7 @@ async def test_open_params(asyncloop):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -406,7 +406,7 @@ async def test_require(asyncloop, tmp_path):
 tll.proto: lua-prefix+yaml
 name: lua
 yaml.dump: yes
-lua-prefix.dump: yes
+lua.dump: yes
 autoclose: yes
 config.0:
   name: msg

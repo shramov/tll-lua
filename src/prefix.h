@@ -25,6 +25,7 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 	bool _with_on_data = false;
 
 public:
+	static constexpr std::string_view param_prefix() { return "lua"; }
 	static constexpr std::string_view channel_protocol() { return "lua-prefix+"; }
 	static constexpr auto scheme_policy() { return Base::SchemePolicy::Normal; }
 
