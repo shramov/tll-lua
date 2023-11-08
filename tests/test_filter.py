@@ -56,7 +56,7 @@ config.1:
     - {{name: f0, type: {t} }}
 '''
     url['code'] = f'''
-function luatll_filter(seq, name, data)
+function tll_filter(seq, name, data)
     print(data.f0)
     print({v})
     return data.f0 == {v}
@@ -72,7 +72,7 @@ end
 async def test_seq(asyncloop, tmp_path):
     with open(tmp_path / "code.lua", "w") as fp:
         fp.write(f'''
-function luatll_filter(seq)
+function tll_filter(seq)
     return seq % 4 == 0
 end
 ''')
@@ -102,7 +102,7 @@ config:
     data: aaaa
 ''')
     url['code'] = '''
-function luatll_filter(seq, name, data)
+function tll_filter(seq, name, data)
     return data == "aaaa"
 end
 '''
@@ -138,7 +138,7 @@ config:
     - {name: f1, type: int32}
 '''
     url['code'] = '''
-function luatll_filter(seq, name, data)
+function tll_filter(seq, name, data)
     print(data.f0)
     print(data.f1)
     return data.f0 == nil

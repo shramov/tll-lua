@@ -69,10 +69,10 @@ config.0:
     - {name: f0, type: int32}
 '''
     url['code'] = f'''
-function luatll_on_data(seq, name, data)
+function tll_on_data(seq, name, data)
     print(data.f0)
     print({s})
-    luatll_callback(seq + 100, "msg", {{ f0 = {s} }})
+    tll_callback(seq + 100, "msg", {{ f0 = {s} }})
 end
 '''
     c = asyncloop.Channel(url)
@@ -103,8 +103,8 @@ config.0:
     - {name: f0, type: int32}
 '''
     url['code'] = f'''
-function luatll_on_data(seq, name, data)
-    luatll_callback(seq + 100, "msg", data)
+function tll_on_data(seq, name, data)
+    tll_callback(seq + 100, "msg", data)
 end
 '''
     c = asyncloop.Channel(url)
@@ -144,8 +144,8 @@ config.0:
     - {name: f0, type: int32}
 '''
     url['code'] = f'''
-function luatll_on_data(seq, name, data)
-    luatll_callback(seq + 100, "msg", data)
+function tll_on_data(seq, name, data)
+    tll_callback(seq + 100, "msg", data)
 end
 '''
     c = asyncloop.Channel(url)
@@ -172,8 +172,8 @@ lua.dump: yes
     url['direct.scheme'] = SCHEME
 
     url['code'] = '''
-function luatll_on_post(seq, name, data)
-    luatll_post(seq + 100, "msg", { f0 = 100 })
+function tll_on_post(seq, name, data)
+    tll_child_post(seq + 100, "msg", { f0 = 100 })
 end
 '''
     c = asyncloop.Channel(url)
@@ -219,14 +219,14 @@ config.0:
     - {name: f1, type: double}
 '''
     url['code'] = '''
-function luatll_on_data(seq, name, data)
+function tll_on_data(seq, name, data)
     local key = ""
     local sum = 0
     for k,v in pairs(data) do
         key = key .. "/" .. k;
         sum = sum + v;
     end
-    luatll_callback(seq + 100, "msg", { key = key, sum = sum })
+    tll_callback(seq + 100, "msg", { key = key, sum = sum })
 end
 '''
     c = asyncloop.Channel(url)
@@ -260,7 +260,7 @@ config.0:
     - {name: f1, type: 'int32[4]'}
 '''
     url['code'] = '''
-function luatll_on_data(seq, name, data)
+function tll_on_data(seq, name, data)
     local k0 = 0
     local s0 = 0
     local k1 = 0
@@ -273,7 +273,7 @@ function luatll_on_data(seq, name, data)
         k1 = k1 + k
         s1 = s1 + v
     end
-    luatll_callback(seq + 100, "msg", { f0 = { k0, s0 }, f1 = { k1, s1 } })
+    tll_callback(seq + 100, "msg", { f0 = { k0, s0 }, f1 = { k1, s1 } })
 end
 '''
     c = asyncloop.Channel(url)
@@ -309,11 +309,11 @@ config.0:
     - {name: f2, type: 'int32[4]'}
 '''
     url['code'] = '''
-function luatll_on_data(seq, name, data)
-    for k,v in pairs(luatll_msg_copy(data)) do
+function tll_on_data(seq, name, data)
+    for k,v in pairs(tll_msg_copy(data)) do
         print(k, v)
     end
-    luatll_callback(seq + 100, "msg", luatll_msg_copy(data))
+    tll_callback(seq + 100, "msg", tll_msg_copy(data))
 end
 '''
     c = asyncloop.Channel(url)
@@ -347,8 +347,8 @@ config.0:
     - {name: f2, type: int32, options.optional: yes}
 '''
     url['code'] = '''
-function luatll_on_data(seq, name, data)
-    luatll_callback(seq + 100, "msg", {f0 = 10})
+function tll_on_data(seq, name, data)
+    tll_callback(seq + 100, "msg", {f0 = 10})
 end
 '''
     c = asyncloop.Channel(url)
@@ -382,15 +382,15 @@ config.0:
     url['code'] = '''
 gf0 = 0
 gf1 = ""
-function luatll_open(cfg)
+function tll_on_open(cfg)
     for k,v in pairs(cfg) do
         print(k, v)
     end
     gf0 = tonumber(cfg.f0)
     gf1 = cfg.f1
 end
-function luatll_on_data(seq, name, data)
-    luatll_callback(seq + 100, "msg", {f0 = gf0, f1 = gf1})
+function tll_on_data(seq, name, data)
+    tll_callback(seq + 100, "msg", {f0 = gf0, f1 = gf1})
 end
 '''
     c = asyncloop.Channel(url)
@@ -421,14 +421,14 @@ config.0:
 '''
     url['code'] = '''
 local extra = require('extra')
-luatll_on_data = extra.on_data
+tll_on_data = extra.on_data
 '''
     url['lua.path.000'] = f'{tmp_path}/?.lua'
 
     with open(tmp_path / "extra.lua", "w") as fp:
         fp.write("""
 function extra_on_data(seq, name, data)
-    luatll_callback(100, "msg", {f0 = "extra"})
+    tll_callback(100, "msg", {f0 = "extra"})
 end
 
 return {on_data = extra_on_data}

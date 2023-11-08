@@ -91,11 +91,11 @@ class LuaBase : public B
 			return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
 
 		lua_pushcfunction(lua, MetaT<reflection::Message>::copy);
-		lua_setglobal(lua, "luatll_msg_copy");
+		lua_setglobal(lua, "tll_msg_copy");
 
 		lua_pushlightuserdata(lua, this->channelT());
 		lua_pushcclosure(lua, _lua_callback, 1);
-		lua_setglobal(lua, "luatll_callback");
+		lua_setglobal(lua, "tll_callback");
 
 		_lua_ptr = std::move(lua_ptr);
 		_lua = _lua_ptr.get();
@@ -138,7 +138,7 @@ class LuaBase : public B
 			self->_callback(msg);
 			return 0;
 		}
-		return luaL_error(lua, "Non-userdata value in luatll_self");
+		return luaL_error(lua, "Non-userdata value in upvalue");
 	}
 };
 

@@ -37,7 +37,7 @@ def test(context):
     oc = context.Channel('direct://;name=output-client', master=o, **{'scheme-control': CONTROL})
 
     measure = Accum('lua-measure://;name=lua;tll.channel.input=input;tll.channel.output=output;open-mode=lua', context=context, dump='yes', code = f'''
-function luatll_on_data(seq, name, data)
+function tll_on_data(seq, name, data)
     if name == 'Activate' then
         return 'active', -1
     elseif name == 'Done' then

@@ -14,23 +14,23 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 
 	lua_pushlightuserdata(_lua, this);
 	lua_pushcclosure(_lua, _lua_post, 1);
-	lua_setglobal(_lua, "luatll_post");
+	lua_setglobal(_lua, "tll_child_post");
 
 	_on_data_name = "";
-	lua_getglobal(_lua, "luatll_on_data");
+	lua_getglobal(_lua, "tll_on_data");
 	if (lua_isfunction(_lua, -1))
-		_on_data_name = "luatll_on_data";
+		_on_data_name = "tll_on_data";
 	lua_pop(_lua, 1);
 
-	lua_getglobal(_lua, "luatll_on_post");
+	lua_getglobal(_lua, "tll_on_post");
 	_with_on_post = lua_isfunction(_lua, -1);
 	lua_pop(_lua, 1);
 
-	lua_getglobal(_lua, "luatll_filter");
+	lua_getglobal(_lua, "tll_filter");
 	auto with_filter = lua_isfunction(_lua, -1);
 	lua_pop(_lua, 1);
 
-	lua_getglobal(_lua, "luatll_prefix_mode");
+	lua_getglobal(_lua, "tll_prefix_mode");
 	auto mode = std::string(luaT_tostringview(_lua, -1));
 	if (mode.empty()) {
 		if (with_filter)
@@ -42,20 +42,20 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 	else if (mode == "normal")
 		_mode = Mode::Normal;
 	else
-		return _log.fail(EINVAL, "Unknown luatll_mode: {}, has to be one of 'filter' or 'normal'", mode);
+		return _log.fail(EINVAL, "Unknown tll_mode: {}, has to be one of 'filter' or 'normal'", mode);
 	lua_pop(_lua, 1);
 
 	if (_mode == Mode::Filter && _on_data_name.empty()) {
 		if (!with_filter)
-			return _log.fail(EINVAL, "No 'luatll_filter' function in filter mode");
-		_on_data_name = "luatll_filter";
+			return _log.fail(EINVAL, "No 'tll_filter' function in filter mode");
+		_on_data_name = "tll_filter";
 	}
 
-	lua_getglobal(_lua, "luatll_open");
+	lua_getglobal(_lua, "tll_on_open");
 	if (lua_isfunction(_lua, -1)) {
 		_lua_pushconfig(_lua, props.sub("lua").value_or(tll::Config()));
 		if (lua_pcall(_lua, 1, 0, 0))
-			return _log.fail(EINVAL, "Lua open (luatll_open) failed: {}", lua_tostring(_lua, -1));
+			return _log.fail(EINVAL, "Lua open (tll_on_open) failed: {}", lua_tostring(_lua, -1));
 	}
 
 	return Base::_open(props);
@@ -64,10 +64,10 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 int LuaPrefix::_close(bool force)
 {
 	if (_lua) {
-		lua_getglobal(_lua, "luatll_close");
+		lua_getglobal(_lua, "tll_on_close");
 		if (lua_isfunction(_lua, -1)) {
 			if (lua_pcall(_lua, 0, 0, 0))
-				_log.warning("Lua close (luatll_close) failed: {}", lua_tostring(_lua, -1));
+				_log.warning("Lua close (tll_on_close) failed: {}", lua_tostring(_lua, -1));
 		}
 	}
 

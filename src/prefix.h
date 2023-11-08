@@ -67,7 +67,7 @@ public:
 	{
 		if (!_with_on_post)
 			return Base::_post(msg, flags);
-		if (_on_msg(msg, _scheme.get(), "luatll_on_post"))
+		if (_on_msg(msg, _scheme.get(), "tll_on_post"))
 			return EINVAL;
 		return 0;
 	}
@@ -84,7 +84,7 @@ public:
 				return luaL_error(lua, "Failed to post: %d", r);
 			return 0;
 		}
-		return luaL_error(lua, "Non-userdata value in luatll_self");
+		return luaL_error(lua, "Non-userdata value in upvalue");
 	}
 
 	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func, bool filter = false);
