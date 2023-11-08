@@ -399,3 +399,43 @@ end
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 100)
     assert c.unpack(m).as_dict() == {'f0': 10, 'f1': "string"}
+
+@asyncloop_run
+async def test_require(asyncloop, tmp_path):
+    url = Config.load('''yamls://
+tll.proto: lua-prefix+yaml
+name: lua
+yaml.dump: yes
+lua-prefix.dump: yes
+autoclose: yes
+config.0:
+  name: msg
+  data: {}
+''')
+
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: string}
+'''
+    url['code'] = '''
+local extra = require('extra')
+luatll_on_data = extra.on_data
+'''
+    url['lua.path.000'] = f'{tmp_path}/?.lua'
+
+    with open(tmp_path / "extra.lua", "w") as fp:
+        fp.write("""
+function extra_on_data(seq, name, data)
+    luatll_callback(100, "msg", {f0 = "extra"})
+end
+
+return {on_data = extra_on_data}
+""")
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.msgid, m.seq) == (10, 100)
+    assert c.unpack(m).as_dict() == {'f0': "extra"}

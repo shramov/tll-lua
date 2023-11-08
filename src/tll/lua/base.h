@@ -23,6 +23,7 @@ class LuaBase : public B
 	using Base = B;
 
 	std::string _code;
+	std::string _extra_path;
 
 	unique_lua_ptr_t _lua_ptr = { nullptr, lua_close };
 	lua_State * _lua = nullptr;
@@ -33,8 +34,18 @@ class LuaBase : public B
 	{
 		auto reader = this->channel_props_reader(url);
 		_code = reader.template getT<std::string>("code");
+		_extra_path = reader.template getT<std::string>("path", "");
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
+
+		if (_extra_path.size())
+			_extra_path += ";";
+
+		for (auto [k, c] : url.browse("lua.path.**")) {
+			auto v = c.get();
+			if (!v || v->empty()) continue;
+			_extra_path += std::string(*v) + ";";
+		}
 
 		return Base::_init(url, master);
 	}
@@ -47,11 +58,26 @@ class LuaBase : public B
 			return this->_log.fail(EINVAL, "Failed to create lua state");
 
 		luaL_openlibs(lua);
+
 		LuaT<reflection::Array>::init(lua);
 		LuaT<reflection::Message>::init(lua);
 		LuaT<reflection::Message::Iterator>::init(lua);
 		LuaT<reflection::Union>::init(lua);
 		LuaT<reflection::Bits>::init(lua);
+
+		if (_extra_path.size()) {
+			lua_getglobal(lua, "package");
+			luaT_pushstringview(lua, "path");
+			lua_gettable(lua, -2);
+			auto path = std::string(luaT_tostringview(lua, -1));
+			this->_log.info("Extend current path: {} with {}", path, _extra_path);
+			lua_pop(lua, 1);
+			path = _extra_path + path;
+			luaT_pushstringview(lua, "path");
+			luaT_pushstringview(lua, path);
+			lua_settable(lua, -3);
+			lua_pop(lua, 1);
+		}
 
 		if (_code.substr(0, 7) == "file://") {
 			if (luaL_loadfile(lua, _code.substr(7).c_str()))
@@ -61,7 +87,7 @@ class LuaBase : public B
 				return this->_log.fail(EINVAL, "Failed to load source code '{}':\n{}", lua_tostring(lua, -1), _code);
 		}
 
-		if (lua_pcall(lua, 0, 0, 0))
+		if (lua_pcall(lua, 0, LUA_MULTRET, 0))
 			return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
 
 		lua_pushcfunction(lua, MetaT<reflection::Message>::copy);
