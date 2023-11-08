@@ -5,7 +5,6 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#include "filter.h"
 #include "measure.h"
 #include "prefix.h"
 
@@ -295,8 +294,7 @@ TLL_DEFINE_IMPL(ChLuaSocket);
 TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
 
 TLL_DEFINE_IMPL(LuaTcp);
-TLL_DEFINE_IMPL(LuaFilter);
 TLL_DEFINE_IMPL(LuaPrefix);
 TLL_DEFINE_IMPL(tll::lua::LuaMeasure);
 
-TLL_DEFINE_MODULE(LuaTcp, LuaFilter, LuaPrefix, tll::lua::LuaMeasure);
+TLL_DEFINE_MODULE(LuaTcp, LuaPrefix, tll::lua::LuaMeasure);

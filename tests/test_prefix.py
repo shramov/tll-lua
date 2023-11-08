@@ -41,7 +41,7 @@ async def test_simple(asyncloop, t, v):
     else:
         s = str(v)
     url = Config.load(f'''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -85,7 +85,7 @@ end
 @asyncloop_run
 async def test_pass(asyncloop):
     url = Config.load(f'''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -117,7 +117,7 @@ end
 @asyncloop_run
 async def test_convert(asyncloop):
     url = Config.load(f'''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -164,7 +164,7 @@ async def test_post(asyncloop):
     - {name: f0, type: int32}
 '''
     url = Config.load(f'''yamls://
-tll.proto: lua-prefix+direct
+tll.proto: lua+direct
 name: lua
 direct.dump: yes
 lua.dump: yes
@@ -191,7 +191,7 @@ end
 @asyncloop_run
 async def test_iter(asyncloop):
     url = Config.load(f'''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -239,7 +239,7 @@ end
 @asyncloop_run
 async def test_iter(asyncloop):
     url = Config.load(f'''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -286,7 +286,7 @@ end
 @asyncloop_run
 async def test_copy(asyncloop):
     url = Config.load(f'''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -326,7 +326,7 @@ end
 @asyncloop_run
 async def test_copy(asyncloop):
     url = Config.load('''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -361,7 +361,7 @@ end
 @asyncloop_run
 async def test_open_params(asyncloop):
     url = Config.load('''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
@@ -403,7 +403,7 @@ end
 @asyncloop_run
 async def test_require(asyncloop, tmp_path):
     url = Config.load('''yamls://
-tll.proto: lua-prefix+yaml
+tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes

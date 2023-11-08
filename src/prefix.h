@@ -22,11 +22,13 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 	tll::scheme::ConstSchemePtr _scheme_child;
 
 	bool _with_on_post = false;
-	bool _with_on_data = false;
+	std::string _on_data_name;
+
+	enum class Mode { Normal, Filter };
+	Mode _mode = Mode::Normal;
 
 public:
-	static constexpr std::string_view param_prefix() { return "lua"; }
-	static constexpr std::string_view channel_protocol() { return "lua-prefix+"; }
+	static constexpr std::string_view channel_protocol() { return "lua+"; }
 	static constexpr auto scheme_policy() { return Base::SchemePolicy::Normal; }
 
 	const tll::Scheme * scheme(int type) const
@@ -55,9 +57,9 @@ public:
 
 	int _on_data(const tll_msg_t *msg)
 	{
-		if (!_with_on_data)
+		if (_on_data_name.empty())
 			return Base::_on_data(msg);
-		_on_msg(msg, _scheme_child.get(), "luatll_on_data");
+		_on_msg(msg, _scheme_child.get(), _on_data_name, _mode == Mode::Filter);
 		return 0;
 	}
 
@@ -85,7 +87,7 @@ public:
 		return luaL_error(lua, "Non-userdata value in luatll_self");
 	}
 
-	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func);
+	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func, bool filter = false);
 };
 
 #endif//_TLL_LUA_PREFIX_H

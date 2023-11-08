@@ -11,7 +11,7 @@ lua = dependency('lua5.3')
 tll = dependency('tll')
 
 shared_library('tll-lua'
-	, ['src/channel.cc', 'src/filter.cc', 'src/measure.cc', 'src/prefix.cc']
+	, ['src/channel.cc', 'src/measure.cc', 'src/prefix.cc']
 	, include_directories : include
 	, dependencies : [fmt, lua, tll]
 	, install : true
