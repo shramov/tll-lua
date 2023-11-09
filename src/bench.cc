@@ -15,6 +15,7 @@
 static constexpr auto count = 1000000u;
 
 using namespace std::chrono;
+using namespace tll::lua;
 
 static constexpr std::string_view zabbix_lua = R"(
 -- Frame size
@@ -214,7 +215,7 @@ struct Counter
 };
 
 template <>
-struct MetaT<Counter> : public MetaBase
+struct tll::lua::MetaT<Counter> : public MetaBase
 {
 	static constexpr std::string_view name = "counter";
 	static int index(lua_State* lua)

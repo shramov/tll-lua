@@ -11,6 +11,8 @@
 #include "tll/lua/luat.h"
 #include <tll/channel.h>
 
+namespace tll::lua {
+
 template <>
 struct MetaT<const tll_msg_t *> : public MetaBase
 {
@@ -59,5 +61,7 @@ struct MetaT<tll_msg_t *> : public MetaT<const tll_msg_t *>
 		return 0;
 	}
 };
+
+} // namespace tll::lua
 
 #endif//_TLL_LUA_MESSAGE_H

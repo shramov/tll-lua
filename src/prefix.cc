@@ -7,6 +7,8 @@
 
 #include "prefix.h"
 
+using namespace tll::lua;
+
 int LuaPrefix::_open(const tll::ConstConfig &props)
 {
 	if (auto r = _lua_open(); r)

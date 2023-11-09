@@ -13,6 +13,8 @@
 #include <memory>
 #include <string_view>
 
+namespace tll::lua {
+
 using unique_lua_ptr_t = std::unique_ptr<lua_State, decltype(&lua_close)>;
 
 struct MetaBase
@@ -65,8 +67,10 @@ struct LuaT
 	}
 };
 
+} // namespace tll::lua
+
 template <typename T>
-int luaT_push(lua_State * lua, const T & value) { return LuaT<T>::push(lua, value); }
+int luaT_push(lua_State * lua, const T & value) { return tll::lua::LuaT<T>::push(lua, value); }
 
 template <typename T>
 T * luaT_touserdata(lua_State * lua, int index)
@@ -83,7 +87,7 @@ T * luaT_testudata(lua_State * lua, int index, std::string_view tag)
 template <typename T>
 T * luaT_testudata(lua_State * lua, int index)
 {
-	return luaT_testudata<T>(lua, index, MetaT<T>::name.data());
+	return luaT_testudata<T>(lua, index, tll::lua::MetaT<T>::name.data());
 }
 
 template <typename T>
@@ -95,7 +99,7 @@ T & luaT_checkuserdata(lua_State * lua, int index, std::string_view tag)
 template <typename T>
 T & luaT_checkuserdata(lua_State * lua, int index)
 {
-	return luaT_checkuserdata<T>(lua, index, MetaT<T>::name.data());
+	return luaT_checkuserdata<T>(lua, index, tll::lua::MetaT<T>::name.data());
 }
 
 inline std::string_view luaT_checkstringview(lua_State * lua, int index)

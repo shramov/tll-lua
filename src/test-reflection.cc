@@ -18,6 +18,8 @@
 #define TYPED_TEST_SUITE TYPED_TEST_CASE
 #endif
 
+using namespace tll::lua;
+
 static const char * SCHEME = R"(yamls://
 - name: simple
   msgid: 10

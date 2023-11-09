@@ -16,6 +16,7 @@
 #include "tll/lua/message.h"
 
 using namespace tll;
+using namespace tll::lua;
 
 class LuaTcp : public tll::channel::Base<LuaTcp>
 {

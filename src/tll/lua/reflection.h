@@ -16,6 +16,8 @@
 #include <tll/scheme/util.h>
 #include <tll/util/memoryview.h>
 
+namespace tll::lua {
+
 namespace reflection {
 struct Message
 {
@@ -145,7 +147,7 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 	}
 	return 1;
 }
-} // namespace
+} // namespace reflection
 
 template <>
 struct MetaT<reflection::Message> : public MetaBase
@@ -328,5 +330,7 @@ struct MetaT<reflection::Bits> : public MetaBase
 		return 1;
 	}
 };
+
+} // namespace tll::lua
 
 #endif//_TLL_LUA_REFLECTION_H
