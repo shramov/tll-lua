@@ -68,6 +68,19 @@ struct Encoder : public tll::scheme::ErrorStack
 			if (args > index + 1)
 				return fail(nullptr, "Extra arguments not supported when using table: {} extra args", args - index - 1);
 
+			luaT_pushstringview(lua, "type");
+			if (auto type = lua_gettable(lua, index); type == LUA_TSTRING) {
+				auto s = luaT_tostringview(lua, -1);
+				if (s == "Control")
+					msg.type = TLL_MESSAGE_CONTROL;
+				else if (s != "Data")
+					return fail(nullptr, "Unknown message type: '{}', need one of Data or Control", s);
+			} else if (type == LUA_TNUMBER)
+				msg.type = lua_tointeger(lua, -1);
+			lua_pop(lua, 1);
+			if (msg.type != TLL_MESSAGE_DATA)
+				scheme = channel->scheme(msg.type);
+
 			luaT_pushstringview(lua, "seq");
 			if (auto type = lua_gettable(lua, index); type == LUA_TNUMBER)
 				msg.seq = lua_tointeger(lua, -1);

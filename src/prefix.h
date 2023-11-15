@@ -35,9 +35,12 @@ public:
 	{
 		if (type == TLL_MESSAGE_DATA)
 			return _scheme.get();
+		else if (type == TLL_MESSAGE_CONTROL)
+			return _scheme_control.get();
 		return Base::scheme(type);
 	}
 
+	int _init(const tll::Channel::Url &url, tll::Channel * master);
 	int _open(const tll::ConstConfig &props);
 	int _close(bool force);
 

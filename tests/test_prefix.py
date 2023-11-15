@@ -470,3 +470,34 @@ end
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 100)
     assert c.unpack(m).as_dict() == {'f0': "extra"}
+
+@asyncloop_run
+async def test_control(asyncloop, tmp_path):
+    url = Config.load('''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+autoclose: yes
+config.0:
+  msgid: 0
+  data: ""
+''')
+
+    url['scheme-control'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: string}
+'''
+    url['code'] = '''
+function tll_on_data(seq, name, data)
+    tll_callback({type = "Control", seq = 100, name = "msg", data = {f0 = "extra"}})
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.type, m.msgid, m.seq) == (m.Type.Control, 10, 100)
+    assert c.unpack(m).as_dict() == {'f0': "extra"}
