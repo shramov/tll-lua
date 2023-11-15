@@ -82,27 +82,10 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 		_on_data_name = "tll_filter";
 	}
 
-	lua_getglobal(_lua, "tll_on_open");
-	if (lua_isfunction(_lua, -1)) {
-		_lua_pushconfig(_lua, props.sub("lua").value_or(tll::Config()));
-		if (lua_pcall(_lua, 1, 0, 0))
-			return _log.fail(EINVAL, "Lua open (tll_on_open) failed: {}", lua_tostring(_lua, -1));
-	}
+	if (auto r = _lua_on_open(props); r)
+		return r;
 
 	return Base::_open(props);
-}
-
-int LuaPrefix::_close(bool force)
-{
-	if (_lua) {
-		lua_getglobal(_lua, "tll_on_close");
-		if (lua_isfunction(_lua, -1)) {
-			if (lua_pcall(_lua, 0, 0, 0))
-				_log.warning("Lua close (tll_on_close) failed: {}", lua_tostring(_lua, -1));
-		}
-	}
-
-	return Base::_close(force);
 }
 
 int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func, bool filter)

@@ -42,7 +42,6 @@ public:
 
 	int _init(const tll::Channel::Url &url, tll::Channel * master);
 	int _open(const tll::ConstConfig &props);
-	int _close(bool force);
 
 	int _on_active()
 	{

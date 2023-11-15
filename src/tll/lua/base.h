@@ -105,9 +105,32 @@ class LuaBase : public B
 
 	int _close(bool force = false)
 	{
+		if (_lua)
+			_lua_on_close();
+
 		_lua = nullptr;
 		_lua_ptr.reset();
 		return Base::_close(force);
+	}
+
+	int _lua_on_open(const tll::ConstConfig &props)
+	{
+		lua_getglobal(_lua, "tll_on_open");
+		if (lua_isfunction(_lua, -1)) {
+			_lua_pushconfig(_lua, props.sub("lua").value_or(tll::Config()));
+			if (lua_pcall(_lua, 1, 0, 0))
+				return this->_log.fail(EINVAL, "Lua open (tll_on_open) failed: {}", lua_tostring(_lua, -1));
+		}
+		return 0;
+	}
+
+	void _lua_on_close()
+	{
+		lua_getglobal(_lua, "tll_on_close");
+		if (lua_isfunction(_lua, -1)) {
+			if (lua_pcall(_lua, 0, 0, 0))
+				this->_log.warning("Lua close (tll_on_close) failed: {}", lua_tostring(_lua, -1));
+		}
 	}
 
 	void _lua_pushconfig(lua_State * lua, const tll::ConstConfig &cfg)
