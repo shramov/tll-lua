@@ -5,10 +5,8 @@
  * it under the terms of the MIT license. See LICENSE for details.
  */
 
-#include "measure.h"
-#include "prefix.h"
+#include "tcp.h"
 
-#include <tll/channel/module.h>
 #include <tll/channel/tcp.h>
 #include <tll/channel/tcp.hpp>
 
@@ -17,17 +15,6 @@
 
 using namespace tll;
 using namespace tll::lua;
-
-class LuaTcp : public tll::channel::Base<LuaTcp>
-{
- public:
-	static constexpr std::string_view param_prefix() { return "tcp"; }
-	static constexpr std::string_view channel_protocol() { return "tcp-lua"; }
-
-	std::optional<const tll_channel_impl_t *> _init_replace(const tll::Channel::Url &url, tll::Channel *master);
-
-	int _init(const tll::Channel::Url &url, tll::Channel * master) { return _log.fail(EINVAL, "Failed to choose proper tcp channel"); }
-};
 
 struct Common
 {
@@ -293,9 +280,3 @@ TLL_DEFINE_IMPL(LuaTcpClient);
 TLL_DEFINE_IMPL(LuaTcpServer);
 TLL_DEFINE_IMPL(ChLuaSocket);
 TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
-
-TLL_DEFINE_IMPL(LuaTcp);
-TLL_DEFINE_IMPL(LuaPrefix);
-TLL_DEFINE_IMPL(tll::lua::LuaMeasure);
-
-TLL_DEFINE_MODULE(LuaTcp, LuaPrefix, tll::lua::LuaMeasure);
