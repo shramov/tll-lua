@@ -22,44 +22,8 @@ struct Encoder : public tll::scheme::ErrorStack
 	tll_msg_t msg;
 	std::vector<char> buf;
 
-	tll_msg_t * encode_stack(lua_State * lua, const tll::Scheme * scheme, int offset)
+	tll_msg_t * encode_data(lua_State * lua, tll_msg_t &msg, const tll::scheme::Message * message, int index)
 	{
-		auto index = offset + 1;
-
-		auto args = lua_gettop(lua);
-		if (args < index + 2)
-			return fail(nullptr, "Too small number of arguments: {} < min {}", args, index + 2);
-		msg = { TLL_MESSAGE_DATA };
-
-		if (lua_isinteger(lua, index))
-			msg.seq = lua_tointeger(lua, index);
-		index++;
-
-		const tll::scheme::Message * message = nullptr;
-		if (lua_isnil(lua, index)) {
-			// Pass
-		} else if (lua_isinteger(lua, index)) {
-			msg.msgid = lua_tointeger(lua, index);
-			if (scheme) {
-				message = scheme->lookup(msg.msgid);
-				if (!message)
-					return fail(nullptr, "Message '{}' not found in scheme", msg.msgid);
-			}
-		} else if (lua_isstring(lua, index)) {
-			auto name = luaT_tostringview(lua, index);
-			if (!scheme)
-				return fail(nullptr, "Message name '{}' without scheme", name);
-			message = scheme->lookup(name);
-			if (!message)
-				return fail(nullptr, "Message '{}' not found in scheme", name);
-			msg.msgid = message->msgid;
-		} else
-			return fail(nullptr, "Invalid message name/id argument");
-		index++;
-
-		if (args > index + 1 && lua_isinteger(lua, index + 1))
-			msg.addr.i64 = lua_tointeger(lua, index + 1);
-
 		if (lua_isstring(lua, index)) {
 			auto data = luaT_tostringview(lua, index);
 			msg.data = data.data();
@@ -89,6 +53,105 @@ struct Encoder : public tll::scheme::ErrorStack
 		msg.size = buf.size();
 
 		return &msg;
+	}
+
+
+	tll_msg_t * encode_stack(lua_State * lua, const tll::Scheme * scheme, const tll::Channel * channel, int offset)
+	{
+		auto index = offset + 1;
+		const auto args = lua_gettop(lua);
+
+		msg = { TLL_MESSAGE_DATA };
+		const tll::scheme::Message * message = nullptr;
+
+		if (lua_istable(lua, index)) {
+			if (args > index + 1)
+				return fail(nullptr, "Extra arguments not supported when using table: {} extra args", args - index - 1);
+
+			luaT_pushstringview(lua, "seq");
+			if (auto type = lua_gettable(lua, index); type == LUA_TNUMBER)
+				msg.seq = lua_tointeger(lua, -1);
+			lua_pop(lua, 1);
+
+			auto with_name = false;
+			luaT_pushstringview(lua, "name");
+			if (auto type = lua_gettable(lua, index); type == LUA_TSTRING) {
+				with_name = true;
+				auto name = luaT_tostringview(lua, -1);
+				if (scheme) {
+					message = scheme->lookup(name);
+					if (!message)
+						return fail(nullptr, "Message '{}' not found", name);
+					msg.msgid = message->msgid;
+				} else
+					return fail(nullptr, "Message name '{}' without scheme", name);
+			} else if (type != LUA_TNIL)
+				return fail(nullptr, "Invalid type of 'name' parameter: {}", type);
+			lua_pop(lua, 1);
+
+			luaT_pushstringview(lua, "msgid");
+			if (auto type = lua_gettable(lua, index); type == LUA_TNUMBER) {
+				if (with_name)
+					return fail(nullptr, "Conflicting 'name' and 'msgid' parameters in table, need only one");
+				auto msgid = lua_tointeger(lua, -1);
+				if (scheme) {
+					message = scheme->lookup(msgid);
+					if (!message)
+						return fail(nullptr, "Message '{}' not found", msgid);
+				}
+				msg.msgid = msgid;
+			} else if (type != LUA_TNIL)
+				return fail(nullptr, "Invalid type of 'msgid' parameter: {}", type);
+			lua_pop(lua, 1);
+
+			luaT_pushstringview(lua, "addr");
+			if (auto type = lua_gettable(lua, index); type == LUA_TNUMBER)
+				msg.addr.i64 = lua_tointeger(lua, -1);
+			else if (type != LUA_TNIL)
+				return fail(nullptr, "Invalid type of 'addr' parameter: {}", type);
+			lua_pop(lua, 1);
+
+			luaT_pushstringview(lua, "data");
+			if (auto type = lua_gettable(lua, index); type != LUA_TNIL) {
+				if (auto r = encode_data(lua, msg, message, lua_gettop(lua)); !r)
+					return r;
+			}
+			lua_pop(lua, 1);
+			return &msg;
+		}
+
+		if (args < index + 2)
+			return fail(nullptr, "Too small number of arguments: {} < min {}", args, index + 2);
+
+		if (lua_isinteger(lua, index))
+			msg.seq = lua_tointeger(lua, index);
+		index++;
+
+		if (lua_isnil(lua, index)) {
+			// Pass
+		} else if (lua_isinteger(lua, index)) {
+			msg.msgid = lua_tointeger(lua, index);
+			if (scheme) {
+				message = scheme->lookup(msg.msgid);
+				if (!message)
+					return fail(nullptr, "Message '{}' not found in scheme", msg.msgid);
+			}
+		} else if (lua_isstring(lua, index)) {
+			auto name = luaT_tostringview(lua, index);
+			if (!scheme)
+				return fail(nullptr, "Message name '{}' without scheme", name);
+			message = scheme->lookup(name);
+			if (!message)
+				return fail(nullptr, "Message '{}' not found in scheme", name);
+			msg.msgid = message->msgid;
+		} else
+			return fail(nullptr, "Invalid message name/id argument");
+		index++;
+
+		if (args > index + 1 && lua_isinteger(lua, index + 1))
+			msg.addr.i64 = lua_tointeger(lua, index + 1);
+
+		return encode_data(lua, msg, message, index);
 	}
 
 	template <typename Buf>

@@ -130,7 +130,7 @@ class LuaBase : public B
 	static int _lua_callback(lua_State * lua)
 	{
 		if (auto self = _lua_self(lua, 1); self) {
-			auto msg = self->_encoder.encode_stack(lua, self->_scheme.get(), 0);
+			auto msg = self->_encoder.encode_stack(lua, self->_scheme.get(), self->self(), 0);
 			if (!msg) {
 				self->_log.error("Failed to convert messge: {}", self->_encoder.error);
 				return luaL_error(lua, "Failed to convert message");
