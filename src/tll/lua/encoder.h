@@ -42,6 +42,9 @@ struct Encoder : public tll::scheme::ErrorStack
 			return fail(nullptr, "Invalid type of data: allowed string, table and Message");
 		}
 
+		if (!message)
+			return fail(nullptr, "Table body without message scheme not supported");
+
 		buf.resize(0);
 		buf.resize(message->size);
 		auto view = tll::make_view(buf);

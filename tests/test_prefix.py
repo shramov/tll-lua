@@ -4,7 +4,7 @@
 import decorator
 import pytest
 
-from tll.config import Config
+from tll.config import Config, Url
 
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
@@ -470,6 +470,26 @@ end
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 100)
     assert c.unpack(m).as_dict() == {'f0': "extra"}
+
+@asyncloop_run
+async def test_table_noname(asyncloop, tmp_path):
+    url = Url.parse('lua+null://;name=lua;dump=yes')
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: string}
+'''
+    url['code'] = '''
+function tll_on_post(seq, name, data)
+    tll_child_post({seq = 100, name = nil, data = {f0 = "extra"}})
+end
+'''
+
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    with pytest.raises(OSError): c.post({}, name='msg')
 
 @asyncloop_run
 async def test_control(asyncloop, tmp_path):
