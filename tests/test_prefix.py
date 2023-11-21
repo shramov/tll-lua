@@ -441,6 +441,27 @@ return {on_data = extra_on_data}
     assert c.unpack(m).as_dict() == {'f0': "extra"}
 
 @asyncloop_run
+async def test_preload(asyncloop, tmp_path):
+    url = Url.parse('lua+null://;name=lua;dump=yes')
+    url['lua.preload.0'] = '''
+function preloaded_fn()
+    tll_callback(100, 10, 'open')
+end
+'''
+    url['code'] = '''
+function tll_on_open(cfg)
+    preloaded_fn()
+end
+'''
+
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.msgid, m.seq) == (10, 100)
+    assert m.data.tobytes() == b'open'
+
+@asyncloop_run
 async def test_table(asyncloop, tmp_path):
     url = Config.load('''yamls://
 tll.proto: lua+yaml

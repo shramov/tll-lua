@@ -22,6 +22,7 @@ class LuaBase : public B
  protected:
 	using Base = B;
 
+	std::list<std::string> _preload;
 	std::string _code;
 	std::string _extra_path;
 
@@ -45,6 +46,12 @@ class LuaBase : public B
 			auto v = c.get();
 			if (!v || v->empty()) continue;
 			_extra_path += std::string(*v) + ";";
+		}
+
+		for (auto [k, c] : url.browse("lua.preload.**")) {
+			auto v = c.get();
+			if (!v || v->empty()) continue;
+			_preload.push_back(std::string(*v));
 		}
 
 		return Base::_init(url, master);
@@ -79,16 +86,13 @@ class LuaBase : public B
 			lua_pop(lua, 1);
 		}
 
-		if (_code.substr(0, 7) == "file://") {
-			if (luaL_loadfile(lua, _code.substr(7).c_str()))
-				return this->_log.fail(EINVAL, "Failed to load file '{}': {}", _code, lua_tostring(lua, -1));
-		} else {
-			if (luaL_loadstring(lua, _code.c_str()))
-				return this->_log.fail(EINVAL, "Failed to load source code '{}':\n{}", lua_tostring(lua, -1), _code);
+		for (auto & code : _preload) {
+			if (_lua_load(lua, code))
+				return this->_log.fail(EINVAL, "Failed to load extra code");
 		}
 
-		if (lua_pcall(lua, 0, LUA_MULTRET, 0))
-			return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
+		if (_lua_load(lua, _code))
+			return this->_log.fail(EINVAL, "Failed to load main code");
 
 		lua_pushcfunction(lua, MetaT<reflection::Message>::copy);
 		lua_setglobal(lua, "tll_msg_copy");
@@ -102,6 +106,23 @@ class LuaBase : public B
 
 		return 0;
 	}
+
+	int _lua_load(lua_State * lua, const std::string &code)
+	{
+		if (code.substr(0, 7) == "file://") {
+			auto filename = code.substr(7);
+			if (luaL_loadfile(lua, filename.c_str()))
+				return this->_log.fail(EINVAL, "Failed to load file '{}': {}", filename, lua_tostring(lua, -1));
+		} else {
+			if (luaL_loadstring(lua, code.c_str()))
+				return this->_log.fail(EINVAL, "Failed to load source code {}:\n{}", lua_tostring(lua, -1), code);
+		}
+
+		if (lua_pcall(lua, 0, LUA_MULTRET, 0))
+			return this->_log.fail(EINVAL, "Failed to init globals: {}", lua_tostring(lua, -1));
+		return 0;
+	}
+
 
 	int _close(bool force = false)
 	{
