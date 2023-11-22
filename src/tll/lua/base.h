@@ -36,8 +36,15 @@ class LuaBase : public B
 		auto reader = this->channel_props_reader(url);
 		_code = reader.template getT<std::string>("code");
 		_extra_path = reader.template getT<std::string>("path", "");
+		auto scheme_control = reader.get("scheme-control");
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
+
+		if (scheme_control) {
+			this->_scheme_control.reset(this->context().scheme_load(*scheme_control));
+			if (!this->_scheme_control)
+				return this->_log.fail(EINVAL, "Failed to load control scheme");
+		}
 
 		if (_extra_path.size())
 			_extra_path += ";";

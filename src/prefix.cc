@@ -17,23 +17,19 @@ int LuaPrefix::_init(const tll::Channel::Url &url, tll::Channel * master)
 		return r;
 
 	auto reader = channel_props_reader(url);
-	auto scheme_string = reader.get("scheme-control");
 	if (!reader)
 		return _log.fail(EINVAL, "Invalid url: {}", reader.error());
 
-	if (scheme_string) {
-		_scheme_control.reset(context().scheme_load(*scheme_string));
-		if (!_scheme_control)
-			return _log.fail(EINVAL, "Failed to load control scheme");
-		auto child = _child->scheme(TLL_MESSAGE_CONTROL);
-		if (child) {
+	auto child = _child->scheme(TLL_MESSAGE_CONTROL);
+	if (child) {
+		if (_scheme_control) {
 			auto merged = tll::scheme::merge({_scheme_control.get(), child});
 			if (!merged)
 				return _log.fail(EINVAL, "Failed to merge control scheme with child: {}", merged.error());
 			_scheme_control.reset(*merged);
-		}
-	} else
-		_scheme_control.reset(tll_scheme_ref(_child->scheme(TLL_MESSAGE_CONTROL)));
+		} else
+			_scheme_control.reset(tll_scheme_ref(child));
+	}
 
 	return 0;
 }
