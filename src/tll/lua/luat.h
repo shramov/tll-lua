@@ -59,9 +59,9 @@ struct LuaT
 		return 0;
 	}
 
-	static int push(lua_State* lua, const T &ptr)
+	static int push(lua_State* lua, T && value)
 	{
-		*(T *)lua_newuserdata(lua, sizeof(T)) = ptr;
+		new(lua_newuserdata(lua, sizeof(T))) T(std::move(value));
 		luaL_setmetatable(lua, MetaT<T>::name.data());
 		return 0;
 	}
@@ -70,7 +70,7 @@ struct LuaT
 } // namespace tll::lua
 
 template <typename T>
-int luaT_push(lua_State * lua, const T & value) { return tll::lua::LuaT<T>::push(lua, value); }
+int luaT_push(lua_State * lua, T value) { return tll::lua::LuaT<T>::push(lua, std::move(value)); }
 
 template <typename T>
 T * luaT_touserdata(lua_State * lua, int index)
