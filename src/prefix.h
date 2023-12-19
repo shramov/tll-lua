@@ -61,7 +61,7 @@ public:
 	{
 		if (_on_data_name.empty())
 			return Base::_on_data(msg);
-		_on_msg(msg, _scheme_child.get(), _on_data_name, _mode == Mode::Filter);
+		_on_msg(msg, _scheme_child.get(), _child.get(), _on_data_name, _mode == Mode::Filter);
 		return 0;
 	}
 
@@ -69,7 +69,7 @@ public:
 	{
 		if (!_with_on_post)
 			return Base::_post(msg, flags);
-		if (_on_msg(msg, _scheme.get(), "tll_on_post"))
+		if (_on_msg(msg, _scheme.get(), self(), "tll_on_post"))
 			return EINVAL;
 		return 0;
 	}
@@ -89,7 +89,7 @@ public:
 		return luaL_error(lua, "Non-userdata value in upvalue");
 	}
 
-	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func, bool filter = false);
+	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel *, std::string_view func, bool filter = false);
 };
 
 #endif//_TLL_LUA_PREFIX_H

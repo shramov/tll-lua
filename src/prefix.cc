@@ -84,7 +84,7 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 	return Base::_open(props);
 }
 
-int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::string_view func, bool filter)
+int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel * channel, std::string_view func, bool filter)
 {
 	std::string_view name;
 	lua_getglobal(_lua, func.data());
@@ -106,9 +106,10 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, std::st
 	lua_pushinteger(_lua, msg->addr.i64);
 	lua_pushinteger(_lua, msg->time);
 	//luaT_push(_lua, msg);
-	if (lua_pcall(_lua, 6, 1, 0)) {
-		_log.warning("Lua function {} failed for {}:{}: {}", func, name, msg->seq, lua_tostring(_lua, -1));
+	if (lua_pcall(_lua, args, 1, 0)) {
+		auto text = fmt::format("Lua function {} failed: {}\n  on", func, lua_tostring(_lua, -1));
 		lua_pop(_lua, 1);
+		tll_channel_log_msg(channel, _log.name(), tll::logger::Warning, _dump_error, msg, text.data(), text.size());
 		return EINVAL;
 	}
 

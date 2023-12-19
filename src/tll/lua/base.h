@@ -25,6 +25,7 @@ class LuaBase : public B
 	std::list<std::string> _preload;
 	std::string _code;
 	std::string _extra_path;
+	static constexpr tll_channel_log_msg_format_t _dump_error = TLL_MESSAGE_LOG_FRAME;
 
 	unique_lua_ptr_t _lua_ptr = { nullptr, lua_close };
 	lua_State * _lua = nullptr;
