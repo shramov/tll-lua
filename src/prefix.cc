@@ -88,23 +88,9 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const t
 {
 	std::string_view name;
 	lua_getglobal(_lua, func.data());
-	lua_pushinteger(_lua, msg->seq);
-	if (scheme) {
-		auto message = scheme->lookup(msg->msgid);
-		if (!message) {
-			lua_settop(_lua, 0);
-			return _log.fail(ENOENT, "Message {} not found", msg->msgid);
-		}
-		name = message->name;
-		lua_pushstring(_lua, message->name);
-		luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
-	} else {
-		lua_pushnil(_lua);
-		lua_pushlstring(_lua, (const char *) msg->data, msg->size);
-	}
-	lua_pushinteger(_lua, msg->msgid);
-	lua_pushinteger(_lua, msg->addr.i64);
-	lua_pushinteger(_lua, msg->time);
+	auto args = _lua_pushmsg(msg, scheme, channel, true);
+	if (args < 0)
+		return EINVAL;
 	//luaT_push(_lua, msg);
 	if (lua_pcall(_lua, args, 1, 0)) {
 		auto text = fmt::format("Lua function {} failed: {}\n  on", func, lua_tostring(_lua, -1));

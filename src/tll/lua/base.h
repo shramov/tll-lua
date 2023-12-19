@@ -174,6 +174,32 @@ class LuaBase : public B
 		}
 	}
 
+	int _lua_pushmsg(const tll_msg_t * msg, const tll::Scheme * scheme, const tll::Channel * channel, bool skip_type = false)
+	{
+		const auto skip_index = skip_type ? 0 : 1;
+		if (!skip_type)
+			lua_pushinteger(_lua, msg->type);
+		lua_pushinteger(_lua, msg->seq);
+		if (msg->type != TLL_MESSAGE_DATA)
+			scheme = channel->scheme(msg->type);
+		if (scheme) {
+			auto message = scheme->lookup(msg->msgid);
+			if (!message) {
+				lua_pop(_lua, 1 + skip_index);
+				return this->_log.fail(-1, "Message {} not found", msg->msgid);
+			}
+			lua_pushstring(_lua, message->name);
+			luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
+		} else {
+			lua_pushnil(_lua);
+			lua_pushlstring(_lua, (const char *) msg->data, msg->size);
+		}
+		lua_pushinteger(_lua, msg->msgid);
+		lua_pushinteger(_lua, msg->addr.i64);
+		lua_pushinteger(_lua, msg->time);
+		return 6 + skip_index;
+	}
+
 	static T * _lua_self(lua_State * lua, int index)
 	{
 		return (T *) lua_touserdata(lua, lua_upvalueindex(index));
