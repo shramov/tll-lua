@@ -1,3 +1,9 @@
+tll-lua (0.1.0) unstable; urgency=medium
+
+  * First usable version
+
+ -- Pavel Shramov <shramov@mexmat.net>  Thu, 25 Jan 2024 21:02:20 +0300
+
 tll-lua (0.0.0) unstable; urgency=medium
 
   * Initial release.
