@@ -180,10 +180,13 @@ if code is not None:
 # TODO: Move to lua
 count = -1
 skip = 0
+seq_last = -1
 if args.seq[0].type == Seq.Type.Count:
     skip = args.seq[0].value
 if args.seq[1].type == Seq.Type.Count:
     count = args.seq[1].value
+elif args.seq[1].type == Seq.Type.Seq:
+    seq_last = args.seq[1].value
 
 def bytearray_representer(dumper, data):
     if all(x < 0x80 for x in data):
@@ -225,9 +228,12 @@ def hexdump(data):
         yield f"{i:08x}:  {parts[0]:12} {parts[1]:12} {parts[2]:12} {parts[3]:12} {printable}"
 
 def format_data(c, msg):
-    global skip, count
+    global skip, count, seq_last
     if skip != 0:
         skip -= 1
+        return
+    if seq_last >= 0 and msg.seq > seq_last:
+        loop.stop = 1
         return
 
     meta = {'seq':msg.seq}
