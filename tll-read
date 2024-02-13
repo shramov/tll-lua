@@ -17,6 +17,12 @@ from tll.chrono import TimePoint, Duration
 from tll.config import Config, Url
 from tll.processor import Loop
 
+def parsepair(string):
+    r = string.split('=', 1)
+    if len(r) != 2:
+        raise ValueError("Invalid key=value pair")
+    return r
+
 parser = argparse.ArgumentParser(description='Read messages from channel')
 parser.add_argument('channel', metavar='CHANNEL', type=str,
                     help='source channel, if proto:// is missing treat as file://CHANNEL')
@@ -41,6 +47,8 @@ channels.add_argument('-E', '--extra-channel', dest='extra_channels', action='ap
                     help='extra channels')
 channels.add_argument('-M', '--master', dest='master',
                     help='master channel')
+channels.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
+                    help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
 
 filtering = parser.add_argument_group('Filtering')
 filtering.add_argument('-f', '--filter', dest='filter',
@@ -104,6 +112,8 @@ if args.config:
         a = getattr(args, k)
         if k in ('modules', 'messages', 'extra_channels'):
             setattr(args, k, list(set(a + v),))
+        elif k in ('open',):
+            setattr(args, k, v.items() + a)
         elif not a:
             setattr(args, k, v)
 
@@ -281,6 +291,9 @@ if master:
         loop.step(1)
 
 cfg = Config()
+for k,v in args.open:
+    cfg[k] = v
+
 if args.seq[0].type == Seq.Type.Seq:
     cfg['seq'] = str(args.seq[0].value)
 
