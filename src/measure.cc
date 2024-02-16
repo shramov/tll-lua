@@ -121,7 +121,7 @@ int LuaMeasure::callback_tag(TaggedChannel<Input> * c, const tll_msg_t *msg)
 	auto seq = lua_tointeger(_lua, -1);
 	lua_pop(_lua, 1);
 
-	_log.debug("Lua reported seq {}", seq);
+	_log.debug("Lua reported seq {}, time {}ns", seq, msg->time);
 
 	if (seq < 0)
 		return 0;
