@@ -31,7 +31,7 @@ parser.add_argument('-l', '--loglevel', dest='loglevel', default='warning',
 parser.add_argument('-c', '--config', dest='config',
                     help='load CONFIG for additional parameters, if CHANNEL is empty - take it from config')
 parser.add_argument('-S', '--scheme', metavar='SCHEME', type=str,
-                    help='scheme file')
+                    help='scheme url')
 parser.add_argument('--no-autoclose', dest='autoclose', action='store_false', default=True,
                     help='do not autoclose channel')
 parser.add_argument('--ignore-errors', dest='ignore_errors', action='store_true', default=False,
@@ -43,12 +43,12 @@ parser.add_argument('--dump-seq', dest='dump_seq', action='store_true', default=
 
 channels = parser.add_argument_group('Channel options')
 channels.add_argument('-m', '--module', dest='modules', action='append',
-                    default=[],
-                    help='additional channel modules')
+                    default=[], metavar='MODULE',
+                    help='additional channel modules, can be given several times')
 channels.add_argument('-E', '--extra-channel', dest='extra_channels', action='append', default=[],
-                    help='extra channels')
+                    help='extra channels, can be given several times', metavar='CHANNEL')
 channels.add_argument('-M', '--master', dest='master',
-                    help='master channel')
+                    help='master object for reading channel')
 channels.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
                     help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
 channels.add_argument('--poll', action='store_true', default=False,
@@ -64,7 +64,7 @@ filtering.add_argument('--seq-list', dest='seq_list', type=lambda s: [int(x.stri
 filtering.add_argument('--message', dest='messages', action='append',
                     help='filter by message name, conflicts with --seq-list')
 filtering.add_argument('--dump-code', dest='dump_code', action='store_true', default=False,
-                    help='dump generated lua filter code')
+                    help='dump generated lua filter code and exit')
 
 class SeqType(enum.Enum):
     Nothing = 0

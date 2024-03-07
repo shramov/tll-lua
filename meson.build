@@ -45,6 +45,14 @@ test('pytest', import('python').find_installation('python3')
 	, workdir: meson.current_source_dir()
 )
 
+custom_target('tll-read.1'
+	, output : 'tll-read.1'
+	, input : 'read.rst'
+	, command : [rst2man, '@INPUT@', '@OUTPUT@']
+	, install_dir: get_option('mandir') / 'man1'
+	, install: true
+)
+
 foreach f : ['lua.rst']
 	custom_target('channel-man-@0@'.format(f)
 		, input: f
