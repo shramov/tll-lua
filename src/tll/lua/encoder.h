@@ -297,10 +297,11 @@ struct Encoder : public tll::scheme::ErrorStack
 	int encode_bits(const tll::scheme::Field * field, Buf view, lua_State * lua)
 	{
 		T value = 0;
-		if (lua_isinteger(lua, -1))
+		auto type = lua_type(lua, -1);
+		if (type == LUA_TNUMBER)
 			return encode_numeric_raw<T>(field, view, lua);
-		if (!lua_istable(lua, -1))
-			return fail(EINVAL, "Only integer or table types supported for Bits");
+		else if (type != LUA_TTABLE && type != LUA_TUSERDATA)
+			return fail(EINVAL, "Only integer or table types supported for Bits, got {}", type);
 		for (auto bit = field->type_bits->values; bit; bit = bit->next) {
 			lua_pushstring(lua, bit->name);
 			auto type = lua_gettable(lua, -2);
