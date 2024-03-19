@@ -208,10 +208,17 @@ struct Encoder : public tll::scheme::ErrorStack
 		case Field::UInt32: return encode_numeric<uint32_t>(field, view, lua);
 		case Field::UInt64: return encode_numeric<uint64_t>(field, view, lua);
 		case Field::Double: return encode_numeric<double>(field, view, lua);
-		case Field::Decimal128: return fail(EINVAL, "Decimal128 not supported");
+		case Field::Decimal128: {
+			if (!lua_isstring(lua, -1))
+				return fail(EINVAL, "Non-string data for decimal128");
+			auto data = luaT_tostringview(lua, -1);
+			if (data.size() != field->size)
+				return fail(ERANGE, "Decimal128 binary blob size mismatch: expected {}, got {}", field->size, data.size());
+			memcpy(view.data(), data.data(), data.size());
+		}
 		case Field::Bytes: {
 			if (!lua_isstring(lua, -1))
-				return fail(EINVAL, "Non-string data for string field");
+				return fail(EINVAL, "Non-string data for bytes field");
 			auto data = luaT_tostringview(lua, -1);
 			if (data.size() > field->size)
 				return fail(ERANGE, "String too long: {} > max {}", data.size(), field->size);
