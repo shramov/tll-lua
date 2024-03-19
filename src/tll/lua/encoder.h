@@ -294,7 +294,59 @@ struct Encoder : public tll::scheme::ErrorStack
 	}
 
 	template <typename T, typename Buf>
+	int encode_bits(const tll::scheme::Field * field, Buf view, lua_State * lua)
+	{
+		T value = 0;
+		if (lua_isinteger(lua, -1))
+			return encode_numeric_raw<T>(field, view, lua);
+		if (!lua_istable(lua, -1))
+			return fail(EINVAL, "Only integer or table types supported for Bits");
+		for (auto bit = field->type_bits->values; bit; bit = bit->next) {
+			lua_pushstring(lua, bit->name);
+			auto type = lua_gettable(lua, -2);
+			T v = 0;
+			switch (type) {
+			case LUA_TNIL:
+				break;
+			case LUA_TNUMBER:
+				v = lua_tointeger(lua, -1);
+				break;
+			case LUA_TBOOLEAN:
+				v = lua_toboolean(lua, -1) ? 1 : 0;
+				break;
+			default:
+				lua_pop(lua, 1);
+				return fail(EINVAL, "Invalid type for bit member {}: {}", bit->name, type);
+			}
+			lua_pop(lua, 1);
+			if (bit->size > 1)
+				v &= (1 << bit->size) - 1;
+			else
+				v = v ? 1 : 0;
+			value |= v << bit->offset;
+		}
+		*view.template dataT<T>() = value;
+		return 0;
+	}
+
+	template <typename T, typename Buf>
 	int encode_numeric(const tll::scheme::Field * field, Buf view, lua_State * lua)
+	{
+		switch (field->sub_type) {
+		case tll::scheme::Field::SubNone:
+			break;
+		case tll::scheme::Field::Bits:
+			if constexpr (!std::is_same_v<double, T>)
+				return encode_bits<T>(field, view, lua);
+			break;
+		default:
+			break;
+		}
+		return encode_numeric_raw<T>(field, view, lua);
+	}
+
+	template <typename T, typename Buf>
+	int encode_numeric_raw(const tll::scheme::Field * field, Buf view, lua_State * lua)
 	{
 		T value;
 		if constexpr (std::is_same_v<T, double>) {

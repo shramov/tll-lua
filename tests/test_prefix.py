@@ -30,6 +30,7 @@ def asyncloop_run(f, asyncloop, *a, **kw):
     ('"*string"', (["10", "20"], '{"10", "20"}')),
     ('"sub[4]"', ([{'s0': 10}, {'s0': 20}], '{{s0 = 10}, {s0 = 20}}')),
     ('"*sub"', ([{'s0': 10}, {'s0': 20}], '{{s0 = 10}, {s0 = 20}}')),
+    ('uint16, options.type: bits, bits: [A, B, C]', ({'A': True, 'B': False, 'C': True}, '{A = 0x3, C = true}')),
 #    ('decimal128', (decimal.Decimal('1234567890.e-5'), '1234567890.e-5')),
 #    ('int32, options.type: fixed3', (decimal.Decimal('123.456'), '123456.e-3')),
 #    ('int32, options.type: duration, options.resolution: us', (Duration(123000, Resolution.us), '123ms')),
