@@ -17,6 +17,9 @@ int LuaPrefix::_init(const tll::Channel::Url &url, tll::Channel * master)
 		return r;
 
 	auto reader = channel_props_reader(url);
+
+	_fragile = reader.getT("fragile", false);
+
 	if (!reader)
 		return _log.fail(EINVAL, "Invalid url: {}", reader.error());
 
@@ -89,13 +92,18 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const t
 	std::string_view name;
 	lua_getglobal(_lua, func.data());
 	auto args = _lua_pushmsg(msg, scheme, channel, true);
-	if (args < 0)
+	if (args < 0) {
+		if (_fragile)
+			state(tll::state::Error);
 		return EINVAL;
+	}
 	//luaT_push(_lua, msg);
 	if (lua_pcall(_lua, args, 1, 0)) {
 		auto text = fmt::format("Lua function {} failed: {}\n  on", func, lua_tostring(_lua, -1));
 		lua_pop(_lua, 1);
 		tll_channel_log_msg(channel, _log.name(), tll::logger::Warning, _dump_error, msg, text.data(), text.size());
+		if (_fragile)
+			state(tll::state::Error);
 		return EINVAL;
 	}
 

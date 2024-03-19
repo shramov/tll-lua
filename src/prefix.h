@@ -27,6 +27,8 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 	enum class Mode { Normal, Filter };
 	Mode _mode = Mode::Normal;
 
+	bool _fragile = false;
+
 public:
 	static constexpr std::string_view channel_protocol() { return "lua+"; }
 	static constexpr auto scheme_policy() { return Base::SchemePolicy::Normal; }

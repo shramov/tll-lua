@@ -5,6 +5,7 @@ import decorator
 import pytest
 
 from tll.config import Config, Url
+from tll.error import TLLError
 
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
@@ -542,3 +543,29 @@ end
     m = await c.recv(0.001)
     assert (m.type, m.msgid, m.seq) == (m.Type.Control, 10, 100)
     assert c.unpack(m).as_dict() == {'f0': "extra"}
+
+@asyncloop_run
+async def test_fragile(asyncloop, tmp_path):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+fragile: yes
+lua.dump: yes
+null.dump: yes
+''')
+
+    url['code'] = '''
+function tll_on_post(seq, name, data)
+    if seq > 1 then
+        somethingbad()
+    end
+    tll_child_post(seq, name, data)
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    c.post(b'xxx', seq=0)
+    assert c.state == c.State.Active
+    with pytest.raises(TLLError): c.post(b'yyy', seq=2)
+    assert c.state == c.State.Error
