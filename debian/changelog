@@ -1,3 +1,14 @@
+tll-lua (0.2.0) unstable; urgency=medium
+
+  * lua: Decimal128 type support
+  * lua: Handle Bits type in encoding
+  * measure: Include message time in debug logs
+  * prefix: Fragile mode
+  * tll-read: Configurable open parameters
+  * tll-read: Handle --seq :last-seq argument
+
+ -- Pavel Shramov <shramov@mexmat.net>  Wed, 20 Mar 2024 12:17:43 +0300
+
 tll-lua (0.1.0) unstable; urgency=medium
 
   * First usable version
