@@ -53,6 +53,11 @@ static const char * SCHEME = R"(yamls://
   msgid: 20
   fields:
     - {name: bits, type: uint32, options.type: bits, bits: [a, b, c]}
+
+- name: d128
+  msgid: 30
+  fields:
+    - {name: decimal, type: decimal128}
 )";
 
 namespace generated {
@@ -142,6 +147,7 @@ unique_lua_ptr_t prepare_lua()
 	LuaT<reflection::Message>::init(lua.get());
 	LuaT<reflection::Union>::init(lua.get());
 	LuaT<reflection::Bits>::init(lua.get());
+	LuaT<reflection::Decimal128>::init(lua.get());
 
 	return lua;
 }
@@ -314,6 +320,26 @@ TEST(Lua, ReflectionBits)
 	s.bits.clear();
 
 	ASSERT_LUA_VALUE(lua, s, false, "bits.a");
+}
+
+TEST(Lua, ReflectionDecimal1228)
+{
+	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME));
+
+	ASSERT_TRUE(scheme);
+
+	auto message = lookup(scheme.get(), "d128");
+
+	ASSERT_NE(message, nullptr);
+
+	auto lua_ptr = prepare_lua();
+	auto lua = lua_ptr.get();
+	ASSERT_NE(lua, nullptr);
+
+	tll::util::Decimal128 value = { 0, 123456, -3 };
+
+	ASSERT_LUA_VALUE(lua, value, std::string_view { "123456.E-3" }, "decimal.string");
+	ASSERT_LUA_VALUE(lua, value, 123.456, "decimal.float");
 }
 
 int main(int argc, char *argv[])

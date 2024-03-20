@@ -11,10 +11,13 @@
 #include "luat.h"
 
 #include <tll/channel.h>
+#include <tll/conv/decimal128.h>
 #include <tll/scheme.h>
 #include <tll/scheme/types.h>
 #include <tll/scheme/util.h>
 #include <tll/util/memoryview.h>
+
+#include <limits>
 
 namespace tll::lua {
 
@@ -81,6 +84,11 @@ struct Bits
 		return nullptr;
 	}
 };
+
+struct Decimal128
+{
+	tll::util::Decimal128 data;
+};
 } // namespace reflection
 
 namespace {
@@ -116,7 +124,7 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 	case Field::UInt64: return pushnumber(lua, field, data, *data.template dataT<uint64_t>());
 	case Field::Double: return pushdouble(lua, field, data, *data.template dataT<double>());
 	case Field::Decimal128:
-		lua_pushlstring(lua, data.template dataT<const char>(), field->size);
+		luaT_push<reflection::Decimal128>(lua, { *data.template dataT<tll::util::Decimal128>() });
 		break;
 	case Field::Bytes: {
 		auto ptr = data.template dataT<const char>();
@@ -327,6 +335,45 @@ struct MetaT<reflection::Bits> : public MetaBase
 			lua_pushboolean(lua, v);
 		else
 			lua_pushinteger(lua, v);
+		return 1;
+	}
+};
+
+template <>
+struct MetaT<reflection::Decimal128> : public MetaBase
+{
+	static constexpr std::string_view name = "reflection_decimal128";
+	static int index(lua_State* lua)
+	{
+		auto & r = *luaT_touserdata<reflection::Decimal128>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		if (key == "float") {
+			tll::util::Decimal128::Unpacked u;
+			r.data.unpack(u);
+			if (u.exponent >= u.exp_inf) {
+				if (u.isinf())
+					lua_pushnumber(lua, std::numeric_limits<double>::infinity());
+				else
+					lua_pushnumber(lua, std::numeric_limits<double>::quiet_NaN());
+			} else {
+				long double v = u.mantissa.value;
+				if (u.sign)
+					v *= -1;
+				v *= powl(10, u.exponent);
+				lua_pushnumber(lua, v);
+			}
+		} else if (key == "string")
+			luaT_pushstringview(lua, tll::conv::to_string(r.data));
+		else
+			lua_pushnil(lua);
+		return 1;
+	}
+
+	static int tostring(lua_State *lua)
+	{
+		auto & r = *luaT_touserdata<reflection::Decimal128>(lua, 1);
+		luaT_pushstringview(lua, tll::conv::to_string(r.data));
 		return 1;
 	}
 };
