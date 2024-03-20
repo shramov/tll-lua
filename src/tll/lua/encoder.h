@@ -209,12 +209,27 @@ struct Encoder : public tll::scheme::ErrorStack
 		case Field::UInt64: return encode_numeric<uint64_t>(field, view, lua);
 		case Field::Double: return encode_numeric<double>(field, view, lua);
 		case Field::Decimal128: {
-			if (!lua_isstring(lua, -1))
-				return fail(EINVAL, "Non-string data for decimal128");
-			auto data = luaT_tostringview(lua, -1);
-			if (data.size() != field->size)
-				return fail(ERANGE, "Decimal128 binary blob size mismatch: expected {}, got {}", field->size, data.size());
-			memcpy(view.data(), data.data(), data.size());
+			auto ptr = view.template dataT<tll::util::Decimal128>();
+			switch (auto type = lua_type(lua, -1); type) {
+			case LUA_TUSERDATA:
+				if (auto r = luaT_touserdata<reflection::Decimal128>(lua, -1)) {
+					*ptr = r->data;
+				} else
+					return fail(EINVAL, "Non-decimal128 userdata");
+				break;
+			case LUA_TNUMBER:
+			case LUA_TSTRING: {
+				auto s = luaT_tostringview(lua, -1);
+				if (auto r = tll::conv::to_any<tll::util::Decimal128>(s); r) {
+					*ptr = *r;
+				} else
+					return fail(EINVAL, "Invalid decimal128 string '{}': {}", s, r.error());
+				break;
+			}
+			default:
+				return fail(EINVAL, "Invalid type for decimal128, need string, number of decimal128, got {}", type);
+			}
+			return 0;
 		}
 		case Field::Bytes: {
 			if (!lua_isstring(lua, -1))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # vim: sts=4 sw=4 et
 
+import decimal
 import decorator
 import pytest
 
@@ -31,7 +32,8 @@ def asyncloop_run(f, asyncloop, *a, **kw):
     ('"sub[4]"', ([{'s0': 10}, {'s0': 20}], '{{s0 = 10}, {s0 = 20}}')),
     ('"*sub"', ([{'s0': 10}, {'s0': 20}], '{{s0 = 10}, {s0 = 20}}')),
     ('uint16, options.type: bits, bits: [A, B, C]', ({'A': True, 'B': False, 'C': True}, '{A = 0x3, C = true}')),
-#    ('decimal128', (decimal.Decimal('1234567890.e-5'), '1234567890.e-5')),
+    ('decimal128', (decimal.Decimal('123.456'), '"123.456"')),
+    ('decimal128', (decimal.Decimal('123.456'), '123.456')),
 #    ('int32, options.type: fixed3', (decimal.Decimal('123.456'), '123456.e-3')),
 #    ('int32, options.type: duration, options.resolution: us', (Duration(123000, Resolution.us), '123ms')),
 #    ('int64, options.type: time_point, options.resolution: s', (TimePoint(1609556645, Resolution.second), '2021-01-02T03:04:05')),
