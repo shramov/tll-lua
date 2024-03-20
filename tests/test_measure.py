@@ -5,7 +5,7 @@ import decorator
 import pytest
 
 from tll.config import Config
-from tll.test_util import Accum
+from tll.channel.mock import Mock
 
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
@@ -29,14 +29,23 @@ CONTROL = '''yamls://
     - {name: time, type: int64}
 '''
 
-def test(context):
-    i = context.Channel('direct://;name=input', scheme=DATA, dump='yes')
-    ic = context.Channel('direct://;name=input-client', master=i, scheme=DATA)
+def test(context, asyncloop):
+    config = Config.load(f'''yamls://
+mock:
+  input:
+    url: direct://
+  output:
+    url: direct://
+channel:
+  url: 'lua-measure://;tll.channel.input=input;tll.channel.output=output'
+  open-mode: lua
+  dump: yes
+  quantile: '95,50,75'
+''')
 
-    o = context.Channel('direct://;name=output', **{'scheme-control': CONTROL})
-    oc = context.Channel('direct://;name=output-client', master=o, **{'scheme-control': CONTROL})
-
-    measure = Accum('lua-measure://;name=lua;tll.channel.input=input;tll.channel.output=output;open-mode=lua', context=context, dump='yes', code = f'''
+    config['mock.input.scheme'] = DATA
+    config['mock.output.scheme-control'] = CONTROL
+    config['channel.code'] = '''
 function tll_on_data(seq, name, data)
     if name == 'Activate' then
         return 'active', -1
@@ -47,14 +56,13 @@ function tll_on_data(seq, name, data)
     end
     return -1
 end
-''')
-    i.open()
-    ic.open()
+'''
 
-    o.open()
-    oc.open()
+    mock = Mock(asyncloop, config)
+    mock.open()
 
-    measure.open()
+    measure = mock.channel
+    ic, oc = mock.io('input', 'output')
     assert measure.state == measure.State.Opening
 
     assert measure.scheme != None
