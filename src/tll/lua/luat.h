@@ -25,6 +25,7 @@ struct MetaBase
 	static constexpr void * ipairs = nullptr;
 	static constexpr void * len = nullptr;
 	static constexpr void * gc = nullptr;
+	static constexpr void * tostring = nullptr;
 };
 
 template <typename T>
@@ -59,6 +60,10 @@ struct LuaT
 		if constexpr (MetaT<T>::gc != nullptr) {
 			lua_pushcfunction(lua, MetaT<T>::gc);
 			lua_setfield(lua, -2, "__gc");
+		}
+		if constexpr (MetaT<T>::tostring != nullptr) {
+			lua_pushcfunction(lua, MetaT<T>::tostring);
+			lua_setfield(lua, -2, "__tostring");
 		}
 		lua_pop(lua, 1);
 		return 0;
