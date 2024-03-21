@@ -38,6 +38,8 @@ parser.add_argument('--ignore-errors', dest='ignore_errors', action='store_true'
                     help="Skip messages that can not be unpacked")
 parser.add_argument('--hex', dest='hexdump', action='store_true', default=False,
                     help="Print hex dump for all messages")
+parser.add_argument('--dump-seq', dest='dump_seq', action='store_true', default=False,
+                    help='dump first and last seq of the channel and exit')
 
 channels = parser.add_argument_group('Channel options')
 channels.add_argument('-m', '--module', dest='modules', action='append',
@@ -297,15 +299,21 @@ for k,v in args.open:
 if args.seq[0].type == Seq.Type.Seq:
     cfg['seq'] = str(args.seq[0].value)
 
-if args.seq[0].type == Seq.Type.Reverse:
+if args.seq[0].type == Seq.Type.Reverse or args.dump_seq:
     channel.open()
     while channel.state == channel.State.Opening:
         loop.step(0.001)
     last = channel.config.get('info.seq', None)
+    first = channel.config.get('info.seq-begin', None)
+    channel.close()
+    if args.dump_seq:
+        print(f'''First seq: {first or ''}
+Last seq: {last or ''}''')
+        del channel
+        raise SystemExit()
     if not last:
         raise SystemExit("Channel has no 'info.seq' field in config")
     cfg['seq'] = str(int(last) - args.seq[0].value)
-    channel.close()
     loop.stop = 0
 
 channel.callback_add(format_data, mask=channel.MsgMask.Data)
