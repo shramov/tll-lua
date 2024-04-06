@@ -239,6 +239,14 @@ int push(lua_State *lua, T value)
 	return 0;
 }
 
+template <typename T>
+int pushnumber(lua_State *lua, tll::scheme::Field * field, const tll::memoryview<const tll_msg_t> &view, T value, const Settings &settings)
+{
+	tll::lua::pushnumber(lua, field, view, value, settings);
+	lua_pop(lua, 1);
+	return 0;
+}
+
 struct Counter
 {
 	unsigned counter = 0;
@@ -381,6 +389,16 @@ int bench_call(tll::Logger &log)
 	tll::bench::timeit(count, "push(int)", push<int>, lua, 10);
 	tll::bench::timeit(count, "push(string)", push<std::string_view>, lua, "string");
 	tll::bench::timeit(count, "push(Enum)", push<reflection::Enum>, lua, reflection::Enum { scheme_enum->enums, 10 });
+
+	Settings settings = {};
+	auto view = tll::make_view(msg);
+	uint16_t value = 10;
+	settings.enum_mode = Settings::Enum::Int;
+	tll::bench::timeit(count, "pushnumber(Enum, Int)", pushnumber<uint16_t>, lua, scheme_enum->messages->fields, view, value, settings);
+	settings.enum_mode = Settings::Enum::String;
+	tll::bench::timeit(count, "pushnumber(Enum, String)", pushnumber<uint16_t>, lua, scheme_enum->messages->fields, view, value, settings);
+	settings.enum_mode = Settings::Enum::Object;
+	tll::bench::timeit(count, "pushnumber(Enum, Object)", pushnumber<uint16_t>, lua, scheme_enum->messages->fields, view, value, settings);
 
 	tll::bench::timeit(count, "baseline: call()", callT<0>, lua, x, "call0");
 	tll::bench::timeit(count, "v == 10", callT<0>, lua, x, "eq_int");
