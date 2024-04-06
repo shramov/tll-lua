@@ -3,6 +3,7 @@
 
 import decimal
 import decorator
+import enum
 import pytest
 
 from tll.config import Config, Url
@@ -11,6 +12,11 @@ from tll.error import TLLError
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
     asyncloop.run(f(asyncloop, *a, **kw))
+
+class f0(enum.Enum):
+    A = 10
+    B = 20
+    C = 30
 
 @pytest.mark.parametrize("t,v", [
     ('int8', 123),
@@ -34,6 +40,7 @@ def asyncloop_run(f, asyncloop, *a, **kw):
     ('uint16, options.type: bits, bits: [A, B, C]', ({'A': True, 'B': False, 'C': True}, '{A = 0x3, C = true}')),
     ('decimal128', (decimal.Decimal('123.456'), '"123.456"')),
     ('decimal128', (decimal.Decimal('123.456'), '123.456')),
+    ('uint16, options.type: enum, enum: {A: 10, B: 20, C: 30}', (f0.A, '"A"')),
 #    ('int32, options.type: fixed3', (decimal.Decimal('123.456'), '123456.e-3')),
 #    ('int32, options.type: duration, options.resolution: us', (Duration(123000, Resolution.us), '123ms')),
 #    ('int64, options.type: time_point, options.resolution: s', (TimePoint(1609556645, Resolution.second), '2021-01-02T03:04:05')),

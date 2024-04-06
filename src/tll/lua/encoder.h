@@ -353,10 +353,38 @@ struct Encoder : public tll::scheme::ErrorStack
 	}
 
 	template <typename T, typename Buf>
+	int encode_enum(const tll::scheme::Field * field, Buf view, lua_State * lua)
+	{
+		auto type = lua_type(lua, -1);
+		auto ptr = view.template dataT<T>();
+		if (type == LUA_TNUMBER)
+			return encode_numeric_raw<T>(field, view, lua);
+		else if (type == LUA_TUSERDATA) {
+			if (auto r = luaT_touserdata<reflection::Enum>(lua, -1)) {
+				*ptr = r->value;
+				return 0;
+			}
+			return fail(EINVAL, "Non-Enum userdata");
+		} else if (type == LUA_TSTRING) {
+			auto str = luaT_tostringview(lua, -1);
+			if (auto v = tll::scheme::lookup_name(field->type_enum->values, str); v) {
+				*ptr = v->value;
+				return 0;
+			}
+			return fail(EINVAL, "Unknown value for enum {}: '{}'", field->type_enum->name, str);
+		} else
+			return fail(EINVAL, "Only integer, string or userdata types supported for Enum, got {}", type);
+	}
+
+	template <typename T, typename Buf>
 	int encode_numeric(const tll::scheme::Field * field, Buf view, lua_State * lua)
 	{
 		switch (field->sub_type) {
 		case tll::scheme::Field::SubNone:
+			break;
+		case tll::scheme::Field::Enum:
+			if constexpr (!std::is_same_v<double, T>)
+				return encode_enum<T>(field, view, lua);
 			break;
 		case tll::scheme::Field::Bits:
 			if constexpr (!std::is_same_v<double, T>)
