@@ -7,6 +7,7 @@
 
 #include "tll/lua/luat.h"
 #include "tll/lua/message.h"
+#include "tll/lua/reflection.h"
 
 #include <chrono>
 #include <tll/logger.h>
@@ -98,6 +99,27 @@ end
 function mtable_index()
 	return mtable_global.counter
 end
+
+enum_value = nil
+enum_value_int = 10
+enum_value_string = "A"
+
+function eq_int() return enum_value_int == 10 end
+function eq_string() return enum_value_string == "A" end
+function enum_eq_int() return enum_value:eq(10) end
+function enum_eq_string(v) return enum_value:eq("A") end
+function enum_int() return enum_value.int == 10 end
+function enum_string() return enum_value.string == "A" end
+function enum_tostring() return tostring(enum_value) == "A" end
+)";
+
+static constexpr std::string_view scheme_enum_string = R"(yamls://
+- enums:
+    Enum: {type: uint16, enum: {A: 10, B: 20}}
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: Enum}
 )";
 
 std::string_view pack(lua_State * lua, const tll_msg_t *msg)
@@ -133,6 +155,7 @@ lua_State * init(std::string_view code)
 	luaL_openlibs(lua);
 	LuaT<tll_msg_t *>::init(lua);
 	LuaT<const tll_msg_t *>::init(lua);
+	LuaT<reflection::Enum>::init(lua);
 
 	if (luaL_loadstring(lua, code.data()))
 		return log.fail(nullptr, "Failed to load code {}:\n{}", lua_tostring(lua, -1), code);
@@ -201,6 +224,19 @@ int callT(lua_State *lua, int x, std::string_view name)
 	auto r = lua_tointeger(lua, -1);
 	lua_pop(lua, 1);
 	return x - r;
+}
+
+template <typename T>
+int push(lua_State *lua, T value)
+{
+	if constexpr (std::is_same_v<T, std::string_view>)
+		luaT_pushstringview(lua, value);
+	else if constexpr (std::is_same_v<T, int>)
+		lua_pushnumber(lua, value);
+	else
+		luaT_push<T>(lua, value);
+	lua_pop(lua, 1);
+	return 0;
 }
 
 struct Counter
@@ -314,6 +350,12 @@ int bench_call(tll::Logger &log)
 	luaT_push(lua, counter);
 	lua_setglobal(lua, "mtable_global");
 
+	tll::scheme::SchemePtr scheme_enum { tll::Scheme::load(scheme_enum_string) };
+	if (!scheme_enum)
+		return 1;
+	luaT_push(lua, reflection::Enum { scheme_enum->enums, 10 });
+	lua_setglobal(lua, "enum_value");
+
 	tll::bench::timeit(count, "call0", callT<0>, lua, x, "call0"); x = 0;
 	tll::bench::timeit(count, "call1", callT<1>, lua, x, "call1"); x = 0;
 	tll::bench::timeit(count, "call5", callT<5>, lua, x, "call5"); x = 0;
@@ -335,6 +377,19 @@ int bench_call(tll::Logger &log)
 
 	tll::bench::timeit(count, "table index", callT<0>, lua, x, "table_index"); x = 0;
 	tll::bench::timeit(count, "metatable index", callT<0>, lua, x, "mtable_index"); x = 0;
+
+	tll::bench::timeit(count, "push(int)", push<int>, lua, 10);
+	tll::bench::timeit(count, "push(string)", push<std::string_view>, lua, "string");
+	tll::bench::timeit(count, "push(Enum)", push<reflection::Enum>, lua, reflection::Enum { scheme_enum->enums, 10 });
+
+	tll::bench::timeit(count, "baseline: call()", callT<0>, lua, x, "call0");
+	tll::bench::timeit(count, "v == 10", callT<0>, lua, x, "eq_int");
+	tll::bench::timeit(count, "v == 'A'", callT<0>, lua, x, "eq_string");
+	tll::bench::timeit(count, "enum:eq(10)", callT<0>, lua, x, "enum_eq_int");
+	tll::bench::timeit(count, "enum:eq('A')", callT<0>, lua, x, "enum_eq_string");
+	tll::bench::timeit(count, "enum.int == 10", callT<0>, lua, x, "enum_int");
+	tll::bench::timeit(count, "enum.int == 'A'", callT<0>, lua, x, "enum_string");
+	tll::bench::timeit(count, "tostring(enum) == 'A'", callT<0>, lua, x, "enum_tostring");
 
 	return 0;
 }
