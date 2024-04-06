@@ -21,7 +21,13 @@
 
 namespace tll::lua {
 
+struct Settings
+{
+	enum class Enum { Int, String, Object } enum_mode = Enum::Int;
+};
+
 namespace reflection {
+
 struct Message
 {
 	struct Iterator
@@ -32,6 +38,7 @@ struct Message
 
 	const tll::scheme::Message * message = nullptr;
 	tll::memoryview<const tll_msg_t> data;
+	const Settings & settings;
 
 	const tll::scheme::Field * lookup(std::string_view name) const
 	{
@@ -46,12 +53,14 @@ struct Union
 {
 	const tll::scheme::Union * desc = nullptr;
 	tll::memoryview<const tll_msg_t> data;
+	const Settings & settings;
 };
 
 struct Array
 {
 	const tll::scheme::Field * field = nullptr;
 	tll::memoryview<const tll_msg_t> data;
+	const Settings & settings;
 
 	int size(lua_State *lua) const
 	{
@@ -95,25 +104,40 @@ struct Enum
 	const tll::scheme::Enum * desc = nullptr;
 	long long value;
 
-	const tll_scheme_enum_value_t * lookup(long long value) const
+	static const tll_scheme_enum_value_t * lookup(const tll::scheme::Enum * desc, long long value)
 	{
 		for (auto v = desc->values; v; v = v->next)
 			if (v->value == value)
 				return v;
 		return nullptr;
 	}
+
+	const tll_scheme_enum_value_t * lookup(long long value) { return lookup(desc, value); }
 };
 } // namespace reflection
 
 namespace {
 template <typename View, typename T>
-int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v)
+int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v, const Settings & settings)
 {
-	if (field->sub_type == field->Bits)
+	if (field->sub_type == field->Bits) {
 		luaT_push<reflection::Bits>(lua, { field, data });
-	else if (field->sub_type == field->Enum)
-		luaT_push<reflection::Enum>(lua, { field->type_enum, (long long) v });
-	else
+	} else if (field->sub_type == field->Enum) {
+		switch (settings.enum_mode) {
+		case Settings::Enum::Int:
+			lua_pushinteger(lua, v);
+			break;
+		case Settings::Enum::String:
+			if (auto e = reflection::Enum::lookup(field->type_enum, v); e)
+				lua_pushstring(lua, e->name);
+			else
+				lua_pushinteger(lua, v);
+			break;
+		case Settings::Enum::Object:
+			luaT_push<reflection::Enum>(lua, { field->type_enum, (long long) v });
+			break;
+		}
+	} else
 		lua_pushinteger(lua, v);
 	return 1;
 }
@@ -126,18 +150,18 @@ int pushdouble(lua_State * lua, const tll::scheme::Field * field, View data, dou
 }
 
 template <typename View>
-int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
+int pushfield(lua_State * lua, const tll::scheme::Field * field, View data, const Settings & settings)
 {
 	using tll::scheme::Field;
 	switch (field->type) {
-	case Field::Int8:  return pushnumber(lua, field, data, *data.template dataT<int8_t>());
-	case Field::Int16: return pushnumber(lua, field, data, *data.template dataT<int16_t>());
-	case Field::Int32: return pushnumber(lua, field, data, *data.template dataT<int32_t>());
-	case Field::Int64: return pushnumber(lua, field, data, *data.template dataT<int64_t>());
-	case Field::UInt8:  return pushnumber(lua, field, data, *data.template dataT<uint8_t>());
-	case Field::UInt16: return pushnumber(lua, field, data, *data.template dataT<uint16_t>());
-	case Field::UInt32: return pushnumber(lua, field, data, *data.template dataT<uint32_t>());
-	case Field::UInt64: return pushnumber(lua, field, data, *data.template dataT<uint64_t>());
+	case Field::Int8:  return pushnumber(lua, field, data, *data.template dataT<int8_t>(), settings);
+	case Field::Int16: return pushnumber(lua, field, data, *data.template dataT<int16_t>(), settings);
+	case Field::Int32: return pushnumber(lua, field, data, *data.template dataT<int32_t>(), settings);
+	case Field::Int64: return pushnumber(lua, field, data, *data.template dataT<int64_t>(), settings);
+	case Field::UInt8:  return pushnumber(lua, field, data, *data.template dataT<uint8_t>(), settings);
+	case Field::UInt16: return pushnumber(lua, field, data, *data.template dataT<uint16_t>(), settings);
+	case Field::UInt32: return pushnumber(lua, field, data, *data.template dataT<uint32_t>(), settings);
+	case Field::UInt64: return pushnumber(lua, field, data, *data.template dataT<uint64_t>(), settings);
 	case Field::Double: return pushdouble(lua, field, data, *data.template dataT<double>());
 	case Field::Decimal128:
 		luaT_push<reflection::Decimal128>(lua, { *data.template dataT<tll::util::Decimal128>() });
@@ -151,7 +175,7 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 		break;
 	}
 	case Field::Array:
-		luaT_push<reflection::Array>(lua, { field, data });
+		luaT_push<reflection::Array>(lua, { field, data, settings });
 		break;
 	case Field::Pointer:
 		if (field->sub_type == Field::ByteString) {
@@ -160,13 +184,13 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data)
 				return luaL_error(lua, "Unknown offset ptr version for %s: %d", field->name, field->offset_ptr_version);
 			lua_pushlstring(lua, data.view(ptr->offset).template dataT<const char>(), ptr->size ? ptr->size - 1 : 0);
 		} else
-			luaT_push<reflection::Array>(lua, { field, data });
+			luaT_push<reflection::Array>(lua, { field, data, settings });
 		break;
 	case Field::Message:
-		luaT_push<reflection::Message>(lua, { field->type_msg, data });
+		luaT_push<reflection::Message>(lua, { field->type_msg, data, settings });
 		break;
 	case Field::Union:
-		luaT_push<reflection::Union>(lua, { field->type_union, data });
+		luaT_push<reflection::Union>(lua, { field->type_union, data, settings });
 		break;
 	}
 	return 1;
@@ -195,7 +219,7 @@ struct MetaT<reflection::Message> : public MetaBase
 				return 1;
 			}
 		}
-		return pushfield(lua, field, r.data.view(field->offset));
+		return pushfield(lua, field, r.data.view(field->offset), r.settings);
 	}
 
 	static int pairs(lua_State* lua)
@@ -213,7 +237,7 @@ struct MetaT<reflection::Message> : public MetaBase
 		if (!r.field)
 			return 0;
 		lua_pushstring(lua, r.field->name);
-		pushfield(lua, r.field, r.message->data.view(r.field->offset));
+		pushfield(lua, r.field, r.message->data.view(r.field->offset), r.message->settings);
 		r.field = r.field->next;
 		return 2;
 	}
@@ -224,7 +248,7 @@ struct MetaT<reflection::Message> : public MetaBase
 		lua_newtable(lua);
 		for (auto f = r.message->fields; f; f = f->next) {
 			luaT_pushstringview(lua, f->name);
-			pushfield(lua, f, r.data.view(f->offset));
+			pushfield(lua, f, r.data.view(f->offset), r.settings);
 			lua_settable(lua, -3);
 		}
 		return 1;
@@ -259,7 +283,7 @@ struct MetaT<reflection::Union> : public MetaBase
 		if (key == "_tll_type")
 			luaT_pushstringview(lua, field->name);
 		else if (key == field->name)
-			pushfield(lua, field, r.data.view(field->offset));
+			pushfield(lua, field, r.data.view(field->offset), r.settings);
 		else
 			lua_pushnil(lua);
 		return 1;
@@ -319,7 +343,7 @@ inline int reflection::Array::push(lua_State* lua, int key)
 		auto f = field->type_array;
 		if (data.size() < f->offset + f->size * f->count)
 			return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, f->offset + f->size * f->count, data.size());
-		return pushfield(lua, f, data.view(f->offset + f->size * idx));
+		return pushfield(lua, f, data.view(f->offset + f->size * idx), settings);
 	} else {
 		auto ptr = tll::scheme::read_pointer(field, data);
 		if (!ptr)
@@ -328,7 +352,7 @@ inline int reflection::Array::push(lua_State* lua, int key)
 			return luaL_error(lua, "Array %s index out of bounds (size %d): %d", field->name, ptr->size, key);
 		if (data.size() < ptr->offset + ptr->entity * ptr->size)
 			return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, ptr->offset + ptr->entity * ptr->size, data.size());
-		return pushfield(lua, field->type_ptr, data.view(ptr->offset + ptr->entity * idx));
+		return pushfield(lua, field->type_ptr, data.view(ptr->offset + ptr->entity * idx), settings);
 	}
 }
 
@@ -458,5 +482,19 @@ struct MetaT<reflection::Enum> : public MetaBase
 };
 
 } // namespace tll::lua
+
+template <>
+struct tll::conv::parse<tll::lua::Settings::Enum>
+{
+	using Enum = tll::lua::Settings::Enum;
+        static result_t<Enum> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, Enum> {
+			{"int", Enum::Int},
+			{"string", Enum::String},
+			{"object", Enum::Object},
+		});
+        }
+};
 
 #endif//_TLL_LUA_REFLECTION_H

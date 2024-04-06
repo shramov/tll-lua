@@ -151,23 +151,27 @@ end
     assert (m.msgid, m.seq) == (10, 1)
     assert c.unpack(m).as_dict() == {'f1': 10}
 
-@pytest.mark.parametrize("compare", [
-    ('data.f0:eq("A")'),
-    ('data.f0:eq(10)'),
-    ('data.f0.int == 10'),
-    ('data.f0.string == "A"'),
-    ('tostring(data.f0) == "A"'),
+@pytest.mark.parametrize("mode,compare", [
+    ('object', 'data.f0:eq("A")'),
+    ('object', 'data.f0:eq(10)'),
+    ('object', 'data.f0.int == 10'),
+    ('object', 'data.f0.string == "A"'),
+    ('object', 'tostring(data.f0) == "A"'),
+    ('int', 'data.f0 == 10'),
+    ('string', 'data.f0 == "A"'),
+    ('', 'data.f0 == "A"'),
 ])
 @asyncloop_run
-async def test_enum(asyncloop, compare):
-    url = Config.load('''yamls://
+async def test_enum(asyncloop, mode, compare):
+    url = Config.load(f'''yamls://
 tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
+lua.enum-mode: {mode}
 autoclose: yes
-config.0: {seq: 0, name: msg, data: {}}
-config.1: {seq: 1, name: msg, data.f0: A}
+config.0: {{seq: 0, name: msg, data: {{}}}}
+config.1: {{seq: 1, name: msg, data.f0: A}}
 ''')
     url['scheme'] = '''yamls://
 - name: msg

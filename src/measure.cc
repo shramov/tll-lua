@@ -84,7 +84,7 @@ int LuaMeasure::callback_tag(TaggedChannel<Input> * c, const tll_msg_t *msg)
 		if (!message)
 			return _log.fail(ENOENT, "Message {} not found", msg->msgid);
 		lua_pushstring(_lua, message->name);
-		luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
+		luaT_push(_lua, reflection::Message { message, tll::make_view(*msg), _settings });
 	} else {
 		lua_pushnil(_lua);
 		lua_pushlstring(_lua, (const char *) msg->data, msg->size);

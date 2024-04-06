@@ -31,6 +31,7 @@ class LuaBase : public B
 	lua_State * _lua = nullptr;
 
 	tll::lua::Encoder _encoder;
+	tll::lua::Settings _settings;
  public:
 	int _init(const tll::Channel::Url &url, tll::Channel *master)
 	{
@@ -38,6 +39,7 @@ class LuaBase : public B
 		_code = reader.template getT<std::string>("code");
 		_extra_path = reader.template getT<std::string>("path", "");
 		auto scheme_control = reader.get("scheme-control");
+		_settings.enum_mode = reader.getT("enum-mode", Settings::Enum::String);
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 
@@ -191,7 +193,7 @@ class LuaBase : public B
 				return this->_log.fail(-1, "Message {} not found", msg->msgid);
 			}
 			lua_pushstring(_lua, message->name);
-			luaT_push(_lua, reflection::Message { message, tll::make_view(*msg) });
+			luaT_push(_lua, reflection::Message { message, tll::make_view(*msg), _settings });
 		} else {
 			lua_pushnil(_lua);
 			lua_pushlstring(_lua, (const char *) msg->data, msg->size);
