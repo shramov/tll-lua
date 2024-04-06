@@ -80,6 +80,7 @@ class LuaBase : public B
 		LuaT<reflection::Union>::init(lua);
 		LuaT<reflection::Bits>::init(lua);
 		LuaT<reflection::Decimal128>::init(lua);
+		LuaT<reflection::Enum>::init(lua);
 
 		if (_extra_path.size()) {
 			lua_getglobal(lua, "package");

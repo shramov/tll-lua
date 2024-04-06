@@ -65,7 +65,7 @@ end
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
-    m = await c.recv(0.001)
+    m = await c.recv(0.01)
     assert (m.msgid, m.seq) == (10, 1)
 
 @asyncloop_run
@@ -150,3 +150,40 @@ end
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 1)
     assert c.unpack(m).as_dict() == {'f1': 10}
+
+@pytest.mark.parametrize("compare", [
+    ('data.f0:eq("A")'),
+    ('data.f0:eq(10)'),
+    ('data.f0.int == 10'),
+    ('data.f0.string == "A"'),
+    ('tostring(data.f0) == "A"'),
+])
+@asyncloop_run
+async def test_enum(asyncloop, compare):
+    url = Config.load('''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+autoclose: yes
+config.0: {seq: 0, name: msg, data: {}}
+config.1: {seq: 1, name: msg, data.f0: A}
+''')
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: uint16, options.type: enum, enum: {A: 10, B: 20}}
+'''
+
+    url['code'] = f'''
+function tll_filter(seq, name, data)
+    print(data.f0)
+    return {compare}
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.01)
+    assert (m.msgid, m.seq) == (10, 1)

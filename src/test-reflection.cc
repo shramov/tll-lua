@@ -19,6 +19,7 @@
 #endif
 
 using namespace tll::lua;
+using nullptr_t = std::nullptr_t;
 
 static const char * SCHEME = R"(yamls://
 - name: simple
@@ -58,6 +59,11 @@ static const char * SCHEME = R"(yamls://
   msgid: 30
   fields:
     - {name: decimal, type: decimal128}
+
+- name: enum
+  msgid: 40
+  fields:
+    - {name: f0, type: uint16, options.type: enum, enum: {A: 10, B: 20}}
 )";
 
 namespace generated {
@@ -148,6 +154,7 @@ unique_lua_ptr_t prepare_lua()
 	LuaT<reflection::Union>::init(lua.get());
 	LuaT<reflection::Bits>::init(lua.get());
 	LuaT<reflection::Decimal128>::init(lua.get());
+	LuaT<reflection::Enum>::init(lua.get());
 
 	return lua;
 }
@@ -340,6 +347,31 @@ TEST(Lua, ReflectionDecimal1228)
 
 	ASSERT_LUA_VALUE(lua, value, std::string_view { "123456.E-3" }, "decimal.string");
 	ASSERT_LUA_VALUE(lua, value, 123.456, "decimal.float");
+}
+
+TEST(Lua, ReflectionEnum)
+{
+	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME));
+
+	ASSERT_TRUE(scheme);
+
+	auto message = lookup(scheme.get(), "enum");
+
+	ASSERT_NE(message, nullptr);
+
+	auto lua_ptr = prepare_lua();
+	auto lua = lua_ptr.get();
+	ASSERT_NE(lua, nullptr);
+
+	uint16_t value = 10;
+
+	ASSERT_LUA_VALUE(lua, value, 10, "f0.int");
+	ASSERT_LUA_VALUE(lua, value, std::string_view { "A" }, "f0.string");
+
+	value = 11;
+
+	ASSERT_LUA_VALUE(lua, value, 11, "f0.int");
+	ASSERT_LUA_VALUE(lua, value, nullptr, "f0.string");
 }
 
 int main(int argc, char *argv[])

@@ -89,6 +89,20 @@ struct Decimal128
 {
 	tll::util::Decimal128 data;
 };
+
+struct Enum
+{
+	const tll::scheme::Enum * desc = nullptr;
+	long long value;
+
+	const tll_scheme_enum_value_t * lookup(long long value) const
+	{
+		for (auto v = desc->values; v; v = v->next)
+			if (v->value == value)
+				return v;
+		return nullptr;
+	}
+};
 } // namespace reflection
 
 namespace {
@@ -97,6 +111,8 @@ int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v
 {
 	if (field->sub_type == field->Bits)
 		luaT_push<reflection::Bits>(lua, { field, data });
+	else if (field->sub_type == field->Enum)
+		luaT_push<reflection::Enum>(lua, { field->type_enum, (long long) v });
 	else
 		lua_pushinteger(lua, v);
 	return 1;
@@ -374,6 +390,69 @@ struct MetaT<reflection::Decimal128> : public MetaBase
 	{
 		auto & r = *luaT_touserdata<reflection::Decimal128>(lua, 1);
 		luaT_pushstringview(lua, tll::conv::to_string(r.data));
+		return 1;
+	}
+};
+
+template <>
+struct MetaT<reflection::Enum> : public MetaBase
+{
+	static constexpr std::string_view name = "reflection_enum";
+
+	static int index(lua_State* lua)
+	{
+		auto & r = *luaT_touserdata<reflection::Enum>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		if (key == "int") {
+			lua_pushnumber(lua, r.value);
+		} else if (key == "string") {
+			if (auto v = r.lookup(r.value); v)
+				lua_pushstring(lua, v->name);
+			else
+				lua_pushnil(lua);
+		} else if (key == "eq") {
+			lua_pushcfunction(lua, eq);
+		} else
+			lua_pushnil(lua);
+		return 1;
+	}
+
+	static int tostring(lua_State *lua)
+	{
+		auto & r = *luaT_touserdata<reflection::Enum>(lua, 1);
+		if (auto v = r.lookup(r.value); v)
+			lua_pushstring(lua, v->name);
+		else
+			luaT_pushstringview(lua, tll::conv::to_string(r.value));
+		return 1;
+	}
+
+	static int eq(lua_State *lua)
+	{
+		auto & self = *luaT_touserdata<reflection::Enum>(lua, 1);
+		if (lua_gettop(lua) != 2)
+			return luaL_error(lua, "Invalid number of arguments to 'Enum::eq' function: expected 2, got {}", lua_gettop(lua));
+		switch (auto type = lua_type(lua, 2); type) {
+		case LUA_TNUMBER:
+			lua_pushboolean(lua, self.value == lua_tointeger(lua, 2));
+			break;
+		case LUA_TSTRING:
+			if (auto r = tll::scheme::lookup_name(self.desc->values, luaT_tostringview(lua, 2)); r)
+				lua_pushboolean(lua, self.value == r->value);
+			else
+				lua_pushboolean(lua, 0);
+			break;
+		case LUA_TUSERDATA:
+			if (auto r = luaT_touserdata<reflection::Enum>(lua, -1))
+				lua_pushboolean(lua, self.value == r->value);
+			else
+				lua_pushboolean(lua, 0);
+			break;
+		default:
+			lua_pushboolean(lua, 0);
+			break;
+		}
 		return 1;
 	}
 };
