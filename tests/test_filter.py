@@ -160,6 +160,8 @@ end
     ('int', 'data.f0 == 10'),
     ('string', 'data.f0 == "A"'),
     ('', 'data.f0 == "A"'),
+    ('int', 'data.f0 == tll_self_scheme.messages["msg"].enums["f0"].values.A'),
+    ('int', 'data.f0 == tll_self_scheme.messages["msg"].fields["f0"].type_enum.values.A'),
 ])
 @asyncloop_run
 async def test_enum(asyncloop, mode, compare):
