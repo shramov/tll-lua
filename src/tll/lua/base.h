@@ -10,6 +10,7 @@
 
 #include "tll/lua/encoder.h"
 #include "tll/lua/luat.h"
+#include "tll/lua/scheme.h"
 #include "tll/lua/reflection.h"
 
 #include <tll/channel/base.h>
@@ -83,6 +84,12 @@ class LuaBase : public B
 		LuaT<reflection::Bits>::init(lua);
 		LuaT<reflection::Decimal128>::init(lua);
 		LuaT<reflection::Enum>::init(lua);
+
+		LuaT<scheme::Scheme>::init(lua);
+		LuaT<scheme::Message>::init(lua);
+		LuaT<scheme::Field>::init(lua);
+		LuaT<scheme::Enum>::init(lua);
+		LuaT<scheme::Options>::init(lua);
 
 		if (_extra_path.size()) {
 			lua_getglobal(lua, "package");
