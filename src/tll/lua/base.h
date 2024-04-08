@@ -90,6 +90,7 @@ class LuaBase : public B
 		LuaT<scheme::Message>::init(lua);
 		LuaT<scheme::Field>::init(lua);
 		LuaT<scheme::Enum>::init(lua);
+		LuaT<scheme::Bits>::init(lua);
 		LuaT<scheme::Options>::init(lua);
 
 		if (_extra_path.size()) {

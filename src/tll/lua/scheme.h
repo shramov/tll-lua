@@ -35,6 +35,11 @@ struct Enum
 {
 	const tll::scheme::Enum * ptr;
 };
+
+struct Bits
+{
+	const tll::scheme::BitFields * ptr;
+};
 } // namespace scheme
 
 template <>
@@ -60,6 +65,13 @@ struct MetaT<scheme::Scheme> : public MetaBase
 			for (auto i = r.ptr->enums; i; i = i->next) {
 				luaT_pushstringview(lua, i->name);
 				luaT_push(lua, scheme::Enum { i });
+				lua_settable(lua, -3);
+			}
+		} else if (key == "bits") {
+			lua_newtable(lua);
+			for (auto i = r.ptr->bits; i; i = i->next) {
+				luaT_pushstringview(lua, i->name);
+				luaT_push(lua, scheme::Bits { i });
 				lua_settable(lua, -3);
 			}
 		} else
@@ -115,6 +127,13 @@ struct MetaT<scheme::Message> : public MetaBase
 				luaT_push(lua, scheme::Enum { i });
 				lua_settable(lua, -3);
 			}
+		} else if (key == "bits") {
+			lua_newtable(lua);
+			for (auto i = r.ptr->bits; i; i = i->next) {
+				luaT_pushstringview(lua, i->name);
+				luaT_push(lua, scheme::Bits { i });
+				lua_settable(lua, -3);
+			}
 		} else
 			return luaL_error(lua, "Invalid scheme::Message attribute '%s'", key.data());
 
@@ -140,6 +159,11 @@ struct MetaT<scheme::Field> : public MetaBase
 		} else if (key == "type_enum") {
 			if (r.ptr->sub_type == tll::scheme::Field::Enum)
 				luaT_push(lua, scheme::Enum { r.ptr->type_enum });
+			else
+				lua_pushnil(lua);
+		} else if (key == "type_bits") {
+			if (r.ptr->sub_type == tll::scheme::Field::Bits)
+				luaT_push(lua, scheme::Bits { r.ptr->type_bits });
 			else
 				lua_pushnil(lua);
 		} else
@@ -173,6 +197,53 @@ struct MetaT<scheme::Enum> : public MetaBase
 			}
 		} else
 			return luaL_error(lua, "Invalid Enum attribute '%s'", key.data());
+
+		return 1;
+	}
+};
+
+template <>
+struct MetaT<scheme::Bits> : public MetaBase
+{
+	static constexpr std::string_view name = "tll_scheme_bits";
+	static int index(lua_State* lua)
+	{
+		auto & r = *luaT_touserdata<scheme::Bits>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		if (key == "options") {
+			luaT_push(lua, scheme::Options { r.ptr->options });
+		} else if (key == "name") {
+			lua_pushstring(lua, r.ptr->name);
+		} else if (key == "type") {
+			lua_pushinteger(lua, r.ptr->type);
+		} else if (key == "values") {
+			lua_newtable(lua);
+			for (auto i = r.ptr->values; i; i = i->next) {
+				luaT_pushstringview(lua, i->name);
+
+				lua_newtable(lua);
+				luaT_pushstringview(lua, "name");
+				lua_pushstring(lua, i->name);
+				lua_settable(lua, -3);
+
+				luaT_pushstringview(lua, "offset");
+				lua_pushinteger(lua, i->offset);
+				lua_settable(lua, -3);
+
+				luaT_pushstringview(lua, "size");
+				lua_pushinteger(lua, i->size);
+				lua_settable(lua, -3);
+
+				luaT_pushstringview(lua, "value");
+				long long value = 1 << i->size;
+				lua_pushinteger(lua, (value - 1) << i->offset);
+				lua_settable(lua, -3);
+
+				lua_settable(lua, -3);
+			}
+		} else
+			return luaL_error(lua, "Invalid Bits attribute '%s'", key.data());
 
 		return 1;
 	}

@@ -207,6 +207,8 @@ end
     ('int', '(data.f0 & 0x4) ~= 0'),
     ('int', '(data.f0 | 0x2) == 0x7'),
     ('int', '(data.f0 ~ 0x3) == 0x6'),
+    ('int', '(data.f0 & tll_self_scheme.messages["msg"].bits["f0"].values.A.value) ~= 0'),
+    ('int', '(data.f0 & tll_self_scheme.messages["msg"].fields["f0"].type_bits.values.A.value) ~= 0'),
     ('', 'data.f0.A'),
 ])
 @asyncloop_run
