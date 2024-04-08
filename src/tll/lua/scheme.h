@@ -40,6 +40,29 @@ struct Bits
 {
 	const tll::scheme::BitFields * ptr;
 };
+
+inline std::string_view format_as(tll_scheme_field_type_t t)
+{
+	using tll::scheme::Field;
+	switch(t) {
+	case Field::Int8: return "int8";
+	case Field::Int16: return "int16";
+	case Field::Int32: return "int32";
+	case Field::Int64: return "int64";
+	case Field::UInt8: return "uint8";
+	case Field::UInt16: return "uint16";
+	case Field::UInt32: return "uint32";
+	case Field::UInt64: return "uint64";
+	case Field::Double: return "double";
+	case Field::Decimal128: return "decimal128";
+	case Field::Bytes: return "bytes";
+	case Field::Array: return "array";
+	case Field::Pointer: return "pointer";
+	case Field::Message: return "message";
+	case Field::Union: return "union";
+	}
+	return "undefined";
+}
 } // namespace scheme
 
 template <>
@@ -155,7 +178,7 @@ struct MetaT<scheme::Field> : public MetaBase
 		} else if (key == "name") {
 			lua_pushstring(lua, r.ptr->name);
 		} else if (key == "type") {
-			lua_pushinteger(lua, r.ptr->type);
+			luaT_pushstringview(lua, scheme::format_as(r.ptr->type));
 		} else if (key == "type_enum") {
 			if (r.ptr->sub_type == tll::scheme::Field::Enum)
 				luaT_push(lua, scheme::Enum { r.ptr->type_enum });
@@ -187,7 +210,7 @@ struct MetaT<scheme::Enum> : public MetaBase
 		} else if (key == "name") {
 			lua_pushstring(lua, r.ptr->name);
 		} else if (key == "type") {
-			lua_pushinteger(lua, r.ptr->type);
+			luaT_pushstringview(lua, scheme::format_as(r.ptr->type));
 		} else if (key == "values") {
 			lua_newtable(lua);
 			for (auto i = r.ptr->values; i; i = i->next) {
@@ -216,7 +239,7 @@ struct MetaT<scheme::Bits> : public MetaBase
 		} else if (key == "name") {
 			lua_pushstring(lua, r.ptr->name);
 		} else if (key == "type") {
-			lua_pushinteger(lua, r.ptr->type);
+			luaT_pushstringview(lua, scheme::format_as(r.ptr->type));
 		} else if (key == "values") {
 			lua_newtable(lua);
 			for (auto i = r.ptr->values; i; i = i->next) {
