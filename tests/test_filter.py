@@ -193,3 +193,43 @@ end
     assert c.state == c.State.Active
     m = await c.recv(0.01)
     assert (m.msgid, m.seq) == (10, 1)
+
+@pytest.mark.parametrize("mode,compare", [
+    ('object', 'data.f0.A'),
+    ('object', 'data.f0.C'),
+    ('object', 'data.f0.A and data.f0.C'),
+    ('int', 'data.f0 == 0x5'),
+    ('int', '(data.f0 & 0x1) ~= 0'),
+    ('int', '(data.f0 & 0x4) ~= 0'),
+    ('', 'data.f0.A'),
+])
+@asyncloop_run
+async def test_bits(asyncloop, mode, compare):
+    url = Config.load(f'''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+lua.bits-mode: {mode}
+autoclose: yes
+config.0: {{seq: 0, name: msg, data: {{}}}}
+config.1: {{seq: 1, name: msg, data.f0: "A | C"}}
+''')
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: uint16, options.type: bits, bits: [A, B, C]}
+'''
+
+    url['code'] = f'''
+function tll_filter(seq, name, data)
+    print(data.f0)
+    return {compare}
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.01)
+    assert (m.msgid, m.seq) == (10, 1)

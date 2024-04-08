@@ -41,6 +41,7 @@ class LuaBase : public B
 		_extra_path = reader.template getT<std::string>("path", "");
 		auto scheme_control = reader.get("scheme-control");
 		_settings.enum_mode = reader.getT("enum-mode", Settings::Enum::String);
+		_settings.bits_mode = reader.getT("bits-mode", Settings::Bits::Object);
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 

@@ -24,6 +24,7 @@ namespace tll::lua {
 struct Settings
 {
 	enum class Enum { Int, String, Object } enum_mode = Enum::Int;
+	enum class Bits { Int, Object } bits_mode = Bits::Object;
 };
 
 namespace reflection {
@@ -121,7 +122,14 @@ template <typename View, typename T>
 int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v, const Settings & settings)
 {
 	if (field->sub_type == field->Bits) {
-		luaT_push<reflection::Bits>(lua, { field, data });
+		switch (settings.bits_mode) {
+		case Settings::Bits::Int:
+			lua_pushinteger(lua, v);
+			break;
+		case Settings::Bits::Object:
+			luaT_push<reflection::Bits>(lua, { field, data });
+			break;
+		}
 	} else if (field->sub_type == field->Enum) {
 		switch (settings.enum_mode) {
 		case Settings::Enum::Int:
@@ -493,6 +501,19 @@ struct tll::conv::parse<tll::lua::Settings::Enum>
 			{"int", Enum::Int},
 			{"string", Enum::String},
 			{"object", Enum::Object},
+		});
+        }
+};
+
+template <>
+struct tll::conv::parse<tll::lua::Settings::Bits>
+{
+	using Bits = tll::lua::Settings::Bits;
+        static result_t<Bits> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, Bits> {
+			{"int", Bits::Int},
+			{"object", Bits::Object},
 		});
         }
 };
