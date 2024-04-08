@@ -385,6 +385,33 @@ struct MetaT<reflection::Bits> : public MetaBase
 			lua_pushinteger(lua, v);
 		return 1;
 	}
+
+	static int init(lua_State* lua)
+	{
+		lua_pushcfunction(lua, band);
+		lua_setfield(lua, -2, "__band");
+
+		lua_pushcfunction(lua, bor);
+		lua_setfield(lua, -2, "__bor");
+
+		lua_pushcfunction(lua, bxor);
+		lua_setfield(lua, -2, "__bxor");
+		return 0;
+	}
+
+	template <typename Func>
+	static int bfunc(lua_State *lua, Func f)
+	{
+		auto & r = *luaT_touserdata<reflection::Bits>(lua, 1);
+		auto rhs = luaL_checkinteger(lua, 2);
+		auto bits = tll::scheme::read_size(r.field, r.data);
+		lua_pushinteger(lua, f(bits, rhs));
+		return 1;
+	}
+
+	static int band(lua_State *lua) { return bfunc(lua, [](auto lhs, auto rhs) { return lhs & rhs; }); }
+	static int bor(lua_State *lua) { return bfunc(lua, [](auto lhs, auto rhs) { return lhs | rhs; }); }
+	static int bxor(lua_State *lua) { return bfunc(lua, [](auto lhs, auto rhs) { return lhs ^ rhs; }); }
 };
 
 template <>

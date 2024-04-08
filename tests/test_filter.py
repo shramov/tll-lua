@@ -198,9 +198,15 @@ end
     ('object', 'data.f0.A'),
     ('object', 'data.f0.C'),
     ('object', 'data.f0.A and data.f0.C'),
+    ('object', '(data.f0 & 0x1) ~= 0'),
+    ('object', '(data.f0 & 0x4) ~= 0'),
+    ('object', '(data.f0 | 0x2) == 0x7'),
+    ('object', '(data.f0 ~ 0x3) == 0x6'),
     ('int', 'data.f0 == 0x5'),
     ('int', '(data.f0 & 0x1) ~= 0'),
     ('int', '(data.f0 & 0x4) ~= 0'),
+    ('int', '(data.f0 | 0x2) == 0x7'),
+    ('int', '(data.f0 ~ 0x3) == 0x6'),
     ('', 'data.f0.A'),
 ])
 @asyncloop_run
