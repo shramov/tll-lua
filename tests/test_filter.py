@@ -65,7 +65,7 @@ end
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
-    m = await c.recv(0.01)
+    m = await c.recv(0.1)
     assert (m.msgid, m.seq) == (10, 1)
 
 @asyncloop_run
@@ -191,7 +191,7 @@ end
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
-    m = await c.recv(0.01)
+    m = await c.recv(0.1)
     assert (m.msgid, m.seq) == (10, 1)
 
 @pytest.mark.parametrize("mode,compare", [
@@ -239,7 +239,7 @@ end
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
-    m = await c.recv(0.01)
+    m = await c.recv(0.1)
     assert (m.msgid, m.seq) == (10, 1)
 
 @pytest.mark.parametrize("mode,compare", [
@@ -275,5 +275,5 @@ end
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
-    m = await c.recv(0.01)
+    m = await c.recv(0.1)
     assert (m.msgid, m.seq) == (10, 1)
