@@ -8,6 +8,7 @@ import pytest
 
 from tll.config import Config, Url
 from tll.error import TLLError
+from tll.test_util import Accum
 
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
@@ -41,7 +42,6 @@ class f0(enum.Enum):
     ('decimal128', (decimal.Decimal('123.456'), '"123.456"')),
     ('decimal128', (decimal.Decimal('123.456'), '123.456')),
     ('uint16, options.type: enum, enum: {A: 10, B: 20, C: 30}', (f0.A, '"A"')),
-#    ('int32, options.type: fixed3', (decimal.Decimal('123.456'), '123456.e-3')),
 #    ('int32, options.type: duration, options.resolution: us', (Duration(123000, Resolution.us), '123ms')),
 #    ('int64, options.type: time_point, options.resolution: s', (TimePoint(1609556645, Resolution.second), '2021-01-02T03:04:05')),
 ])
@@ -579,3 +579,43 @@ end
     assert c.state == c.State.Active
     with pytest.raises(TLLError): c.post(b'yyy', seq=2)
     assert c.state == c.State.Error
+
+@pytest.mark.parametrize('mode,outer,inner', [
+    ('int', '123.456', '"123456.e-3"'),
+    ('float', '123.456', '"123456.e-3"'),
+    ('int', '123.456', '"123.456"'),
+    ('int', '123.456', '123456'),
+    ('int', None, '123.456'),
+    ('float', '123456', '123456'),
+    ('float', '123.456', '123.456'),
+    ('', '123.456', '123.456'),
+    ('', None, '"xxx"'),
+    ('', None, '{ a = 1 }'),
+])
+def test_fixed(context, mode, outer, inner):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+    url['fixed-mode'] = mode
+
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: int32, options.type: fixed3}
+'''
+    url['code'] = f'''
+function tll_on_open()
+    tll_callback(100, "msg", {{ f0 = {inner} }})
+end
+'''
+    c = Accum(url, context=context)
+    c.open()
+    if outer is None:
+        assert c.state == c.State.Error
+        return
+    assert c.state == c.State.Active
+    assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
+    assert c.unpack(c.result[-1]).as_dict() == {'f0': decimal.Decimal(outer)}

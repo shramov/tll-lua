@@ -46,7 +46,7 @@ class LuaBase : public B
 		auto scheme_control = reader.get("scheme-control");
 		_settings.enum_mode = reader.getT("enum-mode", Settings::Enum::String);
 		_settings.bits_mode = reader.getT("bits-mode", Settings::Bits::Object);
-		_settings.fixed_mode = reader.getT("fixed-mode", Settings::Fixed::Float);
+		_encoder.fixed_mode = _settings.fixed_mode = reader.getT("fixed-mode", Settings::Fixed::Float);
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 

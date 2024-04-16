@@ -21,6 +21,7 @@ struct Encoder : public tll::scheme::ErrorStack
 {
 	tll_msg_t msg;
 	std::vector<char> buf;
+	Settings::Fixed fixed_mode = Settings::Fixed::Int;
 
 	tll_msg_t * encode_data(lua_State * lua, tll_msg_t &msg, const tll::scheme::Message * message, int index)
 	{
@@ -390,6 +391,10 @@ struct Encoder : public tll::scheme::ErrorStack
 			if constexpr (!std::is_same_v<double, T>)
 				return encode_bits<T>(field, view, lua);
 			break;
+		case tll::scheme::Field::Fixed:
+			if constexpr (!std::is_same_v<double, T>)
+				return encode_fixed<T>(field, view, lua);
+			break;
 		default:
 			break;
 		}
@@ -423,6 +428,39 @@ struct Encoder : public tll::scheme::ErrorStack
 		}
 
 		*view.template dataT<T>() = value;
+		return 0;
+	}
+
+	template <typename T, typename Buf>
+	int encode_fixed(const tll::scheme::Field * field, Buf view, lua_State * lua)
+	{
+		auto type = lua_type(lua, -1);
+		if (type == LUA_TNUMBER) {
+			if (fixed_mode == Settings::Fixed::Int) {
+				int result = 0;
+				auto v = lua_tointegerx(lua, -1, &result);
+				if (!result)
+					return fail(EINVAL, "Failed to convert value '{}' to integer", luaT_tostringview(lua, -1));
+				*view.template dataT<T>() = v;
+			} else if (fixed_mode == Settings::Fixed::Float) {
+				auto v = lua_tonumber(lua, -1);
+				*view.template dataT<T>() = v * intpow(10, field->fixed_precision);
+			}
+		} else if (type == LUA_TSTRING) {
+			auto s = luaT_tostringview(lua, -1);
+			auto u = tll::conv::to_any<tll::conv::unpacked_float<T>>(s);
+			if (!u)
+				return fail(EINVAL, "Failed to parse numeric string '{}': {}", s, u.error());
+			if (u->sign)
+				u->mantissa = -u->mantissa;
+			u->exponent += field->fixed_precision;
+			if (u->exponent >= 0)
+				u->mantissa *= intpow(10, u->exponent);
+			else
+				u->mantissa /= intpow(10, u->exponent);
+			*view.template dataT<T>() = u->mantissa;
+		} else
+			return fail(EINVAL, "Invalid type for fixed number: {}", type);
 		return 0;
 	}
 };
