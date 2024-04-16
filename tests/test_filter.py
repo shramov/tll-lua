@@ -241,3 +241,39 @@ end
     assert c.state == c.State.Active
     m = await c.recv(0.01)
     assert (m.msgid, m.seq) == (10, 1)
+
+@pytest.mark.parametrize("mode,compare", [
+    ('int', 'data.f0 == 123456'),
+    ('float', 'data.f0 == 123.456'),
+    ('', 'data.f0 == 123.456'),
+])
+@asyncloop_run
+async def test_enum(asyncloop, mode, compare):
+    url = Config.load('''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+autoclose: yes
+config.0: {seq: 0, name: msg, data: {}}
+config.1: {seq: 1, name: msg, data.f0: 123.456}
+''')
+    url['lua.fixed-mode'] = mode
+    url['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: uint32, options.type: fixed3}
+'''
+
+    url['code'] = f'''
+function tll_filter(seq, name, data)
+    print(data.f0)
+    return {compare}
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.01)
+    assert (m.msgid, m.seq) == (10, 1)

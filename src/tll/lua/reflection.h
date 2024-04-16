@@ -25,6 +25,7 @@ struct Settings
 {
 	enum class Enum { Int, String, Object } enum_mode = Enum::Int;
 	enum class Bits { Int, Object } bits_mode = Bits::Object;
+	enum class Fixed { Int, Float } fixed_mode = Fixed::Float;
 };
 
 namespace reflection {
@@ -118,6 +119,14 @@ struct Enum
 } // namespace reflection
 
 namespace {
+inline constexpr unsigned long long intpow(unsigned base, unsigned pow)
+{
+	unsigned long long r = 1;
+	while (pow-- > 0)
+		r *= base;
+	return r;
+}
+
 template <typename View, typename T>
 int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v, const Settings & settings)
 {
@@ -143,6 +152,15 @@ int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v
 			break;
 		case Settings::Enum::Object:
 			luaT_push<reflection::Enum>(lua, { field->type_enum, (long long) v });
+			break;
+		}
+	} else if (field->sub_type == field->Fixed) {
+		switch (settings.fixed_mode) {
+		case Settings::Fixed::Int:
+			lua_pushinteger(lua, v);
+			break;
+		case Settings::Fixed::Float:
+			lua_pushnumber(lua, ((double) v) / intpow(10, field->fixed_precision));
 			break;
 		}
 	} else
@@ -541,6 +559,19 @@ struct tll::conv::parse<tll::lua::Settings::Bits>
                 return tll::conv::select(s, std::map<std::string_view, Bits> {
 			{"int", Bits::Int},
 			{"object", Bits::Object},
+		});
+        }
+};
+
+template <>
+struct tll::conv::parse<tll::lua::Settings::Fixed>
+{
+	using Fixed = tll::lua::Settings::Fixed;
+        static result_t<Fixed> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, Fixed> {
+			{"int", Fixed::Int},
+			{"float", Fixed::Float},
 		});
         }
 };
