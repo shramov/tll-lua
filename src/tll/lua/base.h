@@ -34,6 +34,10 @@ class LuaBase : public B
 	tll::lua::Encoder _encoder;
 	tll::lua::Settings _settings;
  public:
+	/// Close policy: perform cleanup in close or leave it to user
+	enum class LuaClosePolicy { Cleanup, Skip };
+	static constexpr auto lua_close_policy() { return LuaClosePolicy::Cleanup; }
+
 	int _init(const tll::Channel::Url &url, tll::Channel *master)
 	{
 		auto reader = this->channel_props_reader(url);
@@ -147,12 +151,18 @@ class LuaBase : public B
 
 	int _close(bool force = false)
 	{
+		if (this->channelT()->lua_close_policy() == LuaClosePolicy::Cleanup)
+			_lua_close();
+		return Base::_close(force);
+	}
+
+	void _lua_close()
+	{
 		if (_lua)
 			_lua_on_close();
 
 		_lua = nullptr;
 		_lua_ptr.reset();
-		return Base::_close(force);
 	}
 
 	int _lua_on_open(const tll::ConstConfig &props)

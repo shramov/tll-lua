@@ -29,9 +29,12 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 
 	bool _fragile = false;
 
+	tll::Config _open_cfg;
+
 public:
 	static constexpr std::string_view channel_protocol() { return "lua+"; }
 	static constexpr auto scheme_policy() { return Base::SchemePolicy::Normal; }
+	static constexpr auto lua_close_policy() { return Base::LuaClosePolicy::Skip; }
 
 	const tll::Scheme * scheme(int type) const
 	{
@@ -45,16 +48,10 @@ public:
 	int _init(const tll::Channel::Url &url, tll::Channel * master);
 	int _open(const tll::ConstConfig &props);
 
-	int _on_active()
-	{
-		_scheme_child.reset(tll_scheme_ref(_child->scheme()));
-		if (!_scheme)
-			_scheme.reset(tll_scheme_ref(_child->scheme()));
-		return Base::_on_active();
-	}
-
+	int _on_active();
 	int _on_closed()
 	{
+		_lua_close();
 		_scheme_child.reset();
 		return Base::_on_closed();
 	}

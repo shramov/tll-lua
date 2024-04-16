@@ -81,8 +81,17 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 		_on_data_name = "tll_filter";
 	}
 
-	if (auto r = Base::_open(props); r)
-		return r;
+	_open_cfg = props.copy();
+	return Base::_open(props);
+
+	return 0;
+}
+
+int LuaPrefix::_on_active()
+{
+	_scheme_child.reset(tll_scheme_ref(_child->scheme()));
+	if (!_scheme)
+		_scheme.reset(tll_scheme_ref(_child->scheme()));
 
 	if (_scheme) {
 		luaT_push(_lua, scheme::Scheme { _scheme.get() });
@@ -94,10 +103,10 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 		lua_setglobal(_lua, "tll_child_scheme");
 	}
 
-	if (auto r = _lua_on_open(props); r)
+	if (auto r = _lua_on_open(_open_cfg); r)
 		return r;
 
-	return 0;
+	return Base::_on_active();
 }
 
 int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel * channel, std::string_view func, bool filter)
