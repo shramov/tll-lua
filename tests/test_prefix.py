@@ -21,14 +21,21 @@ class f0(enum.Enum):
 
 @pytest.mark.parametrize("t,v", [
     ('int8', 123),
+    ('int8', (None, 1123)),
+    ('int8', (None, -1123)),
+    ('int8', (None, 123.123)),
+    ('int8', (None, '"xxx"')),
+    ('int8', (None, '{}')),
     ('int16', 12323),
     ('int32', 123123),
     ('int64', 123123123),
     ('uint8', 231),
+    ('uint8', (None, -123)),
     ('uint16', 53123),
     ('uint32', 123123),
     ('uint64', 123123123),
     ('double', 123.123),
+    ('double', (None, '"xxx"')),
     ('byte8', (b'abcd\0\0\0\0', '"abcd"')),
     ('byte8, options.type: string', ('abcd', '"abcd"')),
     ('string', ('abcd', '"abcd"')),
@@ -56,6 +63,7 @@ tll.proto: lua+yaml
 name: lua
 yaml.dump: yes
 lua.dump: yes
+lua.fragile: yes
 autoclose: yes
 config.0:
   seq: 0
@@ -88,7 +96,10 @@ end
 '''
     c = asyncloop.Channel(url)
     c.open()
-    assert c.state == c.State.Active
+    assert c.State.Active == await c.recv_state()
+    if v is None:
+        assert c.State.Error == await c.recv_state()
+        return
     m = await c.recv(0.001)
     assert (m.msgid, m.seq) == (10, 100)
     assert c.unpack(m).as_dict() == {'header': 0, 'f0': v}

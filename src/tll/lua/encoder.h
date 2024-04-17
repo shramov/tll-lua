@@ -412,7 +412,10 @@ struct Encoder : public tll::scheme::ErrorStack
 		} else {
 			if (!lua_isinteger(lua, -1))
 				return fail(EINVAL, "Non-integer type");
-			auto v = lua_tointeger(lua, -1);
+			int result = 0;
+			auto v = lua_tointegerx(lua, -1, &result);
+			if (!result)
+				return fail(EINVAL, "Failed to convert value '{}' to integer", luaT_tostringview(lua, -1));
 			if constexpr (std::is_unsigned_v<T>) {
 				if (v < 0)
 					return fail(EINVAL, "Negative value {}", v);
