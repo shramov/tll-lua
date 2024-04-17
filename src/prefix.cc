@@ -72,7 +72,7 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 	else if (mode == "normal")
 		_mode = Mode::Normal;
 	else
-		return _log.fail(EINVAL, "Unknown tll_mode: {}, has to be one of 'filter' or 'normal'", mode);
+		return _log.fail(EINVAL, "Unknown tll_prefix_mode: {}, has to be one of 'filter' or 'normal'", mode);
 	lua_pop(_lua, 1);
 
 	if (_mode == Mode::Filter && _on_data_name.empty()) {

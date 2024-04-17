@@ -9,6 +9,7 @@ include = [include_directories('src')]
 fmt = dependency('fmt')
 lua = dependency('lua5.3')
 tll = dependency('tll')
+rst2man = find_program('rst2man', disabler: true, required: false)
 
 shared_library('tll-lua'
 	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc']
@@ -43,3 +44,13 @@ test('pytest', import('python').find_installation('python3')
 	, env: 'BUILD_DIR=@0@'.format(meson.current_build_dir())
 	, workdir: meson.current_source_dir()
 )
+
+foreach f : ['lua.rst']
+	custom_target('channel-man-@0@'.format(f)
+		, input: f
+		, output : 'tll-channel-@BASENAME@.7'
+		, command : [rst2man, '@INPUT@', '@OUTPUT@']
+		, install_dir: get_option('mandir') / 'man7'
+		, install: true
+	)
+endforeach
