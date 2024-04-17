@@ -256,7 +256,7 @@ Count Heartbeat messsages in the file, print result and generate control message
 
 ::
 
-  lua+file://file.dat;code=lua://count.lua;scheme-control=yaml://control.yaml
+  lua+file://file.dat;code=file://count.lua;scheme-control=yaml://control.yaml
 
 Control scheme::
 
