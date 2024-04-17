@@ -200,7 +200,7 @@ end
     assert c.unpack(m).as_dict() == {'f0': 100}
 
 @asyncloop_run
-async def test_iter(asyncloop):
+async def test_iter_msg(asyncloop):
     url = Config.load(f'''yamls://
 tll.proto: lua+yaml
 name: lua
@@ -248,7 +248,7 @@ end
     assert c.unpack(m).as_dict() == {'key': "/f0/f1", "sum": 10.5}
 
 @asyncloop_run
-async def test_iter(asyncloop):
+async def test_iter_list(asyncloop):
     url = Config.load(f'''yamls://
 tll.proto: lua+yaml
 name: lua
@@ -335,7 +335,7 @@ end
     assert c.unpack(m).as_dict() == {'f0': 10, 'f1': [10, 20, 30], 'f2': [100, 200]}
 
 @asyncloop_run
-async def test_copy(asyncloop):
+async def test_optional(asyncloop):
     url = Config.load('''yamls://
 tll.proto: lua+yaml
 name: lua
