@@ -23,7 +23,7 @@ def parsepair(string):
         raise ValueError("Invalid key=value pair")
     return r
 
-parser = argparse.ArgumentParser(description='Read messages from channel')
+parser = argparse.ArgumentParser(description='Read messages from channel', formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('channel', metavar='CHANNEL', type=str,
                     help='source channel, if proto:// is missing treat as file://CHANNEL')
 parser.add_argument('-l', '--loglevel', dest='loglevel', default='warning',
@@ -87,15 +87,31 @@ def parseone(string):
 def parseseq(string):
     r = string.split(':')
     if len(r) == 1:
-        return (parseone(r[0]), parseone(''))
+        return (parseone(r[0]), Seq(Seq.Type.Count, 1))
     elif len(r) == 2:
         return (parseone(r[0]), parseone(r[1]))
     else:
         raise ValueError("Invalid seq format")
 
 parser.add_argument('-s', '--seq', dest='seq', type=parseseq,
-                    default=(parseone(''), parseone('')), metavar='BEGIN[:END]',
-                    help='seq limits')
+                    default=(parseone(''), parseone('')), metavar='BEGIN[:[END]]',
+                    help='''define range of messages that should be printed
+one of three different forms can be used:
+ - BEGIN - print only one message at BEGIN
+ - BEGIN: - print all messages starting with BEGIN
+ - BEGIN:END - print messages between BEGIN and END (including borders)
+
+Borders (BEGIN and END) may be in one of the following forms:
+
+ - +N - number of messages, for BEGIN - number of messages skipped from the start of the data
+   stream, for END - number of messages printed from the BEGIN. For example ":+1" will print
+   one message from the start and "+1:" will skip one and print everything else
+ - -N - sequence number equals to last seq - N, for example -0 is last message, can be used only
+   for BEGIN. Notice that -10 can print only one message if sequence numbers are not contingous,
+   for example for stream (0, 100, 200, ..., 1000) -10 will be 990 and only 1000 matches range
+   of [990, inf)
+ - SEQ - sequence number of the message, integer value without + or - in the front
+''')
 
 args = parser.parse_args()
 if args.seq[1].type == Seq.Type.Reverse:
