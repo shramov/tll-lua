@@ -24,7 +24,7 @@ def parsepair(string):
     return r
 
 parser = argparse.ArgumentParser(description='Read messages from channel', formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('channel', metavar='CHANNEL', type=str,
+parser.add_argument('channel', metavar='CHANNEL', type=str, nargs='?',
                     help='source channel, if proto:// is missing treat as file://CHANNEL')
 parser.add_argument('-l', '--loglevel', dest='loglevel', default='warning',
                     help='logging level', choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'])
@@ -137,6 +137,39 @@ if args.config:
         elif not a:
             setattr(args, k, v)
 
+def build_code(args):
+    if args.filter_file:
+        if args.seq_list or args.messages or args.filter:
+            raise SystemExit("Conflicting script file and custom filters")
+        return 'file://' + args.filter_file
+    if not (args.messages or args.seq_list or args.filter or args.dump_code):
+        return None
+    code = []
+    code += ['function tll_on_open(cfg)']
+    code += ['end']
+    code += ['function tll_on_close()']
+    code += ['end']
+    code += ['function tll_filter(seq, name, data, msgid, addr, time)']
+    if args.seq_list:
+        code += ['    if ' + ' and '.join(f'seq ~= {s}' for s in args.seq_list) + ' then return false end']
+    if args.messages:
+        code += ['    if ' + ' and '.join(f'name ~= "{s}"' for s in args.messages) + ' then return false end']
+    if args.filter:
+        code += ['    return ' + args.filter]
+    else:
+        code += ['    return true']
+    code += ['end']
+    return '\n'.join(code)
+
+code = build_code(args)
+if args.dump_code:
+    print(code or '')
+    sys.exit(0)
+
+if not args.channel:
+    parser.print_usage()
+    raise SystemExit(f'No CHANNEL in config and in command line')
+
 ctx = Context()
 for m in args.modules:
     ctx.load(m)
@@ -171,35 +204,6 @@ if 'name' not in url:
     url['name'] = 'data'
 if 'autoclose' not in url and args.autoclose:
     url['autoclose'] = 'yes'
-
-def build_code(args):
-    if args.filter_file:
-        if args.seq_list or args.messages or args.filter:
-            raise SystemExit("Conflicting script file and custom filters")
-        return 'file://' + args.filter_file
-    if not (args.messages or args.seq_list or args.filter or args.dump_code):
-        return None
-    code = []
-    code += ['function tll_on_open(cfg)']
-    code += ['end']
-    code += ['function tll_on_close()']
-    code += ['end']
-    code += ['function tll_filter(seq, name, data, msgid, addr, time)']
-    if args.seq_list:
-        code += ['    if ' + ' and '.join(f'seq ~= {s}' for s in args.seq_list) + ' then return false end']
-    if args.messages:
-        code += ['    if ' + ' and '.join(f'name ~= "{s}"' for s in args.messages) + ' then return false end']
-    if args.filter:
-        code += ['    return ' + args.filter]
-    else:
-        code += ['    return true']
-    code += ['end']
-    return '\n'.join(code)
-
-code = build_code(args)
-if args.dump_code:
-    print(code or '')
-    sys.exit(0)
 
 if code is not None:
     if not ctx.has_impl('lua+'):
