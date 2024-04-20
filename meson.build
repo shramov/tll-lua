@@ -47,8 +47,8 @@ test('pytest', import('python').find_installation('python3')
 
 custom_target('tll-read.1'
 	, output : 'tll-read.1'
-	, input : 'read.rst'
-	, command : [rst2man, '@INPUT@', '@OUTPUT@']
+	, input : ['read.rst', 'read-options.rst']
+	, command : [rst2man, '@INPUT0@', '@OUTPUT@']
 	, install_dir: get_option('mandir') / 'man1'
 	, install: true
 )

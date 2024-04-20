@@ -40,6 +40,8 @@ parser.add_argument('--hex', dest='hexdump', action='store_true', default=False,
                     help="Print hex dump for all messages")
 parser.add_argument('--dump-seq', dest='dump_seq', action='store_true', default=False,
                     help='dump first and last seq of the channel and exit')
+parser.add_argument('--help-rst', action='store_true', default=False,
+                    help='print help in RST format for manpage')
 
 channels = parser.add_argument_group('Channel options')
 channels.add_argument('-m', '--module', dest='modules', action='append',
@@ -52,19 +54,20 @@ channels.add_argument('-M', '--master', dest='master',
 channels.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
                     help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
 channels.add_argument('--poll', action='store_true', default=False,
-                    help='Enable polling, can reduce CPU load if script is used to monitor network channel like pub+tcp')
+                    help='enable polling, can reduce CPU load if script is used to monitor network channel like pub+tcp')
 
 filtering = parser.add_argument_group('Filtering')
 filtering.add_argument('-f', '--filter', dest='filter',
-                    help='lua filter expression')
+                    help='''lua filter expression that can use variables "seq", "name", "data", "addr" and "time"
+and evaluates to boolean value. If expression is true then message is printed, otherwise it is skipped''')
 filtering.add_argument('-F', '--filter-file', dest='filter_file', metavar='FILE',
-                    help='lua file with filter script')
-filtering.add_argument('--seq-list', dest='seq_list', type=lambda s: [int(x.strip()) for x in s.split(',')],
-                    help='limit output to seq list, conflicts with --message')
+                    help='lua file with filter script, for supported functions see manpage for tll-channel-lua')
+filtering.add_argument('--seq-list', dest='seq_list', metavar='SEQ0[,SEQ1...]', type=lambda s: [int(x.strip()) for x in s.split(',')],
+                    help='limit output to given seq numbers, comma separated list')
 filtering.add_argument('--message', dest='messages', action='append',
-                    help='filter by message name, conflicts with --seq-list')
+                    help='filter by message name, can be specified several times')
 filtering.add_argument('--dump-code', dest='dump_code', action='store_true', default=False,
-                    help='dump generated lua filter code and exit')
+                    help='dump generated lua filter code and exit, can be used to create skeleton file with empty functions')
 
 class SeqType(enum.Enum):
     Nothing = 0
@@ -95,8 +98,9 @@ def parseseq(string):
 
 parser.add_argument('-s', '--seq', dest='seq', type=parseseq,
                     default=(parseone(''), parseone('')), metavar='BEGIN[:[END]]',
-                    help='''define range of messages that should be printed
-one of three different forms can be used:
+                    help='''define range of messages that should be printed.
+One of three different forms can be used:
+
  - BEGIN - print only one message at BEGIN
  - BEGIN: - print all messages starting with BEGIN
  - BEGIN:END - print messages between BEGIN and END (including borders)
@@ -114,6 +118,27 @@ Borders (BEGIN and END) may be in one of the following forms:
 ''')
 
 args = parser.parse_args()
+
+if args.help_rst:
+    for g in parser._action_groups:
+        title = g.title[:1].upper() + g.title[1:]
+        print(f'''{title}
+{'~' * len(g.title)}
+''')
+        '''
+        for k,v in g.__dict__.items():
+            print(k, v)
+            '''
+        for a in g._group_actions:
+            if not a.option_strings:
+                print(f'``{a.metavar}``')
+            else:
+                metavar = f' {a.metavar}' if a.metavar else ''
+                print(' '.join([f'``{o}{metavar}``' for o in a.option_strings]))
+            print(a.help.replace('"', '``'))
+            print()
+    raise SystemExit()
+
 if args.seq[1].type == Seq.Type.Reverse:
     raise SystemExit(f"Negative index not supported for second position: --seq XXX:-{args.seq[1].value}")
 
