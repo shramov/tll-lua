@@ -51,6 +51,8 @@ channels.add_argument('-M', '--master', dest='master',
                     help='master channel')
 channels.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
                     help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
+channels.add_argument('--poll', action='store_true', default=False,
+                    help='Enable polling, can reduce CPU load if script is used to monitor network channel like pub+tcp')
 
 filtering = parser.add_argument_group('Filtering')
 filtering.add_argument('-f', '--filter', dest='filter',
@@ -122,7 +124,7 @@ if args.config:
 ctx = Context()
 for m in args.modules:
     ctx.load(m)
-loop = Loop(ctx)
+loop = Loop(ctx, config={'poll': str(args.poll).lower()})
 
 def loop_stop(c, m):
     if m.type != m.Type.State:
