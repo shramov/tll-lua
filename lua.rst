@@ -290,7 +290,7 @@ Include seq into header in posted messages that are not Heartbeat:
 .. code-block:: lua
 
   function tll_on_post(seq, name, data, msgid, addr)
-    if name != "Heartbeat" then
+    if name ~= "Heartbeat" then
       data = tll_msg_copy(data)
       data.header = tll_msg_copy(data.header)
       data.header.embedded_seq = seq
