@@ -12,7 +12,7 @@ tll = dependency('tll')
 rst2man = find_program('rst2man', disabler: true, required: false)
 
 shared_library('tll-lua'
-	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc']
+	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc', 'src/logic.cc']
 	, include_directories : include
 	, dependencies : [fmt, lua, tll]
 	, install : true
