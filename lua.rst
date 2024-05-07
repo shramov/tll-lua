@@ -58,7 +58,7 @@ value or Lua object with ``string`` and ``int`` fields.
 ``bits-mode={object|int}``, default ``object`` - represent bits fields as raw integer value or Lua
 object with named bit fields.
 
-``fixed-mode={float|int}``, default ``float`` - represent fixed decimal fields as float value or
+``fixed-mode={float|int|object}``, default ``float`` - represent fixed decimal fields as float value or
 integer mantissa.
 
 Script hooks
@@ -248,6 +248,9 @@ Subtype rules:
      with 10^precision
 
    * ``int`` mode - treat value as a mantissa, do not perform multiplication
+
+   * ``object`` mode - wrap value into Lua object with ``float`` field, should be used when
+     exact conversion without temporary float form is needed.
 
 Examples
 --------

@@ -630,3 +630,43 @@ end
     assert c.state == c.State.Active
     assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
     assert c.unpack(c.result[-1]).as_dict() == {'f0': decimal.Decimal(outer)}
+
+@pytest.mark.parametrize('mode', ['float', 'object'])
+@pytest.mark.parametrize('iprec,oprec', [(3, 6), (3, 3), (6, 3)])
+@asyncloop_run
+async def test_fixed_convert(asyncloop, context, mode, iprec, oprec):
+    url = Config.load('''yamls://
+tll.proto: lua+yaml
+name: lua
+lua.dump: yes
+yaml.dump: yes
+lua.fragile: yes
+autoclose: yes
+config.0:
+  name: Data
+  data:
+    f0: 123.456
+''')
+    url['fixed-mode'] = mode
+
+    url['yaml.scheme'] = f'''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {{name: f0, type: int32, options.type: fixed{iprec}}}
+'''
+    url['scheme'] = f'''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {{name: f0, type: int32, options.type: fixed{oprec}}}
+'''
+    url['code'] = f'''
+function tll_on_data(seq,name,data)
+    tll_callback(seq, name, data)
+end
+'''
+    c = asyncloop.Channel(url, context=context)
+    c.open()
+    m = await c.recv()
+    assert c.unpack(m).as_dict() == {'f0': decimal.Decimal('123.456')}

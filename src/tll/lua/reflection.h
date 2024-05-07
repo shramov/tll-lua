@@ -25,7 +25,7 @@ struct Settings
 {
 	enum class Enum { Int, String, Object } enum_mode = Enum::Int;
 	enum class Bits { Int, Object } bits_mode = Bits::Object;
-	enum class Fixed { Int, Float } fixed_mode = Fixed::Float;
+	enum class Fixed { Int, Float, Object } fixed_mode = Fixed::Float;
 };
 
 namespace reflection {
@@ -101,6 +101,12 @@ struct Decimal128
 	tll::util::Decimal128 data;
 };
 
+struct Fixed
+{
+	const tll::scheme::Field * field = nullptr;
+	tll::memoryview<const tll_msg_t> data;
+};
+
 struct Enum
 {
 	const tll::scheme::Enum * desc = nullptr;
@@ -161,6 +167,9 @@ int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v
 			break;
 		case Settings::Fixed::Float:
 			lua_pushnumber(lua, ((double) v) / intpow(10, field->fixed_precision));
+			break;
+		case Settings::Fixed::Object:
+			luaT_push<reflection::Fixed>(lua, { field, data });
 			break;
 		}
 	} else
@@ -472,6 +481,46 @@ struct MetaT<reflection::Decimal128> : public MetaBase
 };
 
 template <>
+struct MetaT<reflection::Fixed> : public MetaBase
+{
+	static constexpr std::string_view name = "reflection_fixed";
+	static int index(lua_State* lua)
+	{
+		auto & self = *luaT_touserdata<reflection::Fixed>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		if (key == "float") {
+			double v = 0;
+			using tll::scheme::Field;
+			switch (self.field->type) {
+			case Field::Int8:  v = *self.data.template dataT<int8_t>(); break;
+			case Field::Int16: v = *self.data.template dataT<int16_t>(); break;
+			case Field::Int32: v = *self.data.template dataT<int32_t>(); break;
+			case Field::Int64: v = *self.data.template dataT<int64_t>(); break;
+			case Field::UInt8:  v = *self.data.template dataT<uint8_t>(); break;
+			case Field::UInt16: v = *self.data.template dataT<uint16_t>(); break;
+			case Field::UInt32: v = *self.data.template dataT<uint32_t>(); break;
+			case Field::UInt64: v = *self.data.template dataT<uint64_t>(); break;
+			default:
+				return luaL_error(lua, "Invalid type for Fixed field: %d", self.field->type);
+			}
+			lua_pushnumber(lua, v / intpow(10, self.field->fixed_precision));
+		} else if (key == "string")
+			luaT_pushstringview(lua, fmt::format("{}.E-{}", 0, self.field->fixed_precision));
+		else
+			lua_pushnil(lua);
+		return 1;
+	}
+
+	static int tostring(lua_State *lua)
+	{
+		auto & r = *luaT_touserdata<reflection::Decimal128>(lua, 1);
+		luaT_pushstringview(lua, tll::conv::to_string(r.data));
+		return 1;
+	}
+};
+
+template <>
 struct MetaT<reflection::Enum> : public MetaBase
 {
 	static constexpr std::string_view name = "reflection_enum";
@@ -572,6 +621,7 @@ struct tll::conv::parse<tll::lua::Settings::Fixed>
                 return tll::conv::select(s, std::map<std::string_view, Fixed> {
 			{"int", Fixed::Int},
 			{"float", Fixed::Float},
+			{"object", Fixed::Object},
 		});
         }
 };

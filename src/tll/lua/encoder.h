@@ -462,6 +462,29 @@ struct Encoder : public tll::scheme::ErrorStack
 			else
 				u->mantissa /= intpow(10, u->exponent);
 			*view.template dataT<T>() = u->mantissa;
+		} else if (type == LUA_TUSERDATA) {
+			using tll::scheme::Field;
+			auto obj = luaT_touserdata<reflection::Fixed>(lua, -1);
+			if (!obj)
+				return fail(EINVAL, "Non-Fixed userdata");
+			unsigned long long mul = 1;
+			unsigned long long div = 1;
+			if (int dprec = field->fixed_precision - obj->field->fixed_precision; dprec > 0)
+				mul = intpow(10, dprec);
+			else
+				div = intpow(10, -dprec);
+			switch (obj->field->type) {
+			case Field::Int8:  *view.template dataT<T>() = *obj->data.template dataT<int8_t>() * mul / div; break;
+			case Field::Int16: *view.template dataT<T>() = *obj->data.template dataT<int16_t>() * mul / div; break;
+			case Field::Int32: *view.template dataT<T>() = *obj->data.template dataT<int32_t>() * mul / div; break;
+			case Field::Int64: *view.template dataT<T>() = *obj->data.template dataT<int64_t>() * mul / div; break;
+			case Field::UInt8: *view.template dataT<T>() = *obj->data.template dataT<uint8_t>() * mul / div; break;
+			case Field::UInt16: *view.template dataT<T>() = *obj->data.template dataT<uint16_t>() * mul / div; break;
+			case Field::UInt32: *view.template dataT<T>() = *obj->data.template dataT<uint32_t>() * mul / div; break;
+			case Field::UInt64: *view.template dataT<T>() = *obj->data.template dataT<uint64_t>() * mul / div; break;
+			default:
+				return fail(EINVAL, "Invalid type for Fixed field: {}", obj->field->type);
+			}
 		} else
 			return fail(EINVAL, "Invalid type for fixed number: {}", type);
 		return 0;
