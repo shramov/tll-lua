@@ -47,6 +47,7 @@ class LuaBase : public B
 		_settings.enum_mode = reader.getT("enum-mode", Settings::Enum::String);
 		_settings.bits_mode = reader.getT("bits-mode", Settings::Bits::Object);
 		_encoder.fixed_mode = _settings.fixed_mode = reader.getT("fixed-mode", Settings::Fixed::Float);
+		_encoder.overflow_mode = reader.getT("overflow-mode", Encoder::Overflow::Error);
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 

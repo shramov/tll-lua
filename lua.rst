@@ -61,6 +61,9 @@ object with named bit fields.
 ``fixed-mode={float|int|object}``, default ``float`` - represent fixed decimal fields as float value or
 integer mantissa.
 
+``overflow-mode={error|trim}``, default ``error`` - overflow policy, fail or trim values when
+encoding.
+
 Script hooks
 ~~~~~~~~~~~~
 
@@ -215,8 +218,9 @@ Messages are encoded from tables in the following way: for each field value is t
 using field name. If key is missing (or value is ``nil`` which is same in Lua) then field is
 skipped. Then value is converted depending on the field type:
 
- - integer fields (for subtypes that are not supported) expects number types. Value is converted with
-   boundary checks, for example 1000 is invalid for ``int8`` and -1 for ``uint16``.
+ - integer fields (for subtypes that are not supported) expects number types. Overflow or underflow,
+   for example 1000 is invalid for ``int8`` and -1 for ``uint16``, is either an error or in ``trim``
+   mode closest representable value is choosen for field type.
 
  - Double fields expects number type, converted from Lua number to double (which is same nowdays).
 

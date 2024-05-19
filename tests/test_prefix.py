@@ -670,3 +670,41 @@ end
     c.open()
     m = await c.recv()
     assert c.unpack(m).as_dict() == {'f0': decimal.Decimal('123.456')}
+
+@pytest.mark.parametrize('mode,t,value,expect', [
+    ('error', 'int8', 128, None),
+    ('error', 'int8', -129, None),
+    ('error', 'uint8', 256, None),
+    ('error', 'uint8', -128, None),
+    ('trim', 'int8', 128, 127),
+    ('trim', 'int8', -129, -128),
+    ('trim', 'uint8', 256, 255),
+    ('trim', 'uint8', -1, 0),
+])
+def test_overflow(context, mode, t, value, expect):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+    url['overflow-mode'] = mode
+
+    url['scheme'] = f'''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {{name: f0, type: {t}}}
+'''
+    url['code'] = f'''
+function tll_on_open()
+    tll_callback(100, "msg", {{ f0 = {value} }})
+end
+'''
+    c = Accum(url, context=context)
+    c.open()
+    if expect is None:
+        assert c.state == c.State.Error
+        return
+    assert c.state == c.State.Active
+    assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
+    assert c.unpack(c.result[-1]).as_dict() == {'f0': expect}

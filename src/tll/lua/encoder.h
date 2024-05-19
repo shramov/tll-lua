@@ -22,6 +22,7 @@ struct Encoder : public tll::scheme::ErrorStack
 	tll_msg_t msg;
 	std::vector<char> buf;
 	Settings::Fixed fixed_mode = Settings::Fixed::Int;
+	enum class Overflow { Error, Trim } overflow_mode = Overflow::Error;
 
 	tll_msg_t * encode_data(lua_State * lua, tll_msg_t &msg, const tll::scheme::Message * message, int index)
 	{
@@ -417,15 +418,27 @@ struct Encoder : public tll::scheme::ErrorStack
 			if (!result)
 				return fail(EINVAL, "Failed to convert value '{}' to integer", luaT_tostringview(lua, -1));
 			if constexpr (std::is_unsigned_v<T>) {
-				if (v < 0)
-					return fail(EINVAL, "Negative value {}", v);
-				if (std::numeric_limits<T>::max() < (unsigned long long) v)
-					return fail(EINVAL, "Value too large: {} > max {}", v, std::numeric_limits<T>::max());
+				if (v < 0) {
+					if (overflow_mode == Overflow::Error)
+						return fail(EINVAL, "Negative value {}", v);
+					v = 0;
+				}
+				if (std::numeric_limits<T>::max() < (unsigned long long) v) {
+					if (overflow_mode == Overflow::Error)
+						return fail(EINVAL, "Value too large: {} > max {}", v, std::numeric_limits<T>::max());
+					v = std::numeric_limits<T>::max();
+				}
 			} else {
-				if (std::numeric_limits<T>::min() > v)
-					return fail(EINVAL, "Value too small: {} < min {}", v, std::numeric_limits<T>::min());
-				if (std::numeric_limits<T>::max() < v)
-					return fail(EINVAL, "Value too large: {} > max {}", v, std::numeric_limits<T>::max());
+				if (std::numeric_limits<T>::min() > v) {
+					if (overflow_mode == Overflow::Error)
+						return fail(EINVAL, "Value too small: {} < min {}", v, std::numeric_limits<T>::min());
+					v = std::numeric_limits<T>::min();
+				}
+				if (std::numeric_limits<T>::max() < v) {
+					if (overflow_mode == Overflow::Error)
+						return fail(EINVAL, "Value too large: {} > max {}", v, std::numeric_limits<T>::max());
+					v = std::numeric_limits<T>::max();
+				}
 			}
 			value = (T) v;
 		}
@@ -492,5 +505,18 @@ struct Encoder : public tll::scheme::ErrorStack
 };
 
 } // namespace tll::lua
+
+template <>
+struct tll::conv::parse<tll::lua::Encoder::Overflow>
+{
+	using Overflow = tll::lua::Encoder::Overflow;
+        static result_t<Overflow> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, Overflow> {
+			{"error", Overflow::Error},
+			{"trim", Overflow::Trim},
+		});
+        }
+};
 
 #endif//_TLL_LUA_ENCODER_H
