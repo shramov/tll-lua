@@ -226,7 +226,8 @@ skipped. Then value is converted depending on the field type:
 
  - Decimal128 fields expects number, string or Decimal128 reflection.
 
- - Bytes expects string, checked if string lenght is too large.
+ - Bytes expects string, checked if string lenght is too large. In ``trim`` overflow mode long
+   strings are truncated to fit into the field.
 
  - string (offset pointer) expects string, copied as is.
 

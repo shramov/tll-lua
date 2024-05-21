@@ -237,8 +237,11 @@ struct Encoder : public tll::scheme::ErrorStack
 			if (!lua_isstring(lua, -1))
 				return fail(EINVAL, "Non-string data for bytes field");
 			auto data = luaT_tostringview(lua, -1);
-			if (data.size() > field->size)
-				return fail(ERANGE, "String too long: {} > max {}", data.size(), field->size);
+			if (data.size() > field->size) {
+				if (overflow_mode == Overflow::Error)
+					return fail(ERANGE, "String too long: {} > max {}", data.size(), field->size);
+				data = data.substr(0, field->size);
+			}
 			memcpy(view.data(), data.data(), data.size());
 			return 0;
 		}

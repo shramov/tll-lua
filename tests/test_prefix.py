@@ -676,10 +676,12 @@ end
     ('error', 'int8', -129, None),
     ('error', 'uint8', 256, None),
     ('error', 'uint8', -128, None),
+    ('error', 'byte4, options.type: string', '"abcde"', None),
     ('trim', 'int8', 128, 127),
     ('trim', 'int8', -129, -128),
     ('trim', 'uint8', 256, 255),
     ('trim', 'uint8', -1, 0),
+    ('trim', 'byte4, options.type: string', '"abcde"', "abcd"),
 ])
 def test_overflow(context, mode, t, value, expect):
     url = Config.load('''yamls://
