@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+# vim: sts=4 sw=4 et
+
+import tll.logger
+from tll.channel import Context
+from tll.config import Url
+from tll.processor import Loop
+
+import argparse
+import time
+import pathlib
+
+def parsepair(string):
+    r = string.split('=', 1)
+    if len(r) != 2:
+        raise ValueError("Invalid key=value pair")
+    return r
+
+parser = argparse.ArgumentParser(description='Convert file')
+parser.add_argument('input', metavar='INPUT', type=str, help='source file')
+parser.add_argument('output', metavar='OUTPUT', type=str, help='destination file')
+parser.add_argument('-c', dest='compression', default=None, help='compression type: none or lz4')
+parser.add_argument('--io', dest='io', default=None, help='IO type: posix or mmap')
+parser.add_argument('-S', '--scheme', help='output scheme, by default input scheme is copied into output')
+parser.add_argument('--loglevel', default='warning',
+                    help='logging level', choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'])
+parser.add_argument('-L', '--lua-file', dest='lua_file', metavar='FILE',
+                    help='lua file with conversion script, for supported functions see manpage for tll-channel-lua')
+parser.add_argument('-m', '--module', dest='modules', action='append',
+                    default=[], metavar='MODULE',
+                    help='additional channel modules, can be given several times')
+parser.add_argument('-E', '--extra-channel', dest='extra_channels', action='append', default=[],
+                    help='extra channels, can be given several times', metavar='CHANNEL')
+parser.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
+                    help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
+
+args = parser.parse_args()
+
+tll.logger.configure({'type': 'spdlog', 'levels.tll': args.loglevel})
+
+ctx = Context()
+for m in args.modules:
+    ctx.load(m)
+if not ctx.has_impl('forward'):
+    ctx.load('tll-logic-forward')
+if args.lua_file and not ctx.has_impl('lua+'):
+    ctx.load('tll-lua')
+
+ui, uo = args.input, args.output
+if '://' not in ui:
+    ui = 'file://' + ui
+if '://' not in uo:
+    uo = 'file://' + uo
+ui = Url.parse(ui)
+ui['name'] = 'input'
+ui['autoclose'] = 'yes'
+if args.lua_file:
+    ui.proto = f'lua+{ui.proto}'
+    ui['lua.code'] = f'file://{args.lua_file}'
+    ui['lua.fragile'] = 'yes'
+
+uo = Url.parse(uo)
+uo['name'] = 'output'
+uo['dir'] = 'w'
+uo['scheme'] = args.scheme or 'channel://input'
+if args.compression:
+    ui['compression'] = args.compression
+
+if args.io:
+    ui['file.io'] = args.io
+    uo['file.io'] = args.io
+
+loop = Loop(config={'poll': 'no'})
+
+def stop(c, msg):
+    if msg.msgid in (c.State.Closed.value, c.State.Error.value):
+        loop.stop = 1
+
+extra = []
+for url in args.extra_channels:
+    c = ctx.Channel(url)
+    c.callback_add(stop, mask=c.MsgMask.State)
+    loop.add(c)
+    extra += [c]
+
+ci = ctx.Channel(ui)
+co = ctx.Channel(uo)
+fwd = ctx.Channel('forward://;tll.channel.input=input;tll.channel.output=output', name='forward')
+
+ci.callback_add(stop, ci.MsgMask.State)
+
+ci.open(**dict(args.open))
+assert ci.state == ci.State.Active
+
+for c in [co, fwd]:
+    c.open(overwrite='yes')
+    assert c.state == ci.State.Active
+
+loop.add(ci)
+
+start = time.time()
+loop.run_signal(1)
+dt = time.time() - start
+
+si = pathlib.Path(ui.host).stat().st_size
+so = pathlib.Path(uo.host).stat().st_size
+
+print(f'Time: {dt:.3f}s, Size ratio: {100 * so/si:.02f}%')
