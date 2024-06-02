@@ -710,3 +710,24 @@ end
     assert c.state == c.State.Active
     assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
     assert c.unpack(c.result[-1]).as_dict() == {'f0': expect}
+
+def test_self(context):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+
+    url['lua.scheme'] = '''yamls://[{name: External, id: 10}]'''
+    url['null.scheme'] = '''yamls://[{name: Internal, id: 20}]'''
+    url['code'] = f'''
+function tll_on_open()
+    assert(tll_self:scheme() ~= nil, "Self scheme is nil")
+    assert(tll_self:scheme().messages.External ~= nil, "Self scheme does not have External message")
+    assert(tll_self_child:scheme() ~= nil, "Child scheme is nil")
+    assert(tll_self_child:scheme().messages.Internal ~= nil, "Child scheme does not have Internal message")
+end
+'''
+    c = Accum(url, context=context)
+    c.open()
+    assert c.state == c.State.Active

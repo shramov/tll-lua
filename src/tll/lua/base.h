@@ -8,6 +8,7 @@
 #ifndef _TLL_LUA_BASE_H
 #define _TLL_LUA_BASE_H
 
+#include "tll/lua/channel.h"
 #include "tll/lua/encoder.h"
 #include "tll/lua/luat.h"
 #include "tll/lua/scheme.h"
@@ -99,6 +100,9 @@ class LuaBase : public B
 		LuaT<scheme::Enum>::init(lua);
 		LuaT<scheme::Bits>::init(lua);
 		LuaT<scheme::Options>::init(lua);
+
+		LuaT<tll::lua::Context>::init(lua);
+		LuaT<tll::lua::Channel>::init(lua);
 
 		if (_extra_path.size()) {
 			lua_getglobal(lua, "package");

@@ -81,10 +81,14 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 		_on_data_name = "tll_filter";
 	}
 
+	luaT_push<tll::lua::Channel>(_lua, { self(), &_encoder });
+	lua_setglobal(_lua, "tll_self");
+
+	luaT_push<tll::lua::Channel>(_lua, { _child.get(), &_encoder });
+	lua_setglobal(_lua, "tll_self_child");
+
 	_open_cfg = props.copy();
 	return Base::_open(props);
-
-	return 0;
 }
 
 int LuaPrefix::_on_active()
