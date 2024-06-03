@@ -731,3 +731,25 @@ end
     c = Accum(url, context=context)
     c.open()
     assert c.state == c.State.Active
+
+def test_child_post(context):
+    url = Config.load('''yamls://
+tll.proto: lua+direct
+name: lua
+lua.dump: yes
+direct.dump: yes
+''')
+
+    scheme = '''yamls://[{name: Data, id: 10, fields: [{name: f0, type: int32}]}]'''
+    url['code'] = '''
+function tll_on_open()
+    tll_self_child:post(10, "Data", { f0 = 20 })
+end
+'''
+    s = Accum('direct://', name='server', context=context, scheme=scheme)
+    s.open()
+    c = Accum(url, context=context, master=s)
+    c.open()
+    assert c.state == c.State.Active
+    assert [m.seq for m in s.result] == [10]
+    assert s.unpack(s.result[-1]).as_dict() == {'f0' : 20}
