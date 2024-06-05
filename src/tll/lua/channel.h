@@ -4,6 +4,7 @@
 #ifndef _TLL_LUA_CHANNEL_H
 #define _TLL_LUA_CHANNEL_H
 
+#include <tll/lua/config.h>
 #include <tll/lua/encoder.h>
 #include <tll/lua/luat.h>
 #include <tll/lua/scheme.h>
@@ -41,6 +42,8 @@ struct MetaT<Channel> : public MetaBase
 			lua_pushcfunction(lua, scheme);
 		} else if (key == "context") {
 			luaT_push<Context>(lua, { self.ptr->context(), self.encoder });
+		} else if (key == "config") {
+			luaT_push<Config>(lua, { tll_config_ref(self.ptr->config()) });
 		} else if (key == "close") {
 			lua_pushcfunction(lua, close);
 		} else

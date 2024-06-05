@@ -785,3 +785,25 @@ end
     assert c.state == c.State.Active
     c.children[0].process()
     assert c.state == c.State.Closed
+
+def test_child_config(context):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+''')
+
+    url['code'] = '''
+function tll_on_open()
+    cfg = tll_self_child.config
+    print(cfg)
+    print(cfg.state)
+    for k,v in pairs(cfg) do
+        print(k, v)
+    end
+    assert(cfg.state == "Active", "Invalid child state: " .. tostring(cfg.state))
+    assert(cfg["url.tll.proto"] == "null", "Invalid child proto: " .. tostring(cfg["url.tll.proto"]))
+end
+'''
+    c = context.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
