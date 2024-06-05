@@ -29,8 +29,7 @@ class LuaBase : public B
 	std::string _extra_path;
 	static constexpr tll_channel_log_msg_format_t _dump_error = TLL_MESSAGE_LOG_FRAME;
 
-	unique_lua_ptr_t _lua_ptr = { nullptr, lua_close };
-	lua_State * _lua = nullptr;
+	LuaRc _lua;
 
 	tll::lua::Encoder _encoder;
 	tll::lua::Settings _settings;
@@ -78,8 +77,7 @@ class LuaBase : public B
 
 	int _lua_open()
 	{
-		unique_lua_ptr_t lua_ptr(luaL_newstate(), lua_close);
-		auto lua = lua_ptr.get();
+		LuaRc lua(luaL_newstate());
 		if (!lua)
 			return this->_log.fail(EINVAL, "Failed to create lua state");
 
@@ -133,8 +131,7 @@ class LuaBase : public B
 		lua_pushcclosure(lua, _lua_callback, 1);
 		lua_setglobal(lua, "tll_callback");
 
-		_lua_ptr = std::move(lua_ptr);
-		_lua = _lua_ptr.get();
+		_lua = std::move(lua);
 
 		return 0;
 	}
@@ -168,17 +165,17 @@ class LuaBase : public B
 		if (_lua)
 			_lua_on_close();
 
-		_lua = nullptr;
-		_lua_ptr.reset();
+		_lua.reset();
 	}
 
 	int _lua_on_open(const tll::ConstConfig &props)
 	{
 		lua_getglobal(_lua, "tll_on_open");
 		if (lua_isfunction(_lua, -1)) {
-			_lua_pushconfig(_lua, props.sub("lua").value_or(tll::Config()));
-			if (lua_pcall(_lua, 1, 0, 0))
-				return this->_log.fail(EINVAL, "Lua open (tll_on_open) failed: {}", lua_tostring(_lua, -1));
+			auto ref = _lua.copy();
+			_lua_pushconfig(ref, props.sub("lua").value_or(tll::Config()));
+			if (lua_pcall(ref, 1, 0, 0))
+				return this->_log.fail(EINVAL, "Lua open (tll_on_open) failed: {}", lua_tostring(ref, -1));
 		}
 		return 0;
 	}
@@ -187,8 +184,9 @@ class LuaBase : public B
 	{
 		lua_getglobal(_lua, "tll_on_close");
 		if (lua_isfunction(_lua, -1)) {
-			if (lua_pcall(_lua, 0, 0, 0))
-				this->_log.warning("Lua close (tll_on_close) failed: {}", lua_tostring(_lua, -1));
+			auto ref = _lua.copy();
+			if (lua_pcall(ref, 0, 0, 0))
+				this->_log.warning("Lua close (tll_on_close) failed: {}", lua_tostring(ref, -1));
 		}
 	}
 

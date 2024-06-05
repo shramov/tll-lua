@@ -117,18 +117,18 @@ int LuaPrefix::_on_active()
 
 int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel * channel, std::string_view func, bool filter)
 {
-	std::string_view name;
-	lua_getglobal(_lua, func.data());
+	auto ref = _lua.copy();
+	lua_getglobal(ref, func.data());
 	auto args = _lua_pushmsg(msg, scheme, channel, true);
 	if (args < 0) {
 		if (_fragile)
 			state(tll::state::Error);
 		return EINVAL;
 	}
-	//luaT_push(_lua, msg);
-	if (lua_pcall(_lua, args, 1, 0)) {
-		auto text = fmt::format("Lua function {} failed: {}\n  on", func, lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
+	//luaT_push(ref, msg);
+	if (lua_pcall(ref, args, 1, 0)) {
+		auto text = fmt::format("Lua function {} failed: {}\n  on", func, lua_tostring(ref, -1));
+		lua_pop(ref, 1);
 		tll_channel_log_msg(channel, _log.name(), tll::logger::Warning, _dump_error, msg, text.data(), text.size());
 		if (_fragile)
 			state(tll::state::Error);
@@ -136,11 +136,11 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const t
 	}
 
 	if (filter) {
-		auto r = lua_toboolean(_lua, -1);
-		lua_pop(_lua, 1);
+		auto r = lua_toboolean(ref, -1);
+		lua_pop(ref, 1);
 		if (r)
 			_callback_data(msg);
 	} else
-		lua_pop(_lua, 1);
+		lua_pop(ref, 1);
 	return 0;
 }

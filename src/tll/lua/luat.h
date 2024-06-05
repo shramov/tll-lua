@@ -17,6 +17,44 @@ namespace tll::lua {
 
 using unique_lua_ptr_t = std::unique_ptr<lua_State, decltype(&lua_close)>;
 
+class LuaRc {
+	lua_State * _ptr = nullptr;
+	int * _ref = nullptr;
+
+ public:
+	LuaRc() = default;
+	LuaRc(lua_State * lua) : _ptr(nullptr), _ref(nullptr) { reset(lua); }
+	LuaRc(LuaRc &ptr) noexcept : _ptr(ptr._ptr), _ref(ptr._ref) { if (_ptr) ++*_ref; }
+	LuaRc(LuaRc &&ptr) noexcept : _ptr(nullptr), _ref(nullptr) { swap(ptr); }
+	~LuaRc() { reset(); }
+
+	void swap(LuaRc &rhs) noexcept { std::swap(_ptr, rhs._ptr); std::swap(_ref, rhs._ref); }
+
+	LuaRc & operator = (LuaRc rhs) noexcept { swap(rhs); return *this; }
+
+	LuaRc copy() noexcept { return LuaRc(*this); }
+
+	void reset(lua_State * lua = nullptr)
+	{
+		if (_ptr) {
+			if (--*_ref == 0) {
+				lua_close(_ptr);
+				delete _ref;
+			}
+			_ptr = nullptr;
+			_ref = nullptr;
+		}
+		if (lua) {
+			_ptr = lua;
+			_ref = new int { 1 };
+		}
+	}
+
+	constexpr lua_State * get() noexcept { return _ptr; }
+	constexpr operator lua_State * () noexcept { return get(); }
+	constexpr operator bool () const noexcept { return _ptr != nullptr; }
+};
+
 struct MetaBase
 {
 	static constexpr void * index = nullptr;
