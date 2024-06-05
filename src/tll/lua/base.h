@@ -9,6 +9,7 @@
 #define _TLL_LUA_BASE_H
 
 #include "tll/lua/channel.h"
+#include "tll/lua/config.h"
 #include "tll/lua/encoder.h"
 #include "tll/lua/luat.h"
 #include "tll/lua/scheme.h"
@@ -102,6 +103,8 @@ class LuaBase : public B
 		LuaT<tll::lua::Context>::init(lua);
 		LuaT<tll::lua::Channel>::init(lua);
 
+		LuaT<tll::lua::Config>::init(lua);
+
 		if (_extra_path.size()) {
 			lua_getglobal(lua, "package");
 			luaT_pushstringview(lua, "path");
@@ -173,7 +176,8 @@ class LuaBase : public B
 		lua_getglobal(_lua, "tll_on_open");
 		if (lua_isfunction(_lua, -1)) {
 			auto ref = _lua.copy();
-			_lua_pushconfig(ref, props.sub("lua").value_or(tll::Config()));
+			auto cfg = props.sub("lua").value_or(tll::Config());
+			luaT_push(ref, tll::lua::Config { tll_config_ref(cfg) });
 			if (lua_pcall(ref, 1, 0, 0))
 				return this->_log.fail(EINVAL, "Lua open (tll_on_open) failed: {}", lua_tostring(ref, -1));
 		}
@@ -187,18 +191,6 @@ class LuaBase : public B
 			auto ref = _lua.copy();
 			if (lua_pcall(ref, 0, 0, 0))
 				this->_log.warning("Lua close (tll_on_close) failed: {}", lua_tostring(ref, -1));
-		}
-	}
-
-	void _lua_pushconfig(lua_State * lua, const tll::ConstConfig &cfg)
-	{
-		lua_newtable(lua);
-		for (auto &[k, c] : cfg.browse("**")) {
-			auto v = c.get();
-			if (!v) continue;
-			luaT_pushstringview(lua, k);
-			luaT_pushstringview(lua, *v);
-			lua_settable(lua, -3);
 		}
 	}
 
