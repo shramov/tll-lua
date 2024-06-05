@@ -41,6 +41,8 @@ struct MetaT<Channel> : public MetaBase
 			lua_pushcfunction(lua, scheme);
 		} else if (key == "context") {
 			luaT_push<Context>(lua, { self.ptr->context(), self.encoder });
+		} else if (key == "close") {
+			lua_pushcfunction(lua, close);
 		} else
 			return luaL_error(lua, "Invalid Channel attribute '%s'", key.data());
 		return 1;
@@ -74,6 +76,19 @@ struct MetaT<Channel> : public MetaBase
 		if (auto r = self.ptr->post(msg); r)
 			return luaL_error(lua, "Failed to post: %d", r);
 		return 0;
+	}
+
+	static int close(lua_State* lua)
+	{
+		auto & self = luaT_checkuserdata<Channel>(lua, 1);
+		bool force = false;
+		if (lua_gettop(lua) >= 2) {
+			if (auto type = lua_type(lua, 2); type != LUA_TBOOLEAN)
+				return luaL_error(lua, "Invalid close parameter, expected bool, got %d", type);
+			force = lua_toboolean(lua, 2);
+		}
+		lua_pushinteger(lua, self.ptr->close(force));
+		return 1;
 	}
 };
 

@@ -753,3 +753,35 @@ end
     assert c.state == c.State.Active
     assert [m.seq for m in s.result] == [10]
     assert s.unpack(s.result[-1]).as_dict() == {'f0' : 20}
+
+def test_close_on_open(context):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+''')
+
+    url['code'] = '''
+function tll_on_open()
+    tll_self_child:close(true)
+end
+'''
+    c = context.Channel(url)
+    c.open()
+    assert c.state == c.State.Closed
+
+def test_close_on_data(context):
+    url = Config.load('''yamls://
+tll.proto: lua+zero
+name: lua
+''')
+
+    url['code'] = '''
+function tll_on_data()
+    tll_self:close(true)
+end
+'''
+    c = context.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    c.children[0].process()
+    assert c.state == c.State.Closed
