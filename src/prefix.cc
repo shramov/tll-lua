@@ -110,6 +110,8 @@ int LuaPrefix::_on_active()
 	if (auto r = _lua_on_open(_open_cfg); r)
 		return r;
 
+	if (state() != tll::state::Opening)
+		return 0;
 	return Base::_on_active();
 }
 
