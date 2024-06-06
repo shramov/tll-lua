@@ -148,9 +148,15 @@ wants to modify element in submessage it should be copied too:
    copy.header = tll_msg_copy(copy.header)
    copy.header.field = 10
 
-``tll_self_scheme`` - data scheme of the channel, not set if there is no scheme
+``tll_self_scheme`` - data scheme of the channel, not set if there is no scheme. Deprecated, should
+be replaced with ``tll_self.scheme``.
 
-``tll_child_scheme`` - data scheme of the child channel, not set if there is no scheme
+``tll_child_scheme`` - data scheme of the child channel, not set if there is no scheme. Deprecated,
+should be replaced with ``tll_self_child.scheme``.
+
+``tll_self`` - channel object for self (see `Channel API`_)
+
+``tll_self_child`` - channel object for child (see `Channel API`_)
 
 Reflection
 ~~~~~~~~~~
@@ -256,6 +262,27 @@ Subtype rules:
 
    * ``object`` mode - wrap value into Lua object with ``float`` field, should be used when
      exact conversion without temporary float form is needed.
+
+Channel API
+~~~~~~~~~~~
+
+Channel object has following properties and functions:
+
+``post(self, ...)`` - post message, first argument is the channel object and other arguments are same as for
+``tll_child_post`` descriped in `Library API`_.
+
+``name`` - channel name, string
+
+``scheme`` - channel scheme object, ``nil`` if not present.
+
+``config`` - channel config object, behaves like table with indexing and iteration.
+
+``context`` - channel context object.
+
+``close(self, force=false)`` - close the channel, has optional boolean parameter ``force``.
+
+Functions expects first argument to be channel object so they should be called with Lua ``:`` syntax
+like ``channel:post(...)`` or ``channel:close()``.
 
 Examples
 --------
