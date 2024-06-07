@@ -26,6 +26,7 @@ struct Settings
 	enum class Enum { Int, String, Object } enum_mode = Enum::Int;
 	enum class Bits { Int, Object } bits_mode = Bits::Object;
 	enum class Fixed { Int, Float, Object } fixed_mode = Fixed::Float;
+	bool deepcopy = false;
 };
 
 namespace reflection {
@@ -185,6 +186,9 @@ int pushdouble(lua_State * lua, const tll::scheme::Field * field, View data, dou
 }
 
 template <typename View>
+int pushcopy(lua_State *lua, const tll::scheme::Message * message, View data, const Settings & settings);
+
+template <typename View>
 int pushfield(lua_State * lua, const tll::scheme::Field * field, View data, const Settings & settings)
 {
 	using tll::scheme::Field;
@@ -210,7 +214,21 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data, cons
 		break;
 	}
 	case Field::Array:
-		luaT_push<reflection::Array>(lua, { field, data, settings });
+		if (settings.deepcopy) {
+			auto size = tll::scheme::read_size(field->count_ptr, data.view(field->count_ptr->offset));
+			if (size < 0)
+				return luaL_error(lua, "Array %s has invalid size: %d", field->name, size);
+			auto f = field->type_array;
+			if (data.size() < f->offset + f->size * f->count)
+				return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, f->offset + f->size * f->count, data.size());
+			lua_newtable(lua);
+			for (auto i = 0u; i < size; i++) {
+				lua_pushinteger(lua, i + 1);
+				pushfield(lua, f, data.view(f->offset + f->size * i), settings);
+				lua_settable(lua, -3);
+			}
+		} else
+			luaT_push<reflection::Array>(lua, { field, data, settings });
 		break;
 	case Field::Pointer:
 		if (field->sub_type == Field::ByteString) {
@@ -218,15 +236,60 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data, cons
 			if (!ptr)
 				return luaL_error(lua, "Unknown offset ptr version for %s: %d", field->name, field->offset_ptr_version);
 			lua_pushlstring(lua, data.view(ptr->offset).template dataT<const char>(), ptr->size ? ptr->size - 1 : 0);
+		} else if (settings.deepcopy) {
+			auto ptr = tll::scheme::read_pointer(field, data);
+			if (!ptr)
+				return luaL_error(lua, "Unknown offset ptr version for %s: %d", field->name, field->offset_ptr_version);
+			if (data.size() < ptr->offset + ptr->entity * ptr->size)
+				return luaL_error(lua, "Array '%s' size %d > data size %d", field->name, ptr->offset + ptr->entity * ptr->size, data.size());
+			lua_newtable(lua);
+			for (auto i = 0u; i < ptr->size; i++) {
+				lua_pushinteger(lua, i + 1);
+				pushfield(lua, field->type_ptr, data.view(ptr->offset + ptr->entity * i), settings);
+				lua_settable(lua, -3);
+			}
 		} else
 			luaT_push<reflection::Array>(lua, { field, data, settings });
 		break;
 	case Field::Message:
-		luaT_push<reflection::Message>(lua, { field->type_msg, data, settings });
+		if (settings.deepcopy)
+			pushcopy(lua, field->type_msg, data, settings);
+		else
+			luaT_push<reflection::Message>(lua, { field->type_msg, data, settings });
 		break;
 	case Field::Union:
-		luaT_push<reflection::Union>(lua, { field->type_union, data, settings });
+		if (settings.deepcopy) {
+			auto desc = field->type_union;
+			auto type = tll::scheme::read_size(desc->type_ptr, data.view(desc->type_ptr->offset));
+			if (type < 0)
+				return luaL_error(lua, "Union '%s' has invalid type field", desc->name);
+
+			if ((size_t) type > desc->fields_size)
+				return luaL_error(lua, "Union '%s' type %d is out of range %d", desc->name, type, desc->fields_size);
+			auto f = desc->fields + type;
+
+			lua_newtable(lua);
+			luaT_pushstringview(lua, "_tll_type");
+			luaT_pushstringview(lua, f->name);
+			lua_settable(lua, -3);
+			luaT_pushstringview(lua, f->name);
+			pushfield(lua, f, data.view(field->offset), settings);
+			lua_settable(lua, -3);
+		} else
+			luaT_push<reflection::Union>(lua, { field->type_union, data, settings });
 		break;
+	}
+	return 1;
+}
+
+template <typename View>
+int pushcopy(lua_State *lua, const tll::scheme::Message * message, View data, const Settings & settings)
+{
+	lua_newtable(lua);
+	for (auto f = message->fields; f; f = f->next) {
+		luaT_pushstringview(lua, f->name);
+		pushfield(lua, f, data.view(f->offset), settings);
+		lua_settable(lua, -3);
 	}
 	return 1;
 }
@@ -280,12 +343,16 @@ struct MetaT<reflection::Message> : public MetaBase
 	static int copy(lua_State* lua)
 	{
 		auto & r = luaT_checkuserdata<reflection::Message>(lua, 1);
-		lua_newtable(lua);
-		for (auto f = r.message->fields; f; f = f->next) {
-			luaT_pushstringview(lua, f->name);
-			pushfield(lua, f, r.data.view(f->offset), r.settings);
-			lua_settable(lua, -3);
-		}
+		pushcopy(lua, r.message, r.data, r.settings);
+		return 1;
+	}
+
+	static int deepcopy(lua_State *lua)
+	{
+		auto & r = luaT_checkuserdata<reflection::Message>(lua, 1);
+		Settings settings = r.settings;
+		settings.deepcopy = true;
+		pushcopy(lua, r.message, r.data, settings);
 		return 1;
 	}
 };

@@ -346,6 +346,85 @@ end
     assert c.unpack(m).as_dict() == {'f0': 10, 'f1': [10, 20, 30], 'f2': [100, 200]}
 
 @asyncloop_run
+async def test_deepcopy(asyncloop):
+    url = Config.load(f'''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+autoclose: yes
+config.0:
+  seq: 0
+  name: Data
+  data:
+    f0: 10
+    f1: [10, 20, 30]
+    f2: [100, 200]
+    f3:
+        f0: 11
+        f1: [11, 21]
+        f2: [101]
+    f4:
+      - f0: 12
+        f1: [12, 22]
+        f2: [102, 202]
+      - f0: 13
+        f1: [13]
+        f2: [103]
+    f5:
+      - f0: 14
+        f1: [14, 24]
+        f2: [104, 204]
+      - f0: 15
+        f1: [15]
+        f2: [105]
+      - f0: 16
+        f1: [16]
+        f2: [106]
+''')
+
+    url['scheme'] = '''yamls://
+- name: Inner
+  fields:
+    - {name: f0, type: string}
+    - {name: f1, type: '*int32'}
+    - {name: f2, type: 'int32[4]'}
+
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: int32}
+    - {name: f1, type: '*int32'}
+    - {name: f2, type: 'int32[4]'}
+    - {name: f3, type: Inner}
+    - {name: f4, type: '*Inner'}
+    - {name: f5, type: 'Inner[4]'}
+'''
+    url['code'] = '''
+function tll_on_data(seq, name, data)
+    -- Check that it's really deepcopy
+    copy = tll_msg_deepcopy(data)
+    copy.f3.extra = 10
+    copy.f1[10] = 10
+    copy.f4[1].extra = 10
+    tll_callback(seq + 100, "Data", tll_msg_deepcopy(data))
+end
+'''
+    c = asyncloop.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+    m = await c.recv(0.001)
+    assert (m.msgid, m.seq) == (10, 100)
+
+    def stringify(value):
+        if isinstance(value, dict):
+            return {k: stringify(v) for k,v in value.items()}
+        elif isinstance(value, list):
+            return [stringify(v) for v in value]
+        return str(value)
+    assert stringify(c.unpack(m).as_dict()) == url.sub('config.0.data').as_dict()
+
+@asyncloop_run
 async def test_optional(asyncloop):
     url = Config.load('''yamls://
 tll.proto: lua+yaml

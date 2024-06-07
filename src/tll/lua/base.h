@@ -130,6 +130,9 @@ class LuaBase : public B
 		lua_pushcfunction(lua, MetaT<reflection::Message>::copy);
 		lua_setglobal(lua, "tll_msg_copy");
 
+		lua_pushcfunction(lua, MetaT<reflection::Message>::deepcopy);
+		lua_setglobal(lua, "tll_msg_deepcopy");
+
 		lua_pushlightuserdata(lua, this->channelT());
 		lua_pushcclosure(lua, _lua_callback, 1);
 		lua_setglobal(lua, "tll_callback");

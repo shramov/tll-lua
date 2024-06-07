@@ -148,6 +148,10 @@ wants to modify element in submessage it should be copied too:
    copy.header = tll_msg_copy(copy.header)
    copy.header.field = 10
 
+``tll_msg_deepcopy(msg)`` - convert message reflection into Lua table recursively, traversing all
+arrays (both fixed and offset), messages and unions. This operation is more expensive then
+``tll_msg_copy`` and should be used only when really needed.
+
 ``tll_self_scheme`` - data scheme of the channel, not set if there is no scheme. Deprecated, should
 be replaced with ``tll_self.scheme``.
 
