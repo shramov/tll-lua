@@ -31,6 +31,7 @@ null.dump: yes
     - {name: fenum, type: uint16, options.type: enum, enum: {A: 10, B: 20}}
     - {name: fbits, type: uint32, options.type: bits, bits: [A, B]}
 '''
+    url['lua.path.test'] = f'{os.path.dirname(os.path.abspath(__file__))}/?.lua'
     url['code'] = f'file://{os.path.dirname(os.path.abspath(__file__))}/test_scheme.lua'
     c = context.Channel(url)
     c.open()
