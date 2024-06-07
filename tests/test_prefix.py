@@ -886,3 +886,46 @@ end
     c = context.Channel(url)
     c.open()
     assert c.state == c.State.Active
+
+@pytest.mark.parametrize("code", [
+    'print',
+    'tll_msg_copy',
+    'tll_msg_deepcopy',
+    ])
+def test_validate(context, code):
+    url = Config.load('''yamls://
+tll.proto: lua+direct
+name: lua
+fragile: yes
+''')
+
+    url['code'] = f'''
+function tll_on_data(seq, name, data)
+    {code}(data)
+    tll_callback(seq, name, data)
+end
+'''
+
+    url['scheme'] = '''yamls://
+- name: Inner
+  id: 10
+  fields:
+    - {name: f0, type: string}
+
+- name: Data
+  id: 20
+  fields:
+    - {name: f0, type: int32}
+    - {name: sub, type: Inner}
+    - {name: f1, type: '*Inner'}
+'''
+
+    c = context.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+
+    d = context.Channel('direct://', master=c)
+    d.open()
+    d.post(b'x' * 10, name='Data')
+
+    assert c.state == c.State.Error

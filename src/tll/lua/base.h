@@ -211,6 +211,8 @@ class LuaBase : public B
 				lua_pop(_lua, 1 + skip_index);
 				return this->_log.fail(-1, "Message {} not found", msg->msgid);
 			}
+			if (msg->size < message->size)
+				return this->_log.fail(-1, "Message {} size too small: {} < minimum {}", message->name, msg->size, message->size);
 			lua_pushstring(_lua, message->name);
 			luaT_push(_lua, reflection::Message { message, tll::make_view(*msg), _settings });
 		} else {
