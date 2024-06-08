@@ -235,6 +235,8 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data, cons
 			auto ptr = tll::scheme::read_pointer(field, data);
 			if (!ptr)
 				return luaL_error(lua, "Unknown offset ptr version for %s: %d", field->name, field->offset_ptr_version);
+			if (data.size() < (size_t) ptr->offset + ptr->size)
+				return luaL_error(lua, "Offset string out of bounds: data size %zd, string end %zd", data.size(), (size_t) ptr->offset + ptr->size);
 			lua_pushlstring(lua, data.view(ptr->offset).template dataT<const char>(), ptr->size ? ptr->size - 1 : 0);
 		} else if (settings.deepcopy) {
 			auto ptr = tll::scheme::read_pointer(field, data);

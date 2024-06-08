@@ -895,6 +895,7 @@ end
 @pytest.mark.parametrize("msg,size,fail", [
     ("Data", 10, "all"),
     ("Enum", 4, "copy"),
+    ("Inner", 8, "copy"),
     ])
 def test_validate(context, code, fail, msg, size):
     url = Config.load('''yamls://
