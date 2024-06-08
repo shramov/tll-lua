@@ -199,7 +199,7 @@ Supported field sub types:
 
  - representation of Enum is configurable:
 
-   * ``string`` - pushed as its name
+   * ``string`` - pushed as its name, unknown values are not allowed
 
    * ``int`` - pushed as its integer value
 

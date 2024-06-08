@@ -155,7 +155,7 @@ int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v
 			if (auto e = reflection::Enum::lookup(field->type_enum, v); e)
 				lua_pushstring(lua, e->name);
 			else
-				lua_pushinteger(lua, v);
+				return luaL_error(lua, "Invalid enum %s value %d", field->name, v);
 			break;
 		case Settings::Enum::Object:
 			luaT_push<reflection::Enum>(lua, { field->type_enum, (long long) v });

@@ -892,7 +892,11 @@ end
     'tll_msg_copy',
     'tll_msg_deepcopy',
     ])
-def test_validate(context, code):
+@pytest.mark.parametrize("msg,size,fail", [
+    ("Data", 10, "all"),
+    ("Enum", 4, "copy"),
+    ])
+def test_validate(context, code, fail, msg, size):
     url = Config.load('''yamls://
 tll.proto: lua+direct
 name: lua
@@ -918,6 +922,11 @@ end
     - {name: f0, type: int32}
     - {name: sub, type: Inner}
     - {name: f1, type: '*Inner'}
+
+- name: Enum
+  id: 30
+  fields:
+    - {name: f0, type: int32, options.type: enum, enum: {A : 1}}
 '''
 
     c = context.Channel(url)
@@ -926,6 +935,15 @@ end
 
     d = context.Channel('direct://', master=c)
     d.open()
-    d.post(b'x' * 10, name='Data')
+    d.post(b'x' * size, name=msg)
 
-    assert c.state == c.State.Error
+    if fail == 'deep':
+        error = code == 'tll_msg_deepcopy'
+    elif fail == 'copy':
+        error = code in ('tll_msg_copy', 'tll_msg_deepcopy')
+    else:
+        error = fail == 'all'
+    if error:
+        assert c.state == c.State.Error
+    else:
+        assert c.state == c.State.Active
