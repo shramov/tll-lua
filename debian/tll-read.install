@@ -1,2 +1,3 @@
 tll-read usr/bin
+tll-convert usr/bin
 /usr/share/man/*/tll-read*
