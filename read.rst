@@ -97,5 +97,10 @@ Count all such messages without printing them (script file that should be used w
         return false
     end
 
+See also
+--------
+
+``tll-channel-lua(7)``
+
 ..
     vim: sts=4 sw=4 et tw=100
