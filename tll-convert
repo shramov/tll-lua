@@ -17,10 +17,12 @@ def parsepair(string):
     return r
 
 parser = argparse.ArgumentParser(description='Convert file')
-parser.add_argument('input', metavar='INPUT', type=str, help='source file')
-parser.add_argument('output', metavar='OUTPUT', type=str, help='destination file')
-parser.add_argument('-c', dest='compression', default=None, help='compression type: none or lz4')
-parser.add_argument('--io', dest='io', default=None, help='IO type: posix or mmap')
+parser.add_argument('input', metavar='INPUT', type=str, help='source file or channel')
+parser.add_argument('output', metavar='OUTPUT', type=str, help='destination file or channel')
+parser.add_argument('-c', dest='compression', default=None,
+                    help='compression type: none or lz4, passed to output channel as compression parameter')
+parser.add_argument('--io', dest='io', default=None,
+                    help='IO type: posix or mmap, passed to input and output channels as file.io parameter')
 parser.add_argument('-S', '--scheme', help='output scheme, by default input scheme is copied into output')
 parser.add_argument('--loglevel', default='warning',
                     help='logging level', choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'])
@@ -34,7 +36,30 @@ parser.add_argument('-E', '--extra-channel', dest='extra_channels', action='appe
 parser.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
                     help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
 
+parser.add_argument('--help-rst', action='store_true', default=False,
+                    help='print help in RST format for manpage')
+
 args = parser.parse_args()
+
+if args.help_rst:
+    for g in parser._action_groups:
+        title = g.title[:1].upper() + g.title[1:]
+        print(f'''{title}
+{'~' * len(g.title)}
+''')
+        '''
+        for k,v in g.__dict__.items():
+            print(k, v)
+            '''
+        for a in g._group_actions:
+            if not a.option_strings:
+                print(f'``{a.metavar}``')
+            else:
+                metavar = f' {a.metavar}' if a.metavar else ''
+                print(' '.join([f'``{o}{metavar}``' for o in a.option_strings]))
+            print(a.help.replace('"', '``'))
+            print()
+    raise SystemExit()
 
 tll.logger.configure({'type': 'spdlog', 'levels.tll': args.loglevel})
 
