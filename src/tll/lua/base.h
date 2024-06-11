@@ -235,7 +235,7 @@ class LuaBase : public B
 		if (auto self = _lua_self(lua, 1); self) {
 			auto msg = self->_encoder.encode_stack(lua, self->_scheme.get(), self->self(), 0);
 			if (!msg) {
-				self->_log.error("Failed to convert messge: {}", self->_encoder.error);
+				self->_log.error("Failed to convert message: {}", self->_encoder.error);
 				return luaL_error(lua, "Failed to convert message");
 			}
 			self->_callback(msg);
