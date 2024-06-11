@@ -337,6 +337,37 @@ Include seq into header in posted messages that are not Heartbeat:
     tll_child_post(seq, name, data, addr)
   end
 
+External variables
+~~~~~~~~~~~~~~~~~~
+
+Both init and open parameters can be used to pass variables into Lua script from processor config or
+from user program that creates channel. These params are stored inside channel config under ``init``
+and ``open`` keys respectively and can be accessed with ``tll_self.config["key..."]``. Additionaly
+``lua`` subtree of open config is passed into ``tll_on_open`` hook. Following Python code
+demonstrates all available ways::
+
+  c = Channel('lua+null://;code=file://script.lua;a=b;c.d=e')
+  c.open('lua.f=g')
+
+Lua script:
+
+.. code-block:: lua
+
+  function tll_on_open(cfg)
+    assert(cfg.f == "g")
+    assert(tll_self.config["open.lua.f"] == "g")
+
+    assert(tll_self.config["url.a"] == "b")
+    assert(tll_self.config["url.c.d"] == "e")
+  end
+
+  function tll_on_data(seq, name, data)
+    assert(tll_self.config["open.lua.f"] == "g")
+
+    assert(tll_self.config["url.a"] == "b")
+    assert(tll_self.config["url.c.d"] == "e")
+  end
+
 See also
 --------
 

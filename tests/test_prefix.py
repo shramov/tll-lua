@@ -489,6 +489,10 @@ function tll_on_open(cfg)
     end
     gf0 = tonumber(cfg.f0)
     gf1 = cfg.f1
+
+    assert(cfg.f0 == "10", "Invalid f0 param: " .. tostring(cfg.f0))
+    assert(tll_self.config["open.lua.f0"] == "10", "Invalid f0 param: " .. tostring(tll_self.config["open.lua.f0"]))
+    assert(tll_self.config["url.autoclose"] == "yes", "Invalid url autoclose param: " .. tostring(tll_self.config["url.autoclose"]))
 end
 function tll_on_data(seq, name, data)
     tll_callback(seq + 100, "msg", {f0 = gf0, f1 = gf1})
