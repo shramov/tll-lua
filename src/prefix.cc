@@ -87,7 +87,9 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 	luaT_push<tll::lua::Channel>(_lua, { _child.get(), &_encoder });
 	lua_setglobal(_lua, "tll_self_child");
 
-	_open_cfg = props.copy();
+	if (auto r = _lua_on_open(props); r)
+		return r;
+
 	return Base::_open(props);
 }
 
@@ -107,8 +109,12 @@ int LuaPrefix::_on_active()
 		lua_setglobal(_lua, "tll_child_scheme");
 	}
 
-	if (auto r = _lua_on_open(_open_cfg); r)
-		return r;
+	lua_getglobal(_lua, "tll_on_active");
+	if (lua_isfunction(_lua, -1)) {
+		auto ref = _lua.copy();
+		if (lua_pcall(ref, 0, 0, 0))
+			return this->_log.fail(EINVAL, "Lua on active hook (tll_on_active) failed: {}", lua_tostring(ref, -1));
+	}
 
 	if (state() != tll::state::Opening)
 		return 0;

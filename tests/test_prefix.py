@@ -554,7 +554,7 @@ function preloaded_fn()
 end
 '''
     url['code'] = '''
-function tll_on_open(cfg)
+function tll_on_active(cfg)
     preloaded_fn()
 end
 '''
@@ -701,7 +701,7 @@ lua.dump: yes
     - {name: f0, type: int32, options.type: fixed3}
 '''
     url['code'] = f'''
-function tll_on_open()
+function tll_on_active()
     tll_callback(100, "msg", {{ f0 = {inner} }})
 end
 '''
@@ -781,7 +781,7 @@ lua.dump: yes
     - {{name: f0, type: {t}}}
 '''
     url['code'] = f'''
-function tll_on_open()
+function tll_on_active()
     tll_callback(100, "msg", {{ f0 = {value} }})
 end
 '''
@@ -804,7 +804,7 @@ lua.dump: yes
     url['lua.scheme'] = '''yamls://[{name: External, id: 10}]'''
     url['null.scheme'] = '''yamls://[{name: Internal, id: 20}]'''
     url['code'] = f'''
-function tll_on_open()
+function tll_on_active()
     assert(tll_self:scheme() ~= nil, "Self scheme is nil")
     assert(tll_self:scheme().messages.External ~= nil, "Self scheme does not have External message")
     assert(tll_self_child:scheme() ~= nil, "Child scheme is nil")
@@ -825,7 +825,7 @@ direct.dump: yes
 
     scheme = '''yamls://[{name: Data, id: 10, fields: [{name: f0, type: int32}]}]'''
     url['code'] = '''
-function tll_on_open()
+function tll_on_active()
     tll_self_child:post(10, "Data", { f0 = 20 })
 end
 '''
@@ -844,7 +844,7 @@ name: lua
 ''')
 
     url['code'] = '''
-function tll_on_open()
+function tll_on_active()
     tll_self_child:close(true)
 end
 '''
@@ -876,7 +876,7 @@ name: lua
 ''')
 
     url['code'] = '''
-function tll_on_open()
+function tll_on_active()
     cfg = tll_self_child.config
     print(cfg)
     print(cfg.state)

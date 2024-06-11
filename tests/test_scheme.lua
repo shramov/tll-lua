@@ -38,7 +38,7 @@ function check_scheme(scheme)
     check_equals(msg.fields.fbits.type_bits.name, "fbits", "Data.fbits.type_bits.name")
 end
 
-function tll_on_open()
+function tll_on_active()
     check_scheme(tll_child_scheme)
     check_scheme(tll_self_scheme)
 end

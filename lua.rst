@@ -69,8 +69,10 @@ Script hooks
 
 Script can define any (or none) hook functions that are called when related event occures:
 
-``tll_on_open(params)`` - called when channel becomes active, params is table filled with open
-parameters
+``tll_on_open(params)`` - called when channel is opening, for prefix channels scheme is not yet
+filled and child not ready. Params is table filled with ``lua`` subtree of open parameters.
+
+``tll_on_active()`` - called when channel becomes active, available only for prefix channels.
 
 ``tll_on_close()`` - called when channel is closed, either by user or by child channel
 
