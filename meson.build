@@ -48,14 +48,14 @@ test('pytest', import('python').find_installation('python3')
 foreach f : ['read', 'convert']
   custom_target('tll-' + f
           , output : 'tll-' + f + '.1'
-          , input : [f + '.rst', f + '-options.rst']
+          , input : ['doc' / f + '.rst', 'doc' / f + '-options.rst']
           , command : [rst2man, '@INPUT0@', '@OUTPUT@']
           , install_dir: get_option('mandir') / 'man1'
           , install: true
   )
 endforeach
 
-foreach f : ['lua.rst']
+foreach f : ['doc/lua.rst']
 	custom_target('channel-man-@0@'.format(f)
 		, input: f
 		, output : 'tll-channel-@BASENAME@.7'
