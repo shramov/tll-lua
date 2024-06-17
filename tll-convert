@@ -89,7 +89,7 @@ uo['name'] = 'output'
 uo['dir'] = 'w'
 uo['scheme'] = args.scheme or 'channel://input'
 if args.compression:
-    ui['compression'] = args.compression
+    uo['compression'] = args.compression
 
 if args.io:
     ui['file.io'] = args.io
