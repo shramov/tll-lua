@@ -1,3 +1,26 @@
+tll-lua (0.3.0) unstable; urgency=medium
+
+  * lua:
+    Bindings for Channel, Context, Config and Scheme objects
+    Expand supported types: Bits, Enum, Fixed
+    Deepcopy function for messages
+    Basic Logic implementation
+    Handle close from lua code
+  * docs:
+    Describe Channel API
+    Manpage for lua channel
+  * prefix:
+    Split open and active hooks
+    Expose self and child in the script
+  * tll-convert: Converter script
+  * tll-read:
+    Change the way : is treated in --seq
+    Check count before printing
+    Disable polling by default
+    Dump seq mode
+
+ -- Pavel Shramov <shramov@mexmat.net>  Mon, 17 Jun 2024 16:31:45 +0300
+
 tll-lua (0.2.0) unstable; urgency=medium
 
   * lua: Decimal128 type support
