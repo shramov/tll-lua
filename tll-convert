@@ -7,6 +7,7 @@ from tll.config import Url
 from tll.processor import Loop
 
 import argparse
+import logging
 import time
 import pathlib
 
@@ -61,7 +62,9 @@ if args.help_rst:
             print()
     raise SystemExit()
 
-tll.logger.configure({'type': 'spdlog', 'levels.tll': args.loglevel})
+tll.logger.init()
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(name)s: %(message)s')
+tll.logger.configure({'levels.*': args.loglevel})
 
 ctx = Context()
 for m in args.modules:
