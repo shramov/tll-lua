@@ -124,9 +124,7 @@ int LuaPrefix::_on_active()
 int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel * channel, std::string_view func, bool filter)
 {
 	auto ref = _lua.copy();
-
 	auto guard = StackGuard(ref);
-	_log.debug("Stack size: {}", lua_gettop(ref));
 
 	lua_getglobal(ref, func.data());
 	auto args = _lua_pushmsg(msg, scheme, channel, true);
