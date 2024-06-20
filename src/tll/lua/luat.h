@@ -55,6 +55,27 @@ class LuaRc {
 	constexpr operator bool () const noexcept { return _ptr != nullptr; }
 };
 
+struct StackGuard
+{
+	lua_State * _lua = nullptr;
+	int _top = 0;
+
+	StackGuard(lua_State * lua) : _lua(lua), _top(lua_gettop(_lua)) {}
+
+	~StackGuard()
+	{
+		if (!_lua)
+			return;
+		if (auto top = lua_gettop(_lua); top > _top)
+			lua_pop(_lua, top - _top);
+	}
+
+	void release()
+	{
+		_lua = nullptr;
+	}
+};
+
 struct MetaBase
 {
 	static constexpr void * index = nullptr;

@@ -200,6 +200,7 @@ class LuaBase : public B
 	int _lua_pushmsg(const tll_msg_t * msg, const tll::Scheme * scheme, const tll::Channel * channel, bool skip_type = false)
 	{
 		const auto skip_index = skip_type ? 0 : 1;
+		auto guard = StackGuard(_lua);
 		if (!skip_type)
 			lua_pushinteger(_lua, msg->type);
 		lua_pushinteger(_lua, msg->seq);
@@ -207,10 +208,8 @@ class LuaBase : public B
 			scheme = channel->scheme(msg->type);
 		if (scheme) {
 			auto message = scheme->lookup(msg->msgid);
-			if (!message) {
-				lua_pop(_lua, 1 + skip_index);
+			if (!message)
 				return this->_log.fail(-1, "Message {} not found", msg->msgid);
-			}
 			if (msg->size < message->size)
 				return this->_log.fail(-1, "Message {} size too small: {} < minimum {}", message->name, msg->size, message->size);
 			lua_pushstring(_lua, message->name);
@@ -222,6 +221,7 @@ class LuaBase : public B
 		lua_pushinteger(_lua, msg->msgid);
 		lua_pushinteger(_lua, msg->addr.i64);
 		lua_pushinteger(_lua, msg->time);
+		guard.release();
 		return 6 + skip_index;
 	}
 

@@ -952,3 +952,40 @@ end
         assert c.state == c.State.Error
     else:
         assert c.state == c.State.Active
+
+@pytest.mark.parametrize("msgid,size", [(0, 8), (20, 6), (20, 8)])
+def test_error_stack(context, msgid, size):
+    url = Config.load(f'''yamls://
+tll.proto: lua+zero
+name: lua
+fragile: no
+zero.size: {size}b
+zero.msgid: {msgid}
+''')
+
+    url['code'] = f'''
+function tll_on_data(seq, name, data)
+    tll_callback(seq, name, tll_msg_deepcopy(data))
+end
+'''
+
+    url['scheme'] = '''yamls://
+- name: Inner
+  id: 10
+  fields:
+#    - {name: f0, type: string}
+    - {name: f0, type: int32, options.type: enum, enum: {A : 1}}
+
+- name: Data
+  id: 20
+  fields:
+    - {name: f0, type: int32}
+    - {name: sub, type: Inner}
+'''
+
+    c = context.Channel(url)
+    c.open()
+    assert c.state == c.State.Active
+
+    for _ in range(1000):
+        c.children[0].process()
