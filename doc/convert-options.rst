@@ -13,6 +13,9 @@ Options
 ``-h`` ``--help``
 show this help message and exit
 
+``--no-overwrite``
+do not overwrite output file
+
 ``-c``
 compression type: none or lz4, passed to output channel as compression parameter
 

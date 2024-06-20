@@ -20,6 +20,8 @@ def parsepair(string):
 parser = argparse.ArgumentParser(description='Convert file')
 parser.add_argument('input', metavar='INPUT', type=str, help='source file or channel')
 parser.add_argument('output', metavar='OUTPUT', type=str, help='destination file or channel')
+parser.add_argument('--no-overwrite', dest='overwrite', default=True,
+                    help='do not overwrite output file', action='store_false')
 parser.add_argument('-c', dest='compression', default=None,
                     help='compression type: none or lz4, passed to output channel as compression parameter')
 parser.add_argument('--io', dest='io', default=None,
@@ -121,7 +123,7 @@ ci.open(**dict(args.open))
 assert ci.state == ci.State.Active
 
 for c in [co, fwd]:
-    c.open(overwrite='yes')
+    c.open(overwrite='yes' if args.overwrite else 'no')
     assert c.state == ci.State.Active
 
 loop.add(ci)
