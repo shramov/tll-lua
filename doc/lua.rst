@@ -50,6 +50,14 @@ If scheme is not present only binary body can be specified in the script.
 
 ``scheme-control=SCHEME``, default is none - scheme used for control messages.
 
+``message-mode={reflection|object|binary}``, default ``reflection`` - how to wrap message that is
+passed to message callbacks (``tll_on_post`` or ``tll_callback``):
+
+  - ``reflection`` - if scheme is available for this message type - pass reflection object (and fail
+    if it is not found in the scheme), otherwise pass binary string.
+  - ``binary`` - always pass binary string as message body. Fastest method.
+  - ``object`` - wrap ``tll_msg_t`` structure in Lua object, described in `Message API`_ section.
+
 Encode and reflection parameters, described in ``Reflection`` and ``Encode`` sections in details.
 
 ``enum-mode={string|int|object}``, default ``string`` - represent enum fields as string, raw integer
@@ -292,6 +300,28 @@ Channel object has following properties and functions:
 
 Functions expects first argument to be channel object so they should be called with Lua ``:`` syntax
 like ``channel:post(...)`` or ``channel:close()``.
+
+Message API
+~~~~~~~~~~~
+
+Message wraps ``tll_msg_t`` structure pointer and provides access to it. However it's not allowed to
+store this object for later use since it's data can be invalidated. Has following fields:
+
+``seq`` - message sequence number, integer
+
+``type`` - message type, for example Data or Control, integer
+
+``msgid`` - message identifier, integer
+
+``data`` - data, string that can contains data
+
+``addr`` - message address, integer
+
+``name`` - message name, available only if there was valid scheme for this message, otherwise
+``nil``
+
+``reflection`` - message reflection (see ``Reflection``), available only if there is valid scheme,
+otherwise raises error on access
 
 Examples
 --------

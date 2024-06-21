@@ -69,6 +69,11 @@ struct Encoder : public tll::scheme::ErrorStack
 		msg = { TLL_MESSAGE_DATA };
 		const tll::scheme::Message * message = nullptr;
 
+		if (auto * ptr = luaT_testudata<tll::lua::Message>(lua, index); ptr) {
+			msg = *ptr->ptr;
+			return &msg;
+		}
+
 		if (lua_istable(lua, index)) {
 			if (args > index + 1)
 				return fail(nullptr, "Extra arguments not supported when using table: {} extra args", args - index - 1);

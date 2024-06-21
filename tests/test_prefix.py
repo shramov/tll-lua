@@ -1046,3 +1046,84 @@ end
         assert c.unpack(m).as_dict() == value
     else:
         assert await c.recv_state() == c.State.Error
+
+@pytest.fixture
+def msg_mode_config():
+    cfg = Config.load(f'''yamls://
+tll.proto: lua+yaml
+name: lua
+lua.fragile: yes
+lua.message-mode: object
+config.0:
+  seq: 1
+  name: Data
+  data:
+    f0: 100
+''')
+
+    cfg['code'] = f'''
+function tll_on_data(seq, name, data)
+    tll_callback(data)
+end
+'''
+
+    cfg['scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: uint32}
+'''
+
+    return cfg
+
+@asyncloop_run
+async def test_msg_forward(asyncloop, msg_mode_config):
+    cfg = msg_mode_config
+
+    c = asyncloop.Channel(cfg)
+    c.open()
+    assert await c.recv_state() == c.State.Active
+
+    m = await c.recv()
+    assert m.seq == 1
+    assert m.msgid == 10
+    assert c.unpack(m).as_dict() == {'f0': 100}
+
+@asyncloop_run
+async def test_binary_forward(asyncloop, msg_mode_config):
+    cfg = msg_mode_config
+    cfg['lua.message-mode'] = 'binary'
+    cfg['code'] = '''
+function tll_on_data(seq, name, data)
+    tll_callback(seq, name, "" .. data)
+end
+'''
+
+    c = asyncloop.Channel(cfg)
+    c.open()
+    assert await c.recv_state() == c.State.Active
+
+    m = await c.recv()
+    assert m.seq == 1
+    assert m.msgid == 10
+    assert c.unpack(m).as_dict() == {'f0': 100}
+
+@asyncloop_run
+async def test_object_reflection(asyncloop, msg_mode_config):
+    cfg = msg_mode_config
+    cfg['code'] = '''
+function tll_on_data(seq, name, data)
+    print(seq, name, data)
+    print(data.name)
+    tll_callback(seq, data.name, data.reflection)
+end
+'''
+
+    c = asyncloop.Channel(cfg)
+    c.open()
+    assert await c.recv_state() == c.State.Active
+
+    m = await c.recv()
+    assert m.seq == 1
+    assert m.msgid == 10
+    assert c.unpack(m).as_dict() == {'f0': 100}

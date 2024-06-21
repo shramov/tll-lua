@@ -34,6 +34,7 @@ class LuaBase : public B
 
 	tll::lua::Encoder _encoder;
 	tll::lua::Settings _settings;
+	enum class MessageMode { Reflection, Binary, Object } _message_mode = MessageMode::Reflection;
  public:
 	/// Close policy: perform cleanup in close or leave it to user
 	enum class LuaClosePolicy { Cleanup, Skip };
@@ -52,6 +53,8 @@ class LuaBase : public B
 
 		_encoder.fixed_mode = _settings.fixed_mode;
 		_encoder.overflow_mode = reader.getT("overflow-mode", Encoder::Overflow::Error);
+
+		_message_mode = reader.getT("message-mode", MessageMode::Reflection, {{"reflection", MessageMode::Reflection}, {"binary", MessageMode::Binary}, {"object", MessageMode::Object}});
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 
@@ -105,6 +108,7 @@ class LuaBase : public B
 
 		LuaT<tll::lua::Context>::init(lua);
 		LuaT<tll::lua::Channel>::init(lua);
+		LuaT<tll::lua::Message>::init(lua);
 
 		LuaT<tll::lua::Config>::init(lua);
 
@@ -207,20 +211,40 @@ class LuaBase : public B
 		if (!skip_type)
 			lua_pushinteger(_lua, msg->type);
 		lua_pushinteger(_lua, msg->seq);
+
 		if (msg->type != TLL_MESSAGE_DATA)
 			scheme = channel->scheme(msg->type);
-		if (scheme) {
-			auto message = scheme->lookup(msg->msgid);
+		auto message = scheme ? scheme->lookup(msg->msgid) : nullptr;
+
+		auto mode = _message_mode;
+		if (mode == MessageMode::Reflection && !scheme)
+			mode = MessageMode::Binary;
+
+		switch (mode) {
+		case MessageMode::Object:
+			if (message)
+				lua_pushstring(_lua, message->name);
+			else
+				lua_pushinteger(_lua, msg->msgid);
+			luaT_push(_lua, tll::lua::Message { msg, message, _settings });
+			break;
+		case MessageMode::Reflection:
 			if (!message)
 				return this->_log.fail(-1, "Message {} not found", msg->msgid);
 			if (msg->size < message->size)
 				return this->_log.fail(-1, "Message {} size too small: {} < minimum {}", message->name, msg->size, message->size);
 			lua_pushstring(_lua, message->name);
 			luaT_push(_lua, reflection::Message { message, tll::make_view(*msg), _settings });
-		} else {
-			lua_pushnil(_lua);
+			break;
+		case MessageMode::Binary:
+			if (message)
+				lua_pushstring(_lua, message->name);
+			else
+				lua_pushnil(_lua);
 			lua_pushlstring(_lua, (const char *) msg->data, msg->size);
+			break;
 		}
+
 		lua_pushinteger(_lua, msg->msgid);
 		lua_pushinteger(_lua, msg->addr.i64);
 		lua_pushinteger(_lua, msg->time);

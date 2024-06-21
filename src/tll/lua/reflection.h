@@ -30,6 +30,13 @@ struct Settings
 	bool deepcopy = false;
 };
 
+struct Message
+{
+	const tll_msg_t * ptr = nullptr;
+	const tll::scheme::Message * message = nullptr;
+	const tll::lua::Settings &settings;
+};
+
 namespace reflection {
 
 struct Message
@@ -298,6 +305,46 @@ int pushcopy(lua_State *lua, const tll::scheme::Message * message, View data, co
 	return 1;
 }
 } // namespace reflection
+
+template <>
+struct MetaT<Message> : public MetaBase
+{
+	static constexpr std::string_view name = "tll_msg";
+	static int index(lua_State* lua)
+	{
+		auto & self = luaT_checkuserdata<Message>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		if (key == "seq") {
+			lua_pushinteger(lua, self.ptr->seq);
+		} else if (key == "type") {
+			lua_pushinteger(lua, self.ptr->type);
+		} else if (key == "msgid") {
+			lua_pushinteger(lua, self.ptr->msgid);
+		} else if (key == "name") {
+			if (self.message)
+				lua_pushstring(lua, self.message->name);
+			else
+				lua_pushnil(lua);
+		} else if (key == "addr") {
+			lua_pushinteger(lua, self.ptr->addr.i64);
+		} else if (key == "data") {
+			if (self.ptr->size)
+				lua_pushlstring(lua, (const char *) self.ptr->data, self.ptr->size);
+			else
+				lua_pushlstring(lua, "", 0);
+		} else if (key == "reflection") {
+			auto m = self.message;
+			if (!m)
+				return luaL_error(lua, "No scheme for message type %d msgid %d", self.ptr->type, self.ptr->msgid);
+			if (self.ptr->size < m->size)
+				return luaL_error(lua, "Message %s size too small: %d < minimum %d", m->name, self.ptr->size, m->size);
+			luaT_push(lua, reflection::Message { m, tll::make_view(*self.ptr), self.settings });
+		} else
+			return luaL_error(lua, "Invalid Channel attribute '%s'", key.data());
+		return 1;
+	}
+};
 
 template <>
 struct MetaT<reflection::Message> : public MetaBase
