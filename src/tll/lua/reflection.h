@@ -26,6 +26,7 @@ struct Settings
 	enum class Enum { Int, String, Object } enum_mode = Enum::Int;
 	enum class Bits { Int, Object } bits_mode = Bits::Object;
 	enum class Fixed { Int, Float, Object } fixed_mode = Fixed::Float;
+	enum class Child { Strict, Relaxed } child_mode = Child::Strict;
 	bool deepcopy = false;
 };
 
@@ -87,6 +88,7 @@ struct Bits
 {
 	const tll::scheme::Field * field = nullptr;
 	tll::memoryview<const tll_msg_t> data;
+	const Settings &settings;
 
 	const tll_scheme_bit_field_t * lookup(std::string_view name) const
 	{
@@ -143,7 +145,7 @@ int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v
 			lua_pushinteger(lua, v);
 			break;
 		case Settings::Bits::Object:
-			luaT_push<reflection::Bits>(lua, { field, data });
+			luaT_push<reflection::Bits>(lua, { field, data, settings });
 			break;
 		}
 	} else if (field->sub_type == field->Enum) {
@@ -309,8 +311,12 @@ struct MetaT<reflection::Message> : public MetaBase
 		if (r.data.size() < r.message->size)
 			return luaL_error(lua, "Message '%s' size %d > data size %d", r.message->name, r.message->size, r.data.size());
 		auto field = r.lookup(key);
-		if (field == nullptr)
-			return luaL_error(lua, "Message '%s' has no field '%s'", r.message->name, key.data());
+		if (field == nullptr) {
+			if (r.settings.child_mode == Settings::Child::Strict)
+				return luaL_error(lua, "Message '%s' has no field '%s'", r.message->name, key.data());
+			lua_pushnil(lua);
+			return 1;
+		}
 
 		if (r.message->pmap) {
 			auto pmap = r.data.view(r.message->pmap->offset);
@@ -470,8 +476,12 @@ struct MetaT<reflection::Bits> : public MetaBase
 		auto key = luaT_checkstringview(lua, 2);
 
 		auto bit = r.lookup(key);
-		if (bit == nullptr)
-			return luaL_error(lua, "Bits '%s' has no bit '%s'", r.field->name, key.data());
+		if (bit == nullptr) {
+			if (r.settings.child_mode == Settings::Child::Strict)
+				return luaL_error(lua, "Bits '%s' has no bit '%s'", r.field->name, key.data());
+			lua_pushnil(lua);
+			return 1;
+		}
 
 		auto bits = tll::scheme::read_size(r.field, r.data);
 		auto v = tll_scheme_bit_field_get(bits, bit->offset, bit->size);
@@ -691,6 +701,19 @@ struct tll::conv::parse<tll::lua::Settings::Fixed>
 			{"int", Fixed::Int},
 			{"float", Fixed::Float},
 			{"object", Fixed::Object},
+		});
+        }
+};
+
+template <>
+struct tll::conv::parse<tll::lua::Settings::Child>
+{
+	using Child = tll::lua::Settings::Child;
+        static result_t<Child> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, Child> {
+			{"strict", Child::Strict},
+			{"relaxed", Child::Relaxed},
 		});
         }
 };

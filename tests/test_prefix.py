@@ -989,3 +989,60 @@ end
 
     for _ in range(1000):
         c.children[0].process()
+
+@asyncloop_run
+@pytest.mark.parametrize("extend", ["msg", "bits"])
+@pytest.mark.parametrize("mode", ["strict", "relaxed", ""])
+async def test_child_mode(asyncloop, mode, extend):
+    url = Config.load(f'''yamls://
+tll.proto: lua+yaml
+name: lua
+lua.fragile: yes
+lua.child-mode: {mode}
+config.0:
+  name: Data
+  data:
+    f0: B
+''')
+
+    url['code'] = f'''
+function tll_on_data(seq, name, data)
+    tll_callback(seq, name, data)
+end
+'''
+
+    url['yaml.scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: uint32, options.type: bits, bits: [A, B]}
+'''
+
+    scheme = '''yamls://
+- name: Data
+  id: 10
+  fields:
+'''
+    value = {'f0': {'A': False, 'B': True}}
+    if extend == 'msg':
+        value['f1'] = 0
+        scheme += '''
+    - {name: f0, type: uint32, options.type: bits, bits: [A, B]}
+    - {name: f1, type: int64}
+'''
+    elif extend == 'bits':
+        value['f0']['C'] = False
+        scheme += '''
+    - {name: f0, type: uint32, options.type: bits, bits: [A, B, C]}
+'''
+    url['lua.scheme'] = scheme
+
+    c = asyncloop.Channel(url)
+    c.open()
+    assert await c.recv_state() == c.State.Active
+
+    if mode == 'relaxed':
+        m = await c.recv()
+        assert c.unpack(m).as_dict() == value
+    else:
+        assert await c.recv_state() == c.State.Error
