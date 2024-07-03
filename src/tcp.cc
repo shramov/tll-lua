@@ -214,10 +214,8 @@ int LuaSocket<T>::_post(const tll_msg_t *msg, int flags)
 
 	lua_pop(lua, 1); // Pop result
 
-	if (r < 0)
-		return this->_log.fail(errno, "Failed to post data: {}", strerror(errno));
-	else if ((size_t) r != frame.size() + msg->size)
-		return this->_log.fail(errno, "Failed to post data (truncated): {}", strerror(errno));
+	if (r)
+		return this->_log.fail(r, "Failed to post data");
 	return 0;
 }
 
