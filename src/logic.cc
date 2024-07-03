@@ -79,18 +79,21 @@ int Logic::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, tll::Channe
 {
 	auto ref = _lua.copy();
 	lua_getglobal(ref, func.data());
-	if (channel != self())
+
+	auto extra_args = 0;
+	if (channel != self()) {
 		luaT_push<tll::lua::Channel>(ref, { channel, &_encoder });
+		extra_args++;
+	}
 	auto args = _lua_pushmsg(msg, scheme, channel);
 	if (args < 0)
 		return EINVAL;
-	if (lua_pcall(ref, 1 + args, 1, 0)) {
+	if (lua_pcall(ref, extra_args + args, 0, 0)) {
 		auto text = fmt::format("Lua function {} failed: {}\n  on", func, lua_tostring(ref, -1));
 		lua_pop(ref, 1);
 		tll_channel_log_msg(channel, _log.name(), tll::logger::Error, _dump_error, msg, text.data(), text.size());
 		return EINVAL;
 	}
 
-	lua_pop(ref, 1);
 	return 0;
 }

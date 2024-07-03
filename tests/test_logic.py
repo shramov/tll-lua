@@ -61,6 +61,12 @@ function tll_on_channel(channel, type, seq, name, data)
         tll_self:close()
     end
 end
+
+function tll_on_post(type, seq, name, data)
+    for i,c in ipairs(tll_self_channels.output) do
+        c:post(seq, name, tostring(data) .. ":" .. 'post')
+    end
+end
 '''
 
     mock = Mock(asyncloop, cfg)
@@ -77,6 +83,10 @@ end
     mock.io('output').post(b'out', seq=2)
     m = await mock.io('extra').recv()
     assert (m.seq, m.data.tobytes()) == (2, b'out:output')
+
+    mock.channel.post(b'post', seq=4)
+    m = await mock.io('output').recv()
+    assert (m.seq, m.data.tobytes()) == (4, b'post:post')
 
     mock.io('extra').post(b'close', seq=3)
     m = await mock.io('extra').recv()
