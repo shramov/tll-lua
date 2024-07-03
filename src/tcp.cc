@@ -245,7 +245,7 @@ int LuaSocket<T>::_pending()
 	// Check for pending data
 	auto data = this->template rdataT<char>(frame_size, _pending_msg.size);
 	if (!data) {
-		if (frame_size + _pending_msg.size > this->_rbuf.size())
+		if (frame_size + _pending_msg.size > this->_rbuf.capacity())
 			return this->_log.fail(EMSGSIZE, "Message size {} too large", _pending_msg.size);
 		this->_dcaps_pending(false);
 		return EAGAIN;
