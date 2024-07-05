@@ -1,0 +1,29 @@
+processor.module:
+  - module: tll-logic-stat
+  - module: tll-logic-forward
+  - module: tll-channel-python
+  - module: tll-lua
+
+logger:
+  type: spdlog
+  levels: {tll: info}
+
+processor.objects:
+  stat:
+    init: stat://;node=tll-test
+    channels.timer: stat-timer
+    depends: zabbix
+  stat-timer:
+    init: timer://;interval=1s
+    depends: stat
+  zero:
+    init: rate+zero://;dir=r;max-window=1kb;speed=1kb;size=128b;stat=yes
+  other:
+    init: rate+zero://;dir=r;max-window=1kb;speed=2kb;size=300b;stat=yes
+  zabbix:
+    init:
+      url: python://;python=./zabbix:Zabbix
+      uplink: tcp-lua://127.0.0.1:10051;code=file://zabbix.lua;dump=text+hex
+    channels: {input: stat}
+
+# vim: sts=2 sw=2 et
