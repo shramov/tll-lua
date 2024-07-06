@@ -1,3 +1,16 @@
+tll-lua (0.4.0) unstable; urgency=medium
+
+  * examples: Add zabbix terminator example using Lua TCP header
+  * logic: Fix incorrect number of arguments for tll_on_post
+  * lua: Bindings for tll_msg_t object
+  * reflection: Configurable child mode
+  * tcp:
+    Incorrect check for maximum message size
+    Update to new TLL Tcp channel API
+  * tll-convert: Configurable overwrite open parameter
+
+ -- Pavel Shramov <shramov@mexmat.net>  Sat, 06 Jul 2024 11:03:08 +0300
+
 tll-lua (0.3.0) unstable; urgency=medium
 
   * lua:
