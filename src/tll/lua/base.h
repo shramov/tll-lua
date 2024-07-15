@@ -34,7 +34,7 @@ class LuaBase : public B
 
 	tll::lua::Encoder _encoder;
 	tll::lua::Settings _settings;
-	enum class MessageMode { Reflection, Binary, Object } _message_mode = MessageMode::Reflection;
+	enum class MessageMode { Auto, Reflection, Binary, Object } _message_mode = MessageMode::Auto;
  public:
 	/// Close policy: perform cleanup in close or leave it to user
 	enum class LuaClosePolicy { Cleanup, Skip };
@@ -54,7 +54,7 @@ class LuaBase : public B
 		_encoder.fixed_mode = _settings.fixed_mode;
 		_encoder.overflow_mode = reader.getT("overflow-mode", Encoder::Overflow::Error);
 
-		_message_mode = reader.getT("message-mode", MessageMode::Reflection, {{"reflection", MessageMode::Reflection}, {"binary", MessageMode::Binary}, {"object", MessageMode::Object}});
+		_message_mode = reader.getT("message-mode", MessageMode::Auto, {{"auto", MessageMode::Auto}, {"reflection", MessageMode::Reflection}, {"binary", MessageMode::Binary}, {"object", MessageMode::Object}});
 		if (!reader)
 			return this->_log.fail(EINVAL, "Invalid url: {}", reader.error());
 
@@ -217,7 +217,7 @@ class LuaBase : public B
 		auto message = scheme ? scheme->lookup(msg->msgid) : nullptr;
 
 		auto mode = _message_mode;
-		if (mode == MessageMode::Reflection && !scheme)
+		if (mode == MessageMode::Auto && !scheme)
 			mode = MessageMode::Binary;
 
 		switch (mode) {
@@ -229,6 +229,7 @@ class LuaBase : public B
 			luaT_push(_lua, tll::lua::Message { msg, message, _settings });
 			break;
 		case MessageMode::Reflection:
+		case MessageMode::Auto:
 			if (!message)
 				return this->_log.fail(-1, "Message {} not found", msg->msgid);
 			if (msg->size < message->size)

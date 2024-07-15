@@ -1127,3 +1127,37 @@ end
     assert m.seq == 1
     assert m.msgid == 10
     assert c.unpack(m).as_dict() == {'f0': 100}
+
+@pytest.mark.parametrize("mode,ok", [
+    ('', 'ok'),
+    ('auto', 'ok'),
+    ('binary', 'ok'),
+    ('object', 'fail'),
+    ('reflection', 'fail'),
+    ])
+def test_message_mode_binary(context, mode, ok):
+    cfg = Config.load(f'''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+    cfg['lua.message-mode'] = mode
+    cfg['code'] = '''
+function tll_on_post(seq, name, data, msgid)
+    print(seq, name, data)
+    tll_callback(seq, msgid, data)
+end
+'''
+
+    c = Accum(cfg, context=context)
+    c.open()
+    assert c.state == c.State.Active
+
+    try:
+        c.post(b'xxx', msgid=10, seq=100)
+    except TLLError as e:
+        if ok == 'ok':
+            raise
+        return
+    assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
+    assert c.result[-1].data.tobytes() == b'xxx'

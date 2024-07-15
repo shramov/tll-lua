@@ -50,11 +50,12 @@ If scheme is not present only binary body can be specified in the script.
 
 ``scheme-control=SCHEME``, default is none - scheme used for control messages.
 
-``message-mode={reflection|object|binary}``, default ``reflection`` - how to wrap message that is
+``message-mode={auto|reflection|object|binary}``, default ``auto`` - how to wrap message that is
 passed to message callbacks (``tll_on_post`` or ``tll_callback``):
 
-  - ``reflection`` - if scheme is available for this message type - pass reflection object (and fail
+  - ``auto`` - if scheme is available for this message type - pass reflection object (and fail
     if it is not found in the scheme), otherwise pass binary string.
+  - ``reflection`` - pass reflection object, fail if there is no scheme or message is not found.
   - ``binary`` - always pass binary string as message body. Fastest method.
   - ``object`` - wrap ``tll_msg_t`` structure in Lua object, described in `Message API`_ section.
 
