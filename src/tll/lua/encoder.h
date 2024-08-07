@@ -96,6 +96,11 @@ struct Encoder : public tll::scheme::ErrorStack
 				msg.seq = lua_tointeger(lua, -1);
 			lua_pop(lua, 1);
 
+			luaT_pushstringview(lua, "time");
+			if (auto type = lua_gettable(lua, index); type == LUA_TNUMBER)
+				msg.time = lua_tointeger(lua, -1);
+			lua_pop(lua, 1);
+
 			auto with_name = false;
 			luaT_pushstringview(lua, "name");
 			if (auto type = lua_gettable(lua, index); type == LUA_TSTRING) {

@@ -1161,3 +1161,22 @@ end
         return
     assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
     assert c.result[-1].data.tobytes() == b'xxx'
+
+def test_callback_table(context):
+    cfg = Config.load(f'''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+    cfg['code'] = '''
+function tll_on_active()
+    tll_callback({type = "Control", data = "xxx", seq = 10, msgid = 11, addr = 12, time = 13, extra = 100})
+end
+'''
+
+    c = Accum(cfg, context=context)
+    c.open()
+    assert c.state == c.State.Active
+
+    assert [(m.type, m.seq, m.msgid, m.addr, m.time.value) for m in c.result] == [(c.Type.Control, 10, 11, 12, 13)]
+    assert c.result[-1].data.tobytes() == b'xxx'

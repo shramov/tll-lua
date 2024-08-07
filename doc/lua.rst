@@ -96,6 +96,7 @@ channel:
   ``body`` - table-like message reflection, if there is no scheme - string value of message body
   ``msgid`` - message id, integer
   ``addr`` - message address, signed integer (``i64`` of ``tll_addr_t``)
+  ``time`` - message time in nanoseconds, signed integer
 
 ``tll_on_data(...)`` - called when child produces message, arguments as in ``tll_on_post``
 
