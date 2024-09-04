@@ -297,7 +297,12 @@ template <typename View>
 int pushcopy(lua_State *lua, const tll::scheme::Message * message, View data, const Settings & settings)
 {
 	lua_newtable(lua);
+	auto pmap = message->pmap;
 	for (auto f = message->fields; f; f = f->next) {
+		if (message->pmap) {
+			if (f->index >= 0 && !tll::scheme::pmap_get(data.view(pmap->offset).data(), f->index))
+				continue;
+		}
 		luaT_pushstringview(lua, f->name);
 		pushfield(lua, f, data.view(f->offset), settings);
 		lua_settable(lua, -3);

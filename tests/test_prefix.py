@@ -1180,3 +1180,36 @@ end
 
     assert [(m.type, m.seq, m.msgid, m.addr, m.time.value) for m in c.result] == [(c.Type.Control, 10, 11, 12, 13)]
     assert c.result[-1].data.tobytes() == b'xxx'
+
+def test_pmap_copy(context):
+    cfg = Config.load(f'''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+    cfg['scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: pmap, type: uint16, options.pmap: yes}
+    - {name: f0, type: uint16}
+    - {name: f1, type: uint16, options.optional: yes}
+'''
+    cfg['code'] = '''
+function tll_on_post(seq, name, data, msgid)
+    copy = tll_msg_copy(data)
+    assert(data.f0 == 10, "invalid f0: " .. tostring(data.f0))
+    assert(copy.f0 == 10, "invalid copy f0: " .. tostring(copy.f0))
+    assert(data.f1 == nil, "invalid f1: " .. tostring(data.f1))
+    assert(copy.f1 == nil, "invalid copy f1: " .. tostring(copy.f1))
+    tll_callback(seq, msgid, copy)
+end
+'''
+
+    c = Accum(cfg, context=context)
+    c.open()
+    assert c.state == c.State.Active
+
+    c.post({'f0': 10}, name='Data', seq=100)
+    assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
+    assert c.unpack(c.result[-1]).as_dict() == {'f0': 10}
