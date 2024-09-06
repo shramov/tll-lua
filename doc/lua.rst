@@ -76,6 +76,11 @@ encoding.
 ``child-mode={strict|relaxed}``, default ``strict`` - child policy, raise error if unknown field is
 requested from Message or Bits object or return ``nil``.
 
+``pmap-mode={enable|disable}``, default ``enable`` - pmap policy, if disabled - return value as if
+presence map fields does not exists. Also affects copy functions (``tll_msg_copy`` and
+``tll_msg_deepcopy``). ``tll_msg_pmap_check`` function still can be used to check if field is
+present in the message.
+
 Script hooks
 ~~~~~~~~~~~~
 
@@ -166,6 +171,9 @@ wants to modify element in submessage it should be copied too:
 ``tll_msg_deepcopy(msg)`` - convert message reflection into Lua table recursively, traversing all
 arrays (both fixed and offset), messages and unions. This operation is more expensive then
 ``tll_msg_copy`` and should be used only when really needed.
+
+``tll_msg_pmap_check(msg, field)`` - check if field exists in the message: returns false if field is
+optional and is not present, otherwise returns true.
 
 ``tll_self_scheme`` - data scheme of the channel, not set if there is no scheme. Deprecated, should
 be replaced with ``tll_self.scheme``.
