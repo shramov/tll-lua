@@ -50,6 +50,7 @@ class LuaBase : public B
 		_settings.bits_mode = reader.getT("bits-mode", Settings::Bits::Object);
 		_settings.fixed_mode = reader.getT("fixed-mode", Settings::Fixed::Float);
 		_settings.child_mode = reader.getT("child-mode", Settings::Child::Strict);
+		_settings.pmap_mode = reader.getT("pmap-mode", Settings::PMap::Enable);
 
 		_encoder.fixed_mode = _settings.fixed_mode;
 		_encoder.overflow_mode = reader.getT("overflow-mode", Encoder::Overflow::Error);

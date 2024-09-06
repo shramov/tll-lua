@@ -27,6 +27,7 @@ struct Settings
 	enum class Bits { Int, Object } bits_mode = Bits::Object;
 	enum class Fixed { Int, Float, Object } fixed_mode = Fixed::Float;
 	enum class Child { Strict, Relaxed } child_mode = Child::Strict;
+	enum class PMap { Enable, Disable } pmap_mode = PMap::Enable;
 	bool deepcopy = false;
 };
 
@@ -298,8 +299,10 @@ int pushcopy(lua_State *lua, const tll::scheme::Message * message, View data, co
 {
 	lua_newtable(lua);
 	auto pmap = message->pmap;
+	if (settings.pmap_mode == Settings::PMap::Disable)
+		pmap = nullptr;
 	for (auto f = message->fields; f; f = f->next) {
-		if (message->pmap) {
+		if (pmap) {
 			if (f->index >= 0 && !tll::scheme::pmap_get(data.view(pmap->offset).data(), f->index))
 				continue;
 		}
@@ -370,7 +373,7 @@ struct MetaT<reflection::Message> : public MetaBase
 			return 1;
 		}
 
-		if (r.message->pmap) {
+		if (r.settings.pmap_mode != Settings::PMap::Disable && r.message->pmap) {
 			auto pmap = r.data.view(r.message->pmap->offset);
 			if (!tll::scheme::pmap_get(pmap.data(), field->index)) {
 				lua_pushnil(lua);
@@ -781,6 +784,19 @@ struct tll::conv::parse<tll::lua::Settings::Child>
                 return tll::conv::select(s, std::map<std::string_view, Child> {
 			{"strict", Child::Strict},
 			{"relaxed", Child::Relaxed},
+		});
+        }
+};
+
+template <>
+struct tll::conv::parse<tll::lua::Settings::PMap>
+{
+	using PMap = tll::lua::Settings::PMap;
+        static result_t<PMap> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, PMap> {
+			{"enable", PMap::Enable},
+			{"disable", PMap::Disable},
 		});
         }
 };
