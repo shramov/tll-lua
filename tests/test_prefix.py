@@ -1202,6 +1202,9 @@ function tll_on_post(seq, name, data, msgid)
     assert(copy.f0 == 10, "invalid copy f0: " .. tostring(copy.f0))
     assert(data.f1 == nil, "invalid f1: " .. tostring(data.f1))
     assert(copy.f1 == nil, "invalid copy f1: " .. tostring(copy.f1))
+
+    assert(tll_msg_pmap_check(data, 'f0'), "f0 reported as missing")
+    assert(not tll_msg_pmap_check(data, 'f1'), "f1 reported as present")
     tll_callback(seq, msgid, copy)
 end
 '''

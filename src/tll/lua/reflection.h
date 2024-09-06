@@ -415,6 +415,21 @@ struct MetaT<reflection::Message> : public MetaBase
 		pushcopy(lua, r.message, r.data, settings);
 		return 1;
 	}
+
+	static int pmap_check(lua_State *lua)
+	{
+		auto & self = *luaT_touserdata<reflection::Message>(lua, 1);
+		auto key = luaT_checkstringview(lua, 2);
+
+		auto field = self.lookup(key);
+		if (field == nullptr)
+			return luaL_error(lua, "Message '%s' has no field '%s'", self.message->name, key.data());
+		if (self.message->pmap && field->index >= 0)
+			lua_pushboolean(lua, tll::scheme::pmap_get(self.data.view(self.message->pmap->offset).data(), field->index));
+		else
+			lua_pushboolean(lua, true);
+		return 1;
+	}
 };
 
 template <>
