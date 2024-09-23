@@ -1,3 +1,13 @@
+tll-lua (0.5.0) unstable; urgency=medium
+
+  * doc: Add pmap-mode and tll_msg_pmap_check into docs
+  * lua:
+    Presence map support
+    Split reflection and auto message modes
+    Support time message field in table mode
+
+ -- Pavel Shramov <shramov@mexmat.net>  Mon, 23 Sep 2024 18:11:29 +0300
+
 tll-lua (0.4.0) unstable; urgency=medium
 
   * examples: Add zabbix terminator example using Lua TCP header
