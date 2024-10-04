@@ -280,17 +280,16 @@ struct Encoder : public tll::scheme::ErrorStack
 		}
 		case Field::Pointer: {
 			tll::scheme::generic_offset_ptr_t ptr = {};
-			ptr.offset = view.size();
 			if (field->sub_type == Field::ByteString) {
 				if (!lua_isstring(lua, -1))
 					return fail(EINVAL, "Non-string data");
 				auto data = luaT_tostringview(lua, -1);
 				ptr.size = data.size() + 1;
 				ptr.entity = 1;
-				tll::scheme::write_pointer(field, view, ptr);
+				if (tll::scheme::alloc_pointer(field, view, ptr))
+					return fail(EINVAL, "Failed to allocate pointer");
 
 				view = view.view(ptr.offset);
-				view.resize(ptr.size);
 				memcpy(view.data(), data.data(), data.size());
 				*view.view(data.size()).template dataT<char>() = '\0';
 				return 0;
@@ -304,9 +303,9 @@ struct Encoder : public tll::scheme::ErrorStack
 			auto af = field->type_ptr;
 			ptr.entity = af->size;
 
-			tll::scheme::write_pointer(field, view, ptr);
+			if (tll::scheme::alloc_pointer(field, view, ptr))
+				return fail(EINVAL, "Failed to allocate pointer");
 			view = view.view(ptr.offset);
-			view.resize(ptr.size * ptr.entity);
 
 			for (auto i = 0u; i < ptr.size; i++) {
 				lua_pushinteger(lua, i + 1);

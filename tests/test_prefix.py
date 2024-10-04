@@ -1258,3 +1258,44 @@ end
     assert c.state == c.State.Active
     assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
     assert c.unpack(c.result[-1]).as_dict() == {'f0': decimal.Decimal('123.456')}
+
+@asyncloop_run
+async def test_pointer_large(asyncloop):
+    cfg = Config.load('''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+lua.fragile: yes
+autoclose: yes
+config:
+  - name: Data
+    seq: 10
+    data:
+      list:
+        - { body: 0000 }
+        - { body: 1111 }
+''')
+    cfg['scheme'] = '''yamls://
+- name: Item
+  fields:
+    - {name: body, type: byte266, options.type: string}
+- name: Data
+  id: 10
+  fields:
+    - {name: list, type: '*Item'}
+'''
+
+    cfg['code'] = f'''
+function tll_on_data(seq, name, data)
+    for i,v in ipairs(data.list) do
+        print("items[" .. tostring(i) .. "]: " .. v.body)
+    end
+    tll_callback(seq + 100, "Data", tll_msg_deepcopy(data))
+end
+'''
+    c = asyncloop.Channel(cfg)
+    c.open()
+    m = await c.recv(0.001)
+    assert m.data[:12].tobytes() == b'\x08\x00\x00\x00\x02\x00\x00\xff\x0a\x01\x00\x00'
+    assert c.unpack(m).as_dict() == {'list': [{'body': '0000'}, {'body': '1111'}]}
