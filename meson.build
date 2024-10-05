@@ -10,11 +10,12 @@ fmt = dependency('fmt')
 lua = dependency('lua5.3')
 tll = dependency('tll')
 rst2man = find_program('rst2man', disabler: true, required: false)
+dl = meson.get_compiler('cpp').find_library('dl')
 
 shared_library('tll-lua'
 	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc', 'src/logic.cc']
 	, include_directories : include
-	, dependencies : [fmt, lua, tll]
+	, dependencies : [fmt, lua, tll, dl]
 	, install : true
 )
 
