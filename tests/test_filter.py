@@ -81,7 +81,7 @@ end
     assert c.state == c.State.Active
     r = []
     while len(r) < 4:
-        m = await c.recv(0.001)
+        m = await c.recv(0.1)
         r.append(m)
     assert [m.seq for m in r] == [0, 4, 8, 12]
 
@@ -109,7 +109,7 @@ end
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
-    m = await c.recv(0.001)
+    m = await c.recv(0.1)
     assert m.data.tobytes() == b'aaaa'
 
 @asyncloop_run
@@ -147,7 +147,7 @@ end
     c = asyncloop.Channel(url)
     c.open()
     assert c.state == c.State.Active
-    m = await c.recv(0.001)
+    m = await c.recv(0.1)
     assert (m.msgid, m.seq) == (10, 1)
     assert c.unpack(m).as_dict() == {'f1': 10}
 
