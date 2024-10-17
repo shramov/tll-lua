@@ -98,12 +98,14 @@ channel:
 
   ``seq`` - sequence number of the message, ``msg->seq``
   ``name`` - message name from the scheme, if there is no scheme - ``nil``
-  ``body`` - table-like message reflection, if there is no scheme - string value of message body
+  ``body`` - table-like message reflection, if there is no scheme - string value of message body,
+  unpacked using self scheme
   ``msgid`` - message id, integer
   ``addr`` - message address, signed integer (``i64`` of ``tll_addr_t``)
   ``time`` - message time in nanoseconds, signed integer
 
-``tll_on_data(...)`` - called when child produces message, arguments as in ``tll_on_post``
+``tll_on_data(...)`` - called when child produces message (which is unpacked using child scheme),
+arguments as in ``tll_on_post``
 
 ``tll_filter(...)`` - special form of message callback used for filtering, replaced ``tll_on_data``.
 If this function is defined then prefix is working in filtering mode (if not overriden by
@@ -120,7 +122,8 @@ Some functions and variables are pushed into global namespace:
 
 ``tll_child_post(seq, name, body, addr)``: post message into child channel, two modes are available
 - table with message parameters (see below) or limited list of arguments as a fast path. Arguments
-starting from ``body`` are optional and can be omitted.
+starting from ``body`` are optional and can be omitted. Child channel scheme is used to pack message
+from reflection or table.
 
   - ``seq`` - message sequence number, do not fill if it is not integer
   - ``name`` - name or message id of the message. If there is no scheme - only message id is
@@ -155,7 +158,7 @@ All fields are optional, however it is not possible to use ``data`` with table a
 or ``msgid`` fields. This function call is slower then previous one but gives more options.
 
 ``tll_callback(...)`` - generate message from the channel, arguments are same as in
-``tll_child_post`` function.
+``tll_child_post`` function but self scheme is used to pack messages.
 
 ``tll_msg_copy(msg)`` - convert message reflection into Lua table. Reflection is read-only and can
 not be modified or extended so if message conversion is required - it should be first copied. This
