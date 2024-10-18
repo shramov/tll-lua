@@ -405,16 +405,57 @@ Lua script:
     assert(cfg.f == "g")
     assert(tll_self.config["open.lua.f"] == "g")
 
-    assert(tll_self.config["url.a"] == "b")
-    assert(tll_self.config["url.c.d"] == "e")
+    assert(tll_self.config["init.a"] == "b")
+    assert(tll_self.config["init.c.d"] == "e")
   end
 
   function tll_on_data(seq, name, data)
     assert(tll_self.config["open.lua.f"] == "g")
 
-    assert(tll_self.config["url.a"] == "b")
-    assert(tll_self.config["url.c.d"] == "e")
+    assert(tll_self.config["init.a"] == "b")
+    assert(tll_self.config["init.c.d"] == "e")
   end
+
+Data conversion
+~~~~~~~~~~~~~~~
+
+Lua can be used to convert data when scheme is changed in incompatible way - something is added in
+the middle or field type is changed::
+
+  lua+file://file.dat;lua.scheme=yaml://new.yaml;code=file://script.lua;child-mode=relaxed;fragile=yes
+
+Lua script, that initializes new field for some messages and use implicit conversion for everything
+else (``child-mode=relaxed`` parameter is needed to get ``nil`` for fields that are added in new
+scheme):
+
+.. code-block:: lua
+
+  function tll_on_data(seq, name, data)
+    if name == "Middle" and data.f0 > 10 then
+      copy = tll_msg_copy(data)
+      copy.middle = "f0 > 10"
+      tll_callback(seq, name, copy)
+    else
+      tll_callback(seq, name, data)
+    end
+  end
+
+New scheme:
+
+.. code-block:: yaml
+
+  - name: TypeChange
+    id: 10
+    fields:
+      - { name: f0, type: int64 } # Was int32
+      - { name: f1, type: byte16, options.type: string } # Was 8 byte string
+
+  - name: Middle
+    id: 20
+    fields:
+      - { name: f0, type: int32 }
+      - { name: middle, type: string } # Added in new scheme
+      - { name: f1, type: int32 }
 
 See also
 --------
