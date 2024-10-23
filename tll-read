@@ -38,6 +38,8 @@ parser.add_argument('--ignore-errors', dest='ignore_errors', action='store_true'
                     help="Skip messages that can not be unpacked")
 parser.add_argument('--hex', dest='hexdump', action='store_true', default=False,
                     help="Print hex dump for all messages")
+parser.add_argument('--text', dest='text', action='store_true', default=False,
+                    help="Print text representation instead of binary")
 parser.add_argument('--dump-seq', dest='dump_seq', action='store_true', default=False,
                     help='dump first and last seq of the channel and exit')
 parser.add_argument('--help-rst', action='store_true', default=False,
@@ -302,7 +304,10 @@ def format_data(c, msg):
         #meta = collections.OrderedDict({'seq':msg.seq})
         if not s:
             meta['msgid'] = msg.msgid
-            meta['data'] = msg.data.tobytes()
+            if args.text:
+                meta['data'] = LiteralString(msg.data.tobytes().decode('utf-8'))
+            else:
+                meta['data'] = msg.data.tobytes()
         else:
             m = s.unpack(msg)
             meta['name'] = m.SCHEME.name
