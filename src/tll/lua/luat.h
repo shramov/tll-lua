@@ -97,35 +97,35 @@ struct LuaT
 	static int init(lua_State* lua)
 	{
 		luaL_newmetatable(lua, MetaT<T>::name.data());
-		if constexpr (MetaT<T>::newindex != nullptr) {
+		if constexpr (std::is_function_v<decltype(MetaT<T>::newindex)>) {
 			lua_pushcfunction(lua, MetaT<T>::newindex);
 			lua_setfield(lua, -2, "__newindex");
 		}
-		if constexpr (MetaT<T>::index != nullptr) {
+		if constexpr (std::is_function_v<decltype(MetaT<T>::index)>) {
 			lua_pushcfunction(lua, MetaT<T>::index);
 			lua_setfield(lua, -2, "__index");
 		}
-		if constexpr (MetaT<T>::pairs != nullptr) {
+		if constexpr (std::is_function_v<decltype(MetaT<T>::pairs)>) {
 			lua_pushcfunction(lua, MetaT<T>::pairs);
 			lua_setfield(lua, -2, "__pairs");
 		}
-		if constexpr (MetaT<T>::ipairs != nullptr) {
+		if constexpr (std::is_function_v<decltype(MetaT<T>::ipairs)>) {
 			lua_pushcfunction(lua, MetaT<T>::ipairs);
 			lua_setfield(lua, -2, "__ipairs");
 		}
-		if constexpr (MetaT<T>::len != nullptr) {
+		if constexpr (std::is_function_v<decltype(MetaT<T>::len)>) {
 			lua_pushcfunction(lua, MetaT<T>::len);
 			lua_setfield(lua, -2, "__len");
 		}
-		if constexpr (MetaT<T>::gc != nullptr) {
+		if constexpr (std::is_function_v<decltype(MetaT<T>::gc)>) {
 			lua_pushcfunction(lua, MetaT<T>::gc);
 			lua_setfield(lua, -2, "__gc");
 		}
-		if constexpr (MetaT<T>::tostring != nullptr) {
+		if constexpr (std::is_function_v<decltype(MetaT<T>::tostring)>) {
 			lua_pushcfunction(lua, MetaT<T>::tostring);
 			lua_setfield(lua, -2, "__tostring");
 		}
-		if constexpr (MetaT<T>::init != nullptr)
+		if constexpr (std::is_function_v<decltype(MetaT<T>::init)>)
 			MetaT<T>::init(lua);
 		lua_pop(lua, 1);
 		return 0;
