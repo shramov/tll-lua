@@ -127,6 +127,11 @@ class LuaTcpServer : public LuaCommon<tll::channel::TcpServer<LuaTcpServer, ChLu
 	std::shared_ptr<Common> lua_common() { return _common; }
 };
 
+TLL_DEFINE_IMPL(LuaTcpClient);
+TLL_DEFINE_IMPL(LuaTcpServer);
+TLL_DEFINE_IMPL(ChLuaSocket);
+TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
+
 int ChLuaSocket::_init(const tll::Channel::Url &url, tll::Channel *master)
 {
 	auto server = tll::channel_cast<LuaTcpServer>(master);
@@ -210,7 +215,7 @@ int LuaSocket<T>::_post(const tll_msg_t *msg, int flags)
 	auto frame = luaT_tostringview(lua, -1);
 
 	this->_log.debug("Post {} + {} bytes of data", frame.size(), msg->size);
-	int r = this->template _sendv(frame, *msg);
+	int r = this->_sendv(frame, *msg);
 
 	lua_pop(lua, 1); // Pop result
 
@@ -273,8 +278,3 @@ int LuaSocket<T>::_process(long timeout, int flags)
 	this->_log.debug("Got {} bytes of data", *s);
 	return this->_pending();
 }
-
-TLL_DEFINE_IMPL(LuaTcpClient);
-TLL_DEFINE_IMPL(LuaTcpServer);
-TLL_DEFINE_IMPL(ChLuaSocket);
-TLL_DEFINE_IMPL(tll::channel::TcpServerSocket<LuaTcpServer>);
