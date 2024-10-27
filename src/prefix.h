@@ -17,7 +17,6 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 	using Base = tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPrefix>>;
 
 	std::vector<char> _buf;
-	tll_msg_t _msg;
 
 	tll::scheme::ConstSchemePtr _scheme_child;
 
