@@ -71,7 +71,7 @@ struct MetaT<scheme::Scheme> : public MetaBase
 	static constexpr std::string_view name = "tll_scheme_scheme";
 	static int index(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Scheme>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Scheme>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (key == "options") {
@@ -104,7 +104,7 @@ struct MetaT<scheme::Scheme> : public MetaBase
 
 	static int pairs(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Scheme>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Scheme>(lua, 1);
 		lua_pushcfunction(lua, next);
 		luaT_push(lua, scheme::Message { r.ptr->messages });
 		lua_pushnil(lua);
@@ -129,7 +129,7 @@ struct MetaT<scheme::Message> : public MetaBase
 	static constexpr std::string_view name = "tll_scheme_message";
 	static int index(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Message>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Message>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (key == "options") {
@@ -170,7 +170,7 @@ struct MetaT<scheme::Field> : public MetaBase
 	static constexpr std::string_view name = "tll_scheme_field";
 	static int index(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Field>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Field>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (key == "options") {
@@ -202,7 +202,7 @@ struct MetaT<scheme::Enum> : public MetaBase
 	static constexpr std::string_view name = "tll_scheme_enum";
 	static int index(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Enum>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Enum>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (key == "options") {
@@ -231,7 +231,7 @@ struct MetaT<scheme::Bits> : public MetaBase
 	static constexpr std::string_view name = "tll_scheme_bits";
 	static int index(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Bits>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Bits>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (key == "options") {
@@ -278,7 +278,7 @@ struct MetaT<scheme::Options> : public MetaBase
 	static constexpr std::string_view name = "tll_scheme_options";
 	static int index(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Options>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Options>(lua, 1);
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (auto o = tll::scheme::lookup_name(r.ptr, key); o)
@@ -290,7 +290,7 @@ struct MetaT<scheme::Options> : public MetaBase
 
 	static int pairs(lua_State* lua)
 	{
-		auto & r = *luaT_touserdata<scheme::Options>(lua, 1);
+		auto & r = luaT_checkuserdata<scheme::Options>(lua, 1);
 		lua_pushcfunction(lua, next);
 		luaT_push(lua, scheme::Options { r.ptr });
 		lua_pushnil(lua);
