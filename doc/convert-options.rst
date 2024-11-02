@@ -16,7 +16,7 @@ show this help message and exit
 ``--no-overwrite``
 do not overwrite output file
 
-``-c``
+``-C``
 compression type: none or lz4, passed to output channel as compression parameter
 
 ``--io``
@@ -39,6 +39,9 @@ extra channels, can be given several times
 
 ``-O KEY=VALUE`` ``--open KEY=VALUE``
 open parameters, can be specified multiple times
+
+``--poll``
+enable polling, can reduce CPU load if script is used to monitor network channel like pub+tcp
 
 ``--help-rst``
 print help in RST format for manpage

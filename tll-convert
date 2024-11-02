@@ -22,7 +22,7 @@ parser.add_argument('input', metavar='INPUT', type=str, help='source file or cha
 parser.add_argument('output', metavar='OUTPUT', type=str, help='destination file or channel')
 parser.add_argument('--no-overwrite', dest='overwrite', default=True,
                     help='do not overwrite output file', action='store_false')
-parser.add_argument('-c', dest='compression', default=None,
+parser.add_argument('-C', dest='compression', default=None,
                     help='compression type: none or lz4, passed to output channel as compression parameter')
 parser.add_argument('--io', dest='io', default=None,
                     help='IO type: posix or mmap, passed to input and output channels as file.io parameter')
