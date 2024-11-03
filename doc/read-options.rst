@@ -28,6 +28,9 @@ Skip messages that can not be unpacked
 ``--hex``
 Print hex dump for all messages
 
+``--text``
+Print text representation instead of binary
+
 ``--dump-seq``
 dump first and last seq of the channel and exit
 
@@ -76,7 +79,7 @@ Filtering
 ~~~~~~~~~
 
 ``-f`` ``--filter``
-lua filter expression that can use variables ``seq``, ``name``, ``msg``, ``addr`` and ``time``
+lua filter expression that can use variables ``seq``, ``name``, ``data``, ``addr`` and ``time``
 and evaluates to boolean value. If expression is true then message is printed, otherwise it is skipped
 
 ``-F FILE`` ``--filter-file FILE``
