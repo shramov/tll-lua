@@ -129,7 +129,7 @@ std::string_view lua_toany<std::string_view>(lua_State * lua, int index, std::st
 template <>
 nullptr_t lua_toany<nullptr_t>(lua_State * lua, int index, nullptr_t) { if (!lua_isnil(lua, index)) luaL_error(lua, "Non NIL value: %d", lua_type(lua, index)); return nullptr; }
 
-static Settings settings = { .enum_mode = Settings::Enum::Object };
+static Settings settings = { .enum_mode = Settings::Enum::Object, .decimal128_mode = Settings::Decimal128::Object };
 
 #define ASSERT_LUA_VALUE(lua, msg, v, field) do { \
 		tll_msg_t m = {}; \

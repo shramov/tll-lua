@@ -67,6 +67,9 @@ value or Lua object with ``string`` and ``int`` fields.
 ``bits-mode={object|int}``, default ``object`` - represent bits fields as raw integer value or Lua
 object with named bit fields.
 
+``decimal128-mode={float|object}``, default ``float`` - represent decimal128 fields as float value or
+userdata with float/string members.
+
 ``fixed-mode={float|int|object}``, default ``float`` - represent fixed decimal fields as float value or
 integer mantissa.
 
@@ -207,9 +210,14 @@ Field types are handled as following:
 
  - offset string are pushed as Lua string honoring its length
 
- - ``Decimal128`` is represented as reflection with ``float`` key returning it floating point value
-   and ``string`` with its string representation. Also ``tostring(value)`` function is working too but is
-   slower then ``value.string``.
+ - ``Decimal128`` is representation depends on ``decimal128-mode`` parameter:
+
+   * ``float`` - simple floating point value that can be not exact but is more simple to use in
+     scripts, should not be used when data is converted
+
+   * ``object`` - reflection with ``float`` key returning it floating point value and ``string``
+     with its string representation. Also ``tostring(value)`` function is working too but is slower
+     then ``value.string``.
 
  - arrays and offset pointers are represented as ``Array`` reflection that emulates Lua list. It
    provides index access (starting from 1), length function and both ``pairs`` and ``ipairs``

@@ -1222,3 +1222,39 @@ end
     c.post({'f0': 10}, name='Data', seq=100)
     assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
     assert c.unpack(c.result[-1]).as_dict() == {'f0': 10} if value == 'nil' else {'f0': 10, 'f1': value}
+
+@pytest.mark.parametrize('mode,compare', [
+    ('float', 'data.f0 == 123.456'),
+    ('object', 'data.f0.float == 123.456'),
+    ('object', 'tonumber(data.f0.string) == 123.456'),
+    ('', 'data.f0 == 123.456'),
+    ('float', 'tonumber(tostring(data.f0)) == 123.456'),
+    ('object', 'tonumber(tostring(data.f0)) == 123.456'),
+])
+def test_decimal128(context, mode, compare):
+    cfg = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+    cfg['decimal128-mode'] = mode
+
+    cfg['scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: decimal128}
+'''
+    cfg['code'] = f'''
+function tll_on_post(seq, name, data)
+    if {compare} then
+        tll_callback(100, name, {{ f0 = data.f0 }})
+    end
+end
+'''
+    c = Accum(cfg, context=context)
+    c.open()
+    c.post({'f0': '123.456'}, name='Data', seq=100)
+    assert c.state == c.State.Active
+    assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
+    assert c.unpack(c.result[-1]).as_dict() == {'f0': decimal.Decimal('123.456')}

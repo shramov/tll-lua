@@ -28,6 +28,7 @@ struct Settings
 	enum class Fixed { Int, Float, Object } fixed_mode = Fixed::Float;
 	enum class Child { Strict, Relaxed } child_mode = Child::Strict;
 	enum class PMap { Enable, Disable } pmap_mode = PMap::Enable;
+	enum class Decimal128 { Float, Object } decimal128_mode = Decimal128::Float;
 	bool deepcopy = false;
 };
 
@@ -110,6 +111,25 @@ struct Bits
 struct Decimal128
 {
 	tll::util::Decimal128 data;
+
+	static int pushfloat(lua_State *lua, const tll::util::Decimal128 &value)
+	{
+		tll::util::Decimal128::Unpacked u;
+		value.unpack(u);
+		if (u.exponent >= u.exp_inf) {
+			if (u.isinf())
+				lua_pushnumber(lua, std::numeric_limits<double>::infinity());
+			else
+				lua_pushnumber(lua, std::numeric_limits<double>::quiet_NaN());
+		} else {
+			long double v = u.mantissa.value;
+			if (u.sign)
+				v *= -1;
+			v *= powl(10, u.exponent);
+			lua_pushnumber(lua, v);
+		}
+		return 1;
+	}
 };
 
 struct Fixed
@@ -213,7 +233,14 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data, cons
 	case Field::UInt64: return pushnumber(lua, field, data, *data.template dataT<uint64_t>(), settings);
 	case Field::Double: return pushdouble(lua, field, data, *data.template dataT<double>());
 	case Field::Decimal128:
-		luaT_push<reflection::Decimal128>(lua, { *data.template dataT<tll::util::Decimal128>() });
+		switch (settings.decimal128_mode) {
+		case Settings::Decimal128::Float:
+			reflection::Decimal128::pushfloat(lua, *data.template dataT<tll::util::Decimal128>());
+			break;
+		case Settings::Decimal128::Object:
+			luaT_push<reflection::Decimal128>(lua, { *data.template dataT<tll::util::Decimal128>() });
+			break;
+		}
 		break;
 	case Field::Bytes: {
 		auto ptr = data.template dataT<const char>();
@@ -600,20 +627,7 @@ struct MetaT<reflection::Decimal128> : public MetaBase
 		auto key = luaT_checkstringview(lua, 2);
 
 		if (key == "float") {
-			tll::util::Decimal128::Unpacked u;
-			r.data.unpack(u);
-			if (u.exponent >= u.exp_inf) {
-				if (u.isinf())
-					lua_pushnumber(lua, std::numeric_limits<double>::infinity());
-				else
-					lua_pushnumber(lua, std::numeric_limits<double>::quiet_NaN());
-			} else {
-				long double v = u.mantissa.value;
-				if (u.sign)
-					v *= -1;
-				v *= powl(10, u.exponent);
-				lua_pushnumber(lua, v);
-			}
+			return r.pushfloat(lua, r.data);
 		} else if (key == "string")
 			luaT_pushstringview(lua, tll::conv::to_string(r.data));
 		else
@@ -797,6 +811,19 @@ struct tll::conv::parse<tll::lua::Settings::PMap>
                 return tll::conv::select(s, std::map<std::string_view, PMap> {
 			{"enable", PMap::Enable},
 			{"disable", PMap::Disable},
+		});
+        }
+};
+
+template <>
+struct tll::conv::parse<tll::lua::Settings::Decimal128>
+{
+	using Decimal128 = tll::lua::Settings::Decimal128;
+        static result_t<Decimal128> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, Decimal128> {
+			{"float", Decimal128::Float},
+			{"object", Decimal128::Object},
 		});
         }
 };
