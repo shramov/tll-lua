@@ -10,6 +10,7 @@ import argparse
 import logging
 import time
 import pathlib
+import yaml
 
 def parsepair(string):
     r = string.split('=', 1)
@@ -22,6 +23,8 @@ parser.add_argument('input', metavar='INPUT', type=str, help='source file or cha
 parser.add_argument('output', metavar='OUTPUT', type=str, help='destination file or channel')
 parser.add_argument('--no-overwrite', dest='overwrite', default=True,
                     help='do not overwrite output file', action='store_false')
+parser.add_argument('-c', '--config', dest='config',
+                    help='load CONFIG for additional parameters')
 parser.add_argument('-C', dest='compression', default=None,
                     help='compression type: none or lz4, passed to output channel as compression parameter')
 parser.add_argument('--io', dest='io', default=None,
@@ -65,6 +68,19 @@ if args.help_rst:
             print(a.help.replace('"', '``'))
             print()
     raise SystemExit()
+
+if args.config:
+    cfg = yaml.safe_load(open(args.config))
+    for k,v in cfg.items():
+        if not hasattr(args, k):
+            continue
+        a = getattr(args, k)
+        if k in ('modules', 'extra_channels'):
+            setattr(args, k, list(set(a + v),))
+        elif k in ('open',):
+            setattr(args, k, v.items() + a)
+        elif not a:
+            setattr(args, k, v)
 
 tll.logger.init()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(name)s: %(message)s')
