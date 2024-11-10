@@ -465,6 +465,31 @@ New scheme:
       - { name: middle, type: string } # Added in new scheme
       - { name: f1, type: int32 }
 
+Passing parameters
+~~~~~~~~~~~~~~~~~~
+
+There are 3 ways to pass external parameters to lua script:
+
+ * init parameters that can be accessed anywhere via ``tll_self.config['init.PARAM']``, for example
+   ``lua+null://;a=b;c.d=e`` can be retrieved as ``tll_self.config['init.a']`` and
+   ``tll_self.config['init.c.d']``
+ * open parameters are stored in same config as ``open.PARAM``, for example ``channel.open(a='b')``
+   will be accessable as ``tll_self.config['open.a']``
+ * open parameter prefixed with ``lua.`` are passed to ``tll_on_open(cfg)`` function as ``cfg``
+   table with ``lua.`` part stripped, for example ``channel.open(**{'a': 'b', 'lua.c': 'd'})``
+   provides ``cfg`` equals to ``{c = 'd'}``.
+
+For example following code when used with ``lua+null://;a=init`` channel which is opened with ``{a:
+open, lua.a: open-prefixed}`` will print ``open-prefix``, ``init`` and ``open``:
+
+.. code-block:: lua
+
+  function tll_on_open(cfg)
+    print(cfg.a)
+    print(tll_self.config['init.a'])
+    print(tll_self.config['open.a'])
+  end
+
 See also
 --------
 
