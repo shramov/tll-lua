@@ -69,6 +69,9 @@ extra channels, can be given several times
 ``-M`` ``--master``
 master object for reading channel
 
+``--resolve ADDRESS``
+address of resolve server to use in resolve:// channels
+
 ``-O KEY=VALUE`` ``--open KEY=VALUE``
 open parameters, can be specified multiple times
 

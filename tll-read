@@ -53,6 +53,8 @@ channels.add_argument('-E', '--extra-channel', dest='extra_channels', action='ap
                     help='extra channels, can be given several times', metavar='CHANNEL')
 channels.add_argument('-M', '--master', dest='master',
                     help='master object for reading channel')
+channels.add_argument('--resolve', dest='resolve', metavar='ADDRESS',
+                    help='address of resolve server to use in resolve:// channels')
 channels.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
                     help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
 channels.add_argument('--poll', action='store_true', default=False,
@@ -197,7 +199,11 @@ if not args.channel:
     parser.print_usage()
     raise SystemExit(f'No CHANNEL in config and in command line')
 
-ctx = Context()
+defaults = Config()
+if args.resolve:
+    proto = 'tcp://' if '://' not in args.resolve else ''
+    defaults['resolve.request'] = f'{proto}{args.resolve}'
+ctx = Context(defaults)
 for m in args.modules:
     ctx.load(m)
 loop = Loop(ctx, config={'poll': str(args.poll).lower()})
