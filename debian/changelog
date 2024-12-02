@@ -1,3 +1,10 @@
+tll-lua (0.6.1) unstable; urgency=medium
+
+  * lua: Rebuild prefix channel to enable support for config info export
+  * tll-read: Simplify usage of resolve:// channels
+
+ -- Pavel Shramov <shramov@mexmat.net>  Mon, 02 Dec 2024 17:05:38 +0300
+
 tll-lua (0.6.0) unstable; urgency=medium
 
   * lua:
