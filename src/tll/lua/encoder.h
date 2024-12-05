@@ -12,8 +12,12 @@
 #include "reflection.h"
 
 #include <tll/channel.h>
+#include <tll/conv/numeric.h>
 #include <tll/scheme.h>
 #include <tll/scheme/error-stack.h>
+
+#include <cmath>
+#include <fmt/format.h>
 
 namespace tll::lua {
 
@@ -229,7 +233,19 @@ struct Encoder : public tll::scheme::ErrorStack
 				} else
 					return fail(EINVAL, "Non-decimal128 userdata");
 				break;
-			case LUA_TNUMBER:
+			case LUA_TNUMBER: {
+				auto f = lua_tonumber(lua, -1);
+				auto i = lua_tointeger(lua, -1);
+				if (f == i) {
+					tll::util::Decimal128::Unpacked uf = {};
+					uf.sign = (i < 0);
+					uf.mantissa.lo = uf.sign ? -i : i;
+					ptr->pack(uf);
+					break;
+				} else if (auto r = double2d128(ptr, f); r)
+					return fail(EINVAL, "Invalid double value {}: {}", f, strerror(r));
+				break;
+			}
 			case LUA_TSTRING: {
 				auto s = luaT_tostringview(lua, -1);
 				if (auto r = tll::conv::to_any<tll::util::Decimal128>(s); r) {
@@ -513,6 +529,41 @@ struct Encoder : public tll::scheme::ErrorStack
 		} else
 			return fail(EINVAL, "Invalid type for fixed number: {}", type);
 		return 0;
+	}
+
+	int double2d128(tll::util::Decimal128 * ptr, double from)
+	{
+		tll::util::Decimal128::Unpacked uf = {};
+		switch (std::fpclassify(from)) {
+		case FP_NAN:
+			uf.exponent = uf.exp_nan;
+			break;
+		case FP_INFINITE:
+			uf.sign = from < 0;
+			uf.exponent = uf.exp_inf;
+			break;
+		case FP_ZERO:
+			break;
+		case FP_SUBNORMAL:
+		case FP_NORMAL: {
+#if FMT_VERSION < 70000
+			auto s = fmt::format("{}", from);
+			auto u = tll::conv::to_any<tll::conv::unpacked_float<uint64_t>>(s);
+			if (!u)
+				return EINVAL;
+			return ptr->pack(u->sign, u->mantissa, u->exponent);
+#else
+			auto dec = fmt::detail::dragonbox::to_decimal(from);
+			uf.sign = dec.significand < 0;
+			uf.mantissa.lo = uf.sign ? -dec.significand : dec.significand;
+			uf.exponent = dec.exponent;
+#endif
+			break;
+		}
+		default:
+			return EINVAL;
+		}
+		return ptr->pack(uf);
 	}
 };
 
