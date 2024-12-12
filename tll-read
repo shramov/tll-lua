@@ -200,6 +200,7 @@ if not args.channel:
     raise SystemExit(f'No CHANNEL in config and in command line')
 
 defaults = Config()
+defaults['lua.preset'] = 'filter'
 if args.resolve:
     proto = 'tcp://' if '://' not in args.resolve else ''
     defaults['resolve.request'] = f'{proto}{args.resolve}'

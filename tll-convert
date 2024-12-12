@@ -86,7 +86,10 @@ tll.logger.init()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(name)s: %(message)s')
 tll.logger.configure({'levels.*': args.loglevel})
 
-ctx = Context()
+defaults = Config()
+defaults['lua.preset'] = 'convert'
+ctx = Context(defaults)
+
 for m in args.modules:
     ctx.load(m)
 if not ctx.has_impl('forward'):
