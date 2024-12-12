@@ -46,12 +46,34 @@ class LuaBase : public B
 		_code = reader.template getT<std::string>("code");
 		_extra_path = reader.template getT<std::string>("path", "");
 		auto scheme_control = reader.get("scheme-control");
-		_settings.enum_mode = reader.getT("enum-mode", Settings::Enum::String);
-		_settings.bits_mode = reader.getT("bits-mode", Settings::Bits::Object);
-		_settings.fixed_mode = reader.getT("fixed-mode", Settings::Fixed::Float);
+		enum Preset { Filter, Convert, ConvertFast };
+		auto preset = reader.getT("preset", Convert, {{"filter", Filter}, {"convert", Convert}, {"convert-fast", ConvertFast}});
 		_settings.child_mode = reader.getT("child-mode", Settings::Child::Strict);
 		_settings.pmap_mode = reader.getT("pmap-mode", Settings::PMap::Enable);
-		_settings.decimal128_mode = reader.getT("decimal128-mode", Settings::Decimal128::Float);
+		switch (preset) {
+		case Filter:
+			_settings.enum_mode = Settings::Enum::String;
+			_settings.bits_mode = Settings::Bits::Object;
+			_settings.fixed_mode = Settings::Fixed::Float;
+			_settings.decimal128_mode = Settings::Decimal128::Float;
+			break;
+		case Convert:
+			_settings.enum_mode = Settings::Enum::String;
+			_settings.bits_mode = Settings::Bits::Object;
+			_settings.fixed_mode = Settings::Fixed::Object;
+			_settings.decimal128_mode = Settings::Decimal128::Object;
+			break;
+		case ConvertFast:
+			_settings.enum_mode = Settings::Enum::Int;
+			_settings.bits_mode = Settings::Bits::Int;
+			_settings.fixed_mode = Settings::Fixed::Int;
+			_settings.decimal128_mode = Settings::Decimal128::Object;
+			break;
+		}
+		_settings.enum_mode = reader.getT("enum-mode", _settings.enum_mode);
+		_settings.bits_mode = reader.getT("bits-mode", _settings.bits_mode);
+		_settings.fixed_mode = reader.getT("fixed-mode", _settings.fixed_mode);
+		_settings.decimal128_mode = reader.getT("decimal128-mode", _settings.decimal128_mode);
 
 		_encoder.fixed_mode = _settings.fixed_mode;
 		_encoder.overflow_mode = reader.getT("overflow-mode", Encoder::Overflow::Error);

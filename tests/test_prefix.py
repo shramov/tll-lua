@@ -686,6 +686,10 @@ end
     ('', '123.456', '123.456'),
     ('', None, '"xxx"'),
     ('', None, '{ a = 1 }'),
+    (';preset=filter', '123.456', '123.456'),
+    (';preset=convert', '123456', '123456'),
+    (';preset=convert-fast', '123.456', '123456'),
+    ('float;preset=convert-fast', '123.456', '123.456'),
 ])
 def test_fixed(context, mode, outer, inner):
     url = Config.load('''yamls://
@@ -693,6 +697,10 @@ tll.proto: lua+null
 name: lua
 lua.dump: yes
 ''')
+    if ';' in mode:
+        mode, extra = mode.split(';')
+        k, v = extra.split('=')
+        url[k] = v
     url['fixed-mode'] = mode
 
     url['scheme'] = '''yamls://
@@ -1228,9 +1236,13 @@ end
     ('float', 'data.f0 == 123.456'),
     ('object', 'data.f0.float == 123.456'),
     ('object', 'tonumber(data.f0.string) == 123.456'),
-    ('', 'data.f0 == 123.456'),
+    ('', 'data.f0.float == 123.456'),
     ('float', 'tonumber(tostring(data.f0)) == 123.456'),
     ('object', 'tonumber(tostring(data.f0)) == 123.456'),
+    (';preset=filter', 'data.f0 == 123.456'),
+    ('float;preset=convert', 'data.f0 == 123.456'),
+    (';preset=convert', 'data.f0.float == 123.456'),
+    (';preset=convert-fast', 'data.f0.float == 123.456'),
 ])
 def test_decimal128(context, mode, compare):
     cfg = Config.load('''yamls://
@@ -1238,6 +1250,10 @@ tll.proto: lua+null
 name: lua
 lua.dump: yes
 ''')
+    if ';' in mode:
+        mode, extra = mode.split(';')
+        k, v = extra.split('=')
+        cfg[k] = v
     cfg['decimal128-mode'] = mode
 
     cfg['scheme'] = '''yamls://

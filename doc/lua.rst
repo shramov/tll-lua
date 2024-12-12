@@ -61,6 +61,25 @@ passed to message callbacks (``tll_on_post`` or ``tll_callback``):
 
 Encode and reflection parameters, described in ``Reflection`` and ``Encode`` sections in details.
 
+``preset={filter|convert|convert-fast}``, default ``convert`` - choose field representation modes
+according to task: filtering, where exact representation of decimal numbers is not important, or
+conversion, where Decimal128 or Fixed fields can not be passed using binary floating point numbers.
+This parameter changes default values for ``enum-mode``, ``bits-mode``, ``fixed-mode`` and
+``decimal128-mode``:
+
+  - ``filter``: easy comparison but may be rounding errors,
+    ``fixed-mode=float``, ``decimal128-mode=float``, ``bits-mode=object``, ``enum-mode=string``;
+
+  - ``convert``: comparison of Decimal128 and Fixed fields is done via attributes, but conversion is
+    done without rounding errors between different field types (for example ``fixed3`` is converted
+    to ``fixed6`` correctly),
+    ``fixed-mode=object``, ``decimal128-mode=object``, ``bits-mode=object``, ``enum-mode=string``;
+
+  - ``convert-fast``: fast conversion, can only be used to modify messages when scheme is not
+    changed, otherwise it can lead to incorrect results (for example ``fixed3`` to ``fixed6``
+    conversion will be incorrect),
+    ``fixed-mode=int``, ``decimal128-mode=object``, ``bits-mode=int``, ``enum-mode=int``;
+
 ``enum-mode={string|int|object}``, default ``string`` - represent enum fields as string, raw integer
 value or Lua object with ``string`` and ``int`` fields.
 

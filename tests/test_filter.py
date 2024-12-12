@@ -248,7 +248,7 @@ end
     ('', 'data.f0 == 123.456'),
 ])
 @asyncloop_run
-async def test_enum(asyncloop, mode, compare):
+async def test_fixed(asyncloop, mode, compare):
     url = Config.load('''yamls://
 tll.proto: lua+yaml
 name: lua
@@ -258,6 +258,7 @@ autoclose: yes
 config.0: {seq: 0, name: msg, data: {}}
 config.1: {seq: 1, name: msg, data.f0: 123.456}
 ''')
+    url['lua.preset'] = 'filter'
     url['lua.fixed-mode'] = mode
     url['scheme'] = '''yamls://
 - name: msg
