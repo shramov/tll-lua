@@ -486,7 +486,7 @@ struct Encoder : public tll::scheme::ErrorStack
 				if (!result)
 					return fail(EINVAL, "Failed to convert value '{}' to integer", luaT_tostringview(lua, -1));
 				*view.template dataT<T>() = v;
-			} else if (fixed_mode == Settings::Fixed::Float) {
+			} else if (fixed_mode == Settings::Fixed::Float || fixed_mode == Settings::Fixed::Object) {
 				auto v = lua_tonumber(lua, -1);
 				*view.template dataT<T>() = v * intpow(10, field->fixed_precision);
 			}
