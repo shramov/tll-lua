@@ -41,7 +41,7 @@ directories or modules separated with ``;``
 ``lua.preload.**=<string>`` - additional code that is executed before loading main ``code``. Given
 in the same format as ``code``: either inline or with ``file://`` prefix.
 
-``fragile=<bool>``, default ``no`` - break on errors or tolerate them. Failed message is logged in
+``fragile=<bool>``, default ``yes`` - break on errors or tolerate them. Failed message is logged in
 both cases.
 
 ``scheme=SCHEME``, default is none - data scheme that is used to encode and decode messages coming

@@ -18,7 +18,7 @@ int LuaPrefix::_init(const tll::Channel::Url &url, tll::Channel * master)
 
 	auto reader = channel_props_reader(url);
 
-	_fragile = reader.getT("fragile", false);
+	_fragile = reader.getT("fragile", true);
 
 	if (!reader)
 		return _log.fail(EINVAL, "Invalid url: {}", reader.error());
