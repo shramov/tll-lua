@@ -10,6 +10,7 @@ fmt = dependency('fmt')
 lua = dependency('lua5.3')
 tll = dependency('tll')
 rst2man = find_program('rst2man', disabler: true, required: false)
+bats = find_program('bats', disabler: true, required: false)
 dl = meson.get_compiler('cpp').find_library('dl')
 
 shared_library('tll-lua'
@@ -45,6 +46,8 @@ test('pytest', import('python').find_installation('python3')
 	, env: 'BUILD_DIR=@0@'.format(meson.current_build_dir())
 	, workdir: meson.current_source_dir()
 )
+
+test('test-reflection', bats, args: ['tests/test_read.sh'], workdir: meson.current_source_dir())
 
 foreach f : ['read', 'convert']
   custom_target('tll-' + f
