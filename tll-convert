@@ -3,7 +3,7 @@
 
 import tll.logger
 from tll.channel import Context
-from tll.config import Url
+from tll.config import Url, Config
 from tll.processor import Loop
 
 import argparse
