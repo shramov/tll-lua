@@ -1,3 +1,10 @@
+tll-lua (0.7.1) unstable; urgency=medium
+
+  * lua: Fix invalid format (%zd) in error message
+  * tll-convert: Fix missing Config import and add tests
+
+ -- Pavel Shramov <psha@ngoni.psha.org.ru>  Mon, 16 Dec 2024 22:44:59 +0300
+
 tll-lua (0.7.0) unstable; urgency=medium
 
   * encoder: Convert Lua numbers to decimal128 directly
