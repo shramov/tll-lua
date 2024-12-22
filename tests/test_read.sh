@@ -89,3 +89,23 @@ $(testbody 5)" ]
     [ "$result" == "First seq: 0
 Last seq: 9" ]
 }
+
+@test "convert open" {
+    FN=$BATS_TEST_TMPDIR/copy.dat
+    ./tll-convert -Oseq=5 tests/read.dat "$FN"
+    result=$(./tll-read --dump-seq "$FN")
+    echo "[$result]"
+    [ "$result" == "First seq: 5
+Last seq: 9" ]
+}
+
+@test "convert new scheme" {
+    FN=$BATS_TEST_TMPDIR/copy.dat
+    ./tll-convert --scheme "yamls://[{name: New, id: 10, fields: [{name: f1, type: int32}]}]" tests/read.dat "$FN"
+    result=$(./tll-read -s 5:+1  "$FN")
+    echo "[$result]"
+    [ "$result" == "- seq: 5
+  name: New
+  data:
+    f1: 5" ]
+}
