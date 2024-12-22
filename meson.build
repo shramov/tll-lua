@@ -47,7 +47,7 @@ test('pytest', import('python').find_installation('python3')
 	, workdir: meson.current_source_dir()
 )
 
-test('test-reflection', bats, args: ['tests/test_read.sh'], workdir: meson.current_source_dir())
+test('test-cli', bats, args: ['tests/test_read.sh'], workdir: meson.current_source_dir())
 
 foreach f : ['read', 'convert']
   custom_target('tll-' + f
