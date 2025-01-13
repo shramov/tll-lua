@@ -29,5 +29,6 @@ Description: Lua channels for TLL
 Package: tll-read
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}, libtll-lua (= ${binary:Version}), python3-tll, python3-yaml
+Recommends: libtll-bin
 Pre-Depends: ${misc:Pre-Depends}
 Description: Script for reading messages from TLL channels
