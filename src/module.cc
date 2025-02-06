@@ -4,11 +4,13 @@
 
 #include <tll/channel/module.h>
 
+#include "forward.h"
 #include "logic.h"
 #include "measure.h"
 #include "prefix.h"
 #include "tcp.h"
 
+TLL_DEFINE_IMPL(Forward);
 TLL_DEFINE_IMPL(LuaTcp);
 TLL_DEFINE_IMPL(LuaPrefix);
 TLL_DEFINE_IMPL(tll::lua::LuaMeasure);
@@ -29,6 +31,7 @@ static int luainit(struct tll_channel_module_t * m, tll_channel_context_t * ctx,
 }
 
 static tll_channel_impl_t *channels[] = {
+	&Forward::impl,
 	&LuaTcp::impl,
 	&LuaPrefix::impl,
 	&tll::lua::LuaMeasure::impl,

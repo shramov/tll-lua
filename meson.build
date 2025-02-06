@@ -14,7 +14,7 @@ bats = find_program('bats', disabler: true, required: false)
 dl = meson.get_compiler('cpp').find_library('dl')
 
 shared_library('tll-lua'
-	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc', 'src/logic.cc']
+	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc', 'src/logic.cc', 'src/forward.cc']
 	, include_directories : include
 	, dependencies : [fmt, lua, tll, dl]
 	, install : true

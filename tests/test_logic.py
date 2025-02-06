@@ -6,6 +6,7 @@ import os
 import pytest
 
 from tll.config import Config, Url
+from tll.error import TLLError
 from tll.channel.mock import Mock
 
 @decorator.decorator
@@ -93,3 +94,59 @@ end
     assert (m.seq, m.data.tobytes()) == (3, b'close:extra')
 
     assert mock.channel.state == mock.channel.State.Closed
+
+def test_forward_checks(context):
+    channels = [context.Channel(f'null://;name=c{idx}') for idx in range(4)]
+    with pytest.raises(TLLError): context.Channel('lua-forward://;name=forward;tll.channel.input=c0;tll.channel.output=c1,c2')
+    with pytest.raises(TLLError): context.Channel('lua-forward://;name=forward;tll.channel.input=c0;tll.channel.output=c1,c2')
+    with pytest.raises(TLLError): context.Channel('lua-forward://;name=forward;tll.channel.input=c0,c1;tll.channel.output=c2')
+    with pytest.raises(TLLError): context.Channel('lua-forward://;name=forward;tll.channel.input=c0,c1;tll.channel.output=c2,c3')
+    context.Channel('lua-forward://;name=forward;tll.channel.input=c0;tll.channel.output=c1;code=""')
+
+@asyncloop_run
+async def test_forward(asyncloop):
+    cfg = Config.load('''yamls://
+mock:
+  input.url: direct://
+  output.url: direct://
+channel:
+  tll.proto: lua-forward
+  tll.channel:
+    input: input
+    output: output
+  lua.child-mode: relaxed
+  name: forward
+''')
+    cfg['channel.code'] = '''
+function tll_on_open(cfg)
+    names = {}
+    tll_self_output:post(10, "Data", {header = "open"})
+end
+
+function tll_on_data(seq, name, data)
+    tll_output_post(seq, name, data)
+end
+'''
+    cfg['mock.input.scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: int32}
+'''
+
+    cfg['mock.output.scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: header, type: byte16, options.type: string}
+    - {name: f0, type: int32}
+'''
+
+    mock = Mock(asyncloop, cfg)
+    mock.open()
+
+    out = mock.io('output')
+    assert out.unpack(await out.recv()).as_dict() == {'header': 'open', 'f0': 0}
+
+    mock.io('input').post({'f0': 10}, name='Data')
+    assert out.unpack(await out.recv()).as_dict() == {'header': '', 'f0': 10}
