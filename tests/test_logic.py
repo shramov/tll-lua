@@ -139,7 +139,7 @@ end
   id: 10
   fields:
     - {name: header, type: byte16, options.type: string}
-    - {name: f0, type: int32}
+    - {name: f0, type: uint8}
 '''
 
     mock = Mock(asyncloop, cfg)
@@ -150,3 +150,6 @@ end
 
     mock.io('input').post({'f0': 10}, name='Data')
     assert out.unpack(await out.recv()).as_dict() == {'header': '', 'f0': 10}
+
+    mock.io('input').post({'f0': -1}, name='Data')
+    assert mock.channel.state == mock.channel.State.Error

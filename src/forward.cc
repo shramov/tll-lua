@@ -78,11 +78,12 @@ int Forward::callback_tag(TaggedChannel<Input> * c, const tll_msg_t *msg)
 	lua_getglobal(ref, _on_data_name.c_str());
 	auto args = _lua_pushmsg(msg, _input_scheme, c, true);
 	if (args < 0)
-		return EINVAL;
+		return state_fail(EINVAL, "Failed to push message to Lua");
 
 	if (lua_pcall(ref, args, 1, 0)) {
 		auto text = fmt::format("Lua function {} failed: {}\n  on", _on_data_name, lua_tostring(ref, -1));
 		tll_channel_log_msg(_input, _log.name(), tll::logger::Error, _dump_error, msg, text.data(), text.size());
+		state(tll::state::Error);
 		return EINVAL;
 	}
 
