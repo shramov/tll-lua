@@ -41,6 +41,8 @@ parser.add_argument('-E', '--extra-channel', dest='extra_channels', action='appe
                     help='extra channels, can be given several times', metavar='CHANNEL')
 parser.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
                     help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
+parser.add_argument('--defaults', metavar='KEY=VALUE',
+                    help='default parameters, can be specified multiple times', action='append', default=[], type=parsepair)
 parser.add_argument('--poll', action='store_true', default=False,
                     help='enable polling, can reduce CPU load if script is used to monitor network channel like pub+tcp')
 
@@ -88,6 +90,8 @@ tll.logger.configure({'levels.*': args.loglevel})
 
 defaults = Config()
 defaults['lua.preset'] = 'convert'
+for k,v in args.defaults:
+    defaults[k] = v
 ctx = Context(defaults)
 
 for m in args.modules:

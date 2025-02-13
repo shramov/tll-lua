@@ -43,6 +43,9 @@ extra channels, can be given several times
 ``-O KEY=VALUE`` ``--open KEY=VALUE``
 open parameters, can be specified multiple times
 
+``--defaults KEY=VALUE``
+default parameters, can be specified multiple times
+
 ``--poll``
 enable polling, can reduce CPU load if script is used to monitor network channel like pub+tcp
 
