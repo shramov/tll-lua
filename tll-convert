@@ -96,23 +96,25 @@ ctx = Context(defaults)
 
 for m in args.modules:
     ctx.load(m)
-if not ctx.has_impl('forward'):
+
+fi = Url.parse('forward://;tll.channel.input=input;tll.channel.output=output;name=forward')
+if args.lua_file:
+    if not ctx.has_impl('lua+'):
+        ctx.load('tll-lua')
+    fi.proto = 'lua-forward'
+    fi['lua.code'] = f'file://{args.lua_file}'
+elif not ctx.has_impl('forward'):
     ctx.load('tll-logic-forward')
-if args.lua_file and not ctx.has_impl('lua+'):
-    ctx.load('tll-lua')
 
 ui, uo = args.input, args.output
 if '://' not in ui:
     ui = 'file://' + ui
 if '://' not in uo:
     uo = 'file://' + uo
+
 ui = Url.parse(ui)
 ui['name'] = 'input'
 ui['autoclose'] = 'yes'
-if args.lua_file:
-    ui.proto = f'lua+{ui.proto}'
-    ui['lua.code'] = f'file://{args.lua_file}'
-    ui['lua.fragile'] = 'yes'
 
 uo = Url.parse(uo)
 uo['name'] = 'output'
@@ -140,7 +142,7 @@ for url in args.extra_channels:
 
 ci = ctx.Channel(ui)
 co = ctx.Channel(uo)
-fwd = ctx.Channel('forward://;tll.channel.input=input;tll.channel.output=output', name='forward')
+fwd = ctx.Channel(fi)
 
 ci.callback_add(stop, ci.MsgMask.State)
 

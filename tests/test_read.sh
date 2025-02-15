@@ -3,6 +3,9 @@
 
 setup()
 {
+    if [ -n "$BUILD_DIR" ]; then
+        export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$BUILD_DIR"
+    fi
     if [ -z "$BATS_TEST_TMPDIR" ]; then
         export BATS_TEST_TMPDIR=`mktemp -d`
         export TEMPDIR_CLEANUP=yes
@@ -99,13 +102,34 @@ Last seq: 9" ]
 Last seq: 9" ]
 }
 
-@test "convert new scheme" {
+@test "convert scheme rename" {
     FN=$BATS_TEST_TMPDIR/copy.dat
     ./tll-convert --scheme "yamls://[{name: New, id: 10, fields: [{name: f1, type: int32}]}]" tests/read.dat "$FN"
-    result=$(./tll-read -s 5:+1  "$FN")
+    result=$(./tll-read -s 5:+1 "$FN")
     echo "[$result]"
     [ "$result" == "- seq: 5
   name: New
   data:
     f1: 5" ]
+}
+
+@test "convert new scheme" {
+    FN=$BATS_TEST_TMPDIR/copy.dat
+    cat > $BATS_TEST_TMPDIR/convert.lua << EOF
+function tll_on_data(seq, name, data)
+    tll_output_post(seq, name, data)
+end
+EOF
+    ./tll-convert \
+        --lua-file $BATS_TEST_TMPDIR/convert.lua \
+        --defaults lua.child-mode=relaxed \
+        --scheme "yamls://[{name: Data, id: 10, fields: [{name: header, type: int32}, {name: f0, type: int32}]}]" \
+        tests/read.dat "$FN"
+    result=$(./tll-read -s 5:+1 "$FN")
+    echo "[$result]"
+    [ "$result" == "- seq: 5
+  name: Data
+  data:
+    header: 0
+    f0: 5" ]
 }
