@@ -45,7 +45,20 @@ Script file::
             data.header = tll_msg_copy(data.header)
             data.header = "NewUSer"
         end
-        tll_callback(seq, name, data)
+        tll_output_post(seq, name, data)
+    end
+
+Translate messages to new scheme with new fields (without ``lua.child-mode=relaxed`` parameter
+script have to copy message into Lua table using ``tll_msg_copy`` or ``tll_msg_deepcopy`` function):
+
+::
+
+    tll-convert -L convert.lua --scheme new.yaml --defaults lua.child-mode=relaxed input.dat output.dat
+
+Script file::
+
+    function tll_on_data(seq, name, data)
+        tll_output_post(seq, name, data)
     end
 
 See also
