@@ -1316,3 +1316,31 @@ end
     m = await c.recv(0.001)
     assert m.data[:12].tobytes() == b'\x08\x00\x00\x00\x02\x00\x00\xff\x0a\x01\x00\x00'
     assert c.unpack(m).as_dict() == {'list': [{'body': '0000'}, {'body': '1111'}]}
+
+def test_inner_open(context):
+    cfg = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+''')
+    cfg['code'] = '''
+function tll_on_open(params)
+    if params["pass"] ~= "yes" then
+        p = {}
+        for k,v in pairs(params) do
+            p[k] = v
+        end
+        p["extra"] = "lua"
+    else
+        p = params
+    end
+    tll_self_child:open(p)
+end
+'''
+    c = context.Channel(cfg)
+    c.open({'lua.a': 'b', 'lua.c': 'd'}) # Table parameter
+    assert c.config.sub('open').as_dict() == {'lua': {'a': 'b', 'c': 'd'}}
+    assert c.children[0].config.sub('open').as_dict() == {'a': 'b', 'c': 'd', 'extra': 'lua'}
+    c.close()
+    c.open({'lua.pass':'yes', 'lua.c':'d'}) # Config userdata parameter
+    assert c.config.sub('open').as_dict() == {'lua': {'pass': 'yes', 'c': 'd'}}
+    assert c.children[0].config.sub('open').as_dict() == {'pass': 'yes', 'c': 'd'}

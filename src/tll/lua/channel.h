@@ -46,6 +46,8 @@ struct MetaT<Channel> : public MetaBase
 			luaT_push<Config>(lua, { tll_config_ref(self.ptr->config()) });
 		} else if (key == "close") {
 			lua_pushcfunction(lua, close);
+		} else if (key == "open") {
+			lua_pushcfunction(lua, open);
 		} else
 			return luaL_error(lua, "Invalid Channel attribute '%s'", key.data());
 		return 1;
@@ -91,6 +93,30 @@ struct MetaT<Channel> : public MetaBase
 			force = lua_toboolean(lua, 2);
 		}
 		lua_pushinteger(lua, self.ptr->close(force));
+		return 1;
+	}
+
+	static int open(lua_State* lua)
+	{
+		auto & self = luaT_checkuserdata<Channel>(lua, 1);
+		tll::Config cfg;
+		if (lua_gettop(lua) >= 2) {
+			if (auto type = lua_type(lua, 2); type != LUA_TTABLE && type != LUA_TUSERDATA)
+				return luaL_error(lua, "Invalid open parameter, expected table or userdata, got %d", type);
+			if (auto lcfg = luaT_touserdata<tll::lua::Config>(lua, 2); lcfg) {
+				cfg = tll::Config(const_cast<tll_config_t *>(lcfg->ptr)); // Config is not modified, const cast is ok
+			} else {
+				lua_pushnil(lua);
+				while (lua_next(lua, 2)) {
+					lua_pushvalue(lua, -2);
+					auto key = luaT_tostringview(lua, -1);
+					auto value = luaT_tostringview(lua, -2);
+					cfg.set(key, value);
+					lua_pop(lua, 2);
+				}
+			}
+		}
+		lua_pushinteger(lua, self.ptr->open(cfg));
 		return 1;
 	}
 };
