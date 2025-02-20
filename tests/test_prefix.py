@@ -1325,10 +1325,7 @@ name: lua
     cfg['code'] = '''
 function tll_on_open(params)
     if params["pass"] ~= "yes" then
-        p = {}
-        for k,v in pairs(params) do
-            p[k] = v
-        end
+        p = params:as_dict()
         p["extra"] = "lua"
     else
         p = params

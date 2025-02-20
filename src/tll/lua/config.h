@@ -15,6 +15,26 @@ namespace tll::lua {
 struct Config
 {
 	const tll_config_t * ptr = nullptr;
+
+	static int browse_push(const char *key, int klen, const tll_config_t *value, void * data)
+	{
+		auto lua = (lua_State *) data;
+		int len = 0;
+		if (auto v = tll_config_get_copy(value, nullptr, 0, &len); v) {
+			luaT_pushstringview(lua, std::string_view(key, klen));
+			luaT_pushstringview(lua, std::string_view(v, len));
+			tll_config_value_free(v);
+			lua_settable(lua, -3);
+		}
+		return 0;
+	}
+
+	int push_table(lua_State *lua)
+	{
+		lua_newtable(lua);
+		tll_config_browse(ptr, "**", -1, browse_push, lua);
+		return 1;
+	}
 };
 
 template <>
@@ -29,6 +49,8 @@ struct MetaT<Config> : public MetaBase
 
 		if (key == "get")
 			lua_pushcfunction(lua, get);
+		else if (key == "as_dict")
+			lua_pushcfunction(lua, as_dict);
 		else if (auto v = tll_config_get_copy(self.ptr, key.data(), key.size(), &len); v) {
 			luaT_pushstringview(lua, { v, (size_t) len });
 			tll_config_value_free(v);
@@ -57,16 +79,10 @@ struct MetaT<Config> : public MetaBase
 		return 0;
 	}
 
-	static int browse_push(const char *key, int klen, const tll_config_t *value, void * data)
+	static int as_dict(lua_State* lua)
 	{
-		auto lua = (lua_State *) data;
-		int len = 0;
-		if (auto v = tll_config_get_copy(value, nullptr, 0, &len); v) {
-			luaT_pushstringview(lua, std::string_view(key, klen));
-			luaT_pushstringview(lua, std::string_view(v, len));
-			lua_settable(lua, -3);
-		}
-		return 0;
+		auto & self = luaT_checkuserdata<Config>(lua, 1);
+		return self.push_table(lua);
 	}
 
 	static int pairs(lua_State* lua)
@@ -74,8 +90,7 @@ struct MetaT<Config> : public MetaBase
 		auto & self = luaT_checkuserdata<Config>(lua, 1);
 
 		lua_getglobal(lua, "next");
-		lua_newtable(lua);
-		tll_config_browse(self.ptr, "**", -1, browse_push, lua);
+		self.push_table(lua);
 		lua_pushnil(lua);
 		return 3;
 	}
