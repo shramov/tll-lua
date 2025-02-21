@@ -72,3 +72,13 @@ foreach f : ['doc/lua.rst']
 		, install: true
 	)
 endforeach
+
+foreach f : ['forward.rst']
+  custom_target('channel-logic-@0@'.format(f)
+          , input: 'doc' / f
+          , output : 'tll-logic-@BASENAME@.7'
+          , command : [rst2man, '@INPUT@', '@OUTPUT@']
+          , install_dir: get_option('mandir') / 'man7'
+          , install: true
+  )
+endforeach
