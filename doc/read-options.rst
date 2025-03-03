@@ -34,6 +34,9 @@ Print text representation instead of binary
 ``--dump-seq``
 dump first and last seq of the channel and exit
 
+``--dump-info``
+dump info subtree from channel config
+
 ``--help-rst``
 print help in RST format for manpage
 
