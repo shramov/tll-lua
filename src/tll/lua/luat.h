@@ -86,6 +86,9 @@ struct MetaBase
 	static constexpr void * gc = nullptr;
 	static constexpr void * tostring = nullptr;
 	static constexpr void * init = nullptr;
+	static constexpr void * eq = nullptr;
+	static constexpr void * le = nullptr;
+	static constexpr void * lt = nullptr;
 };
 
 template <typename T>
@@ -124,6 +127,18 @@ struct LuaT
 		if constexpr (std::is_function_v<decltype(MetaT<T>::tostring)>) {
 			lua_pushcfunction(lua, MetaT<T>::tostring);
 			lua_setfield(lua, -2, "__tostring");
+		}
+		if constexpr (std::is_function_v<decltype(MetaT<T>::eq)>) {
+			lua_pushcfunction(lua, MetaT<T>::eq);
+			lua_setfield(lua, -2, "__eq");
+		}
+		if constexpr (std::is_function_v<decltype(MetaT<T>::lt)>) {
+			lua_pushcfunction(lua, MetaT<T>::lt);
+			lua_setfield(lua, -2, "__lt");
+		}
+		if constexpr (std::is_function_v<decltype(MetaT<T>::le)>) {
+			lua_pushcfunction(lua, MetaT<T>::le);
+			lua_setfield(lua, -2, "__le");
 		}
 		if constexpr (std::is_function_v<decltype(MetaT<T>::init)>)
 			MetaT<T>::init(lua);
