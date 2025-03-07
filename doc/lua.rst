@@ -68,17 +68,20 @@ This parameter changes default values for ``enum-mode``, ``bits-mode``, ``fixed-
 ``decimal128-mode``:
 
   - ``filter``: easy comparison but may be rounding errors,
-    ``fixed-mode=float``, ``decimal128-mode=float``, ``bits-mode=object``, ``enum-mode=string``;
+    ``fixed-mode=float``, ``decimal128-mode=float``, ``bits-mode=object``, ``enum-mode=string``,
+    ``time-mode=object``;
 
   - ``convert``: comparison of Decimal128 and Fixed fields is done via attributes, but conversion is
     done without rounding errors between different field types (for example ``fixed3`` is converted
     to ``fixed6`` correctly),
-    ``fixed-mode=object``, ``decimal128-mode=object``, ``bits-mode=object``, ``enum-mode=string``;
+    ``fixed-mode=object``, ``decimal128-mode=object``, ``bits-mode=object``, ``enum-mode=string``,
+    ``time-mode=object``;
 
   - ``convert-fast``: fast conversion, can only be used to modify messages when scheme is not
     changed, otherwise it can lead to incorrect results (for example ``fixed3`` to ``fixed6``
     conversion will be incorrect),
-    ``fixed-mode=int``, ``decimal128-mode=object``, ``bits-mode=int``, ``enum-mode=int``;
+    ``fixed-mode=int``, ``decimal128-mode=object``, ``bits-mode=int``, ``enum-mode=int``,
+    ``time-mode=int``;
 
 ``enum-mode={string|int|object}``, default ``string`` - represent enum fields as string, raw integer
 value or Lua object with ``string`` and ``int`` fields.
@@ -91,6 +94,15 @@ userdata with float/string members.
 
 ``fixed-mode={float|int|object}``, default ``float`` - represent fixed decimal fields as float value or
 integer mantissa.
+
+``time-mode={int|float|object|string}``, default ``object`` - representation of time point fields:
+
+ * ``int``: raw numeric value without any conversion, integer or double depending on field type.
+   Fast but does not support conversion between different time resolutions.
+ * ``float``: floating point timestamp in seconds, conversion loses precision on integer values.
+ * ``object``: time object with stored resolution and comparison methods, see description below.
+ * ``string``: string representation in format ``%Y-%m-%dT%H:%M:%S`` with optional subsecond part up
+   to 9 digits.
 
 ``overflow-mode={error|trim}``, default ``error`` - overflow policy, fail or trim values when
 encoding.
@@ -200,6 +212,22 @@ arrays (both fixed and offset), messages and unions. This operation is more expe
 ``tll_msg_pmap_check(msg, field)`` - check if field exists in the message: returns false if field is
 optional and is not present, otherwise returns true.
 
+``tll_time_point(year, month, day, hour, minute, second, nanoseconds)`` - create time point
+object. Any number of parameters can be supplied, missing ones are replaces with zeroes. Function
+uses ``gmtime_r`` under the hood so it's not that fast and should not be used inside loops or
+per-message checks. It's recommended to convert time on script start and compare message fields with
+value stored in global variable:
+
+.. code-block:: lua
+
+  ts = tll_time_point(2000, 01, 02)
+
+  function tll_on_data(seq, name, data)
+    if name == "Message" and data.header.ts > ts then
+      tll_callback(seq, name, data)
+    end
+  end
+
 ``tll_self_scheme`` - data scheme of the channel, not set if there is no scheme. Deprecated, should
 be replaced with ``tll_self.scheme``.
 
@@ -266,13 +294,37 @@ Supported field sub types:
 
    * ``int`` - pushed as raw integer value
 
- - Fixed decimal fields are also configurable:
+ - Fixed decimal fields modes:
 
    * ``float``: converted into floating point value, suited for most cases but can lead to rounding
      errors.
 
    * ``int``: pushed as integer mantissa value without any math operations, for example for
      ``fixed3`` and value 123.456 it will be 123456.
+
+ - Time point fields:
+
+   * ``int``: pushed as raw value, integer or double, fast but can not convert between time
+     resolutions.
+
+   * ``float``: floating point timestamp in seconds, can be used with standard Lua time functions
+     but loses precision for high resolution fields.
+
+   * ``object``: object containing integer or double value and time resolution with following
+     properties:
+
+     - ``tostring(obj)`` method or ``obj.string`` property returns string representation in format
+       ``%Y-%m-%dT%H:%M:%S`` with optional subsecond part up to 9 digits. If time resolution is
+       ``day``, then only date part is returned.
+
+     - ``seconds`` property contains floating point timestamp in seconds.
+
+     - ``date`` property contains date part of in integer form ``10000 * year + 100 * month + day``.
+
+     - objects support comparison, but Lua limitations allow only checks between same types. It is
+       not possible to compare object to numeric timestamp.
+
+   * ``string``: string representation in same format as ``obj.string()`` described above.
 
 Encoding
 ~~~~~~~~

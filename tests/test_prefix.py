@@ -6,6 +6,7 @@ import decorator
 import enum
 import pytest
 
+from tll.chrono import TimePoint
 from tll.config import Config, Url
 from tll.error import TLLError
 from tll.test_util import Accum
@@ -50,7 +51,8 @@ class f0(enum.Enum):
     ('decimal128', (decimal.Decimal('123.456'), '123.456')),
     ('uint16, options.type: enum, enum: {A: 10, B: 20, C: 30}', (f0.A, '"A"')),
 #    ('int32, options.type: duration, options.resolution: us', (Duration(123000, Resolution.us), '123ms')),
-#    ('int64, options.type: time_point, options.resolution: s', (TimePoint(1609556645, Resolution.second), '2021-01-02T03:04:05')),
+    ('int64, options.type: time_point, options.resolution: s', (TimePoint(1609556645, 'second'), '"2021-01-02T03:04:05"')),
+    ('int64, options.type: time_point, options.resolution: s', (TimePoint(1609556645, 'second'), 'tll_time_point(2021, 01, 02, 03, 04, 05)')),
 ])
 @asyncloop_run
 async def test_simple(asyncloop, t, v):
@@ -1341,3 +1343,111 @@ end
     c.open({'lua.pass':'yes', 'lua.c':'d'}) # Config userdata parameter
     assert c.config.sub('open').as_dict() == {'lua': {'pass': 'yes', 'c': 'd'}}
     assert c.children[0].config.sub('open').as_dict() == {'pass': 'yes', 'c': 'd'}
+
+@pytest.mark.parametrize('mode,outer,inner', [
+    ('int', TimePoint(1262401445123456789, 'ns'), 1262401445123456789),
+    (';preset=convert', TimePoint(1262401445, 'second'), 1262401445),
+    (';preset=convert-fast', TimePoint(1262401445, 'ns'), 1262401445),
+    ('float', TimePoint(1262401445, 'second'), 1262401445),
+    ('object', TimePoint(1262401445, 'second'), 1262401445),
+    ('', TimePoint(1262401445, 'second'), 1262401445),
+    ('string', TimePoint(1262401445, 'second'), 1262401445),
+    ('int', TimePoint(1262401445123456789, 'ns'), '"2010-01-02T03:04:05.123456789"'),
+    ('float', TimePoint(1262401445123456789, 'ns'), '"2010-01-02T03:04:05.123456789"'),
+    ('object', TimePoint(1262401445123456789, 'ns'), '"2010-01-02T03:04:05.123456789"'),
+    ('string', TimePoint(1262401445123456789, 'ns'), '"2010-01-02T03:04:05.123456789"'),
+    ('int', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
+    ('float', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
+    ('object', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
+    ('string', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
+])
+def test_time_point(context, mode, outer, inner):
+    cfg = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+lua.dump: yes
+''')
+    if ';' in mode:
+        mode, extra = mode.split(';')
+        k, v = extra.split('=')
+        cfg[k] = v
+    cfg['time-mode'] = mode
+
+    cfg['scheme'] = '''yamls://
+- name: msg
+  id: 10
+  fields:
+    - {name: f0, type: int64, options.type: time_point, options.resolution: ns}
+'''
+    cfg['code'] = f'''
+function tll_on_active()
+    tll_callback(100, "msg", {{ f0 = {inner} }})
+end
+'''
+    c = Accum(cfg, context=context)
+    c.open()
+    if outer is None:
+        assert c.state == c.State.Error
+        return
+    assert c.state == c.State.Active
+    assert [(m.msgid, m.seq) for m in c.result] == [(10, 100)]
+    assert c.unpack(c.result[-1]).as_dict() == {'f0': TimePoint(outer)}
+
+@pytest.mark.parametrize('mode', ['float', 'object', 'string'])
+@pytest.mark.parametrize('itype', ['int64', 'uint64', 'double'])
+@pytest.mark.parametrize('otype', ['int64', 'uint64', 'double'])
+@pytest.mark.parametrize('iprec,oprec', [('us', 'ms'), ('ms', 'us'), ('minute', 'ms')])
+@asyncloop_run
+async def test_time_point_convert(asyncloop, context, mode, iprec, oprec, itype, otype):
+    if iprec == 'minute':
+        sec = 0
+        sub = 0
+    elif itype == 'double' or 'iprec' == 'us':
+        sec = 5
+        sub = 123456
+    else:
+        sec = 5
+        sub = 123
+    cfg = Config.load(f'''yamls://
+tll.proto: lua+yaml
+name: lua
+lua.dump: yes
+yaml.dump: yes
+lua.fragile: yes
+autoclose: yes
+config.0:
+  name: Data
+  data:
+    f0: 2000-01-02T03:04:{sec:02}.{sub}
+''')
+    cfg['time-mode'] = mode
+
+    cfg['yaml.scheme'] = f'''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {{name: f0, type: {itype}, options.type: time_point, options.resolution: {iprec}}}
+'''
+    cfg['scheme'] = f'''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {{name: f0, type: {otype}, options.type: time_point, options.resolution: {oprec}}}
+'''
+    cfg['code'] = f'''
+function tll_on_data(seq,name,data)
+    tll_callback(seq, name, data)
+end
+'''
+    c = asyncloop.Channel(cfg, context=context)
+    c.open()
+    m = await c.recv()
+    v = TimePoint(946782240000000 + (sub if sub > 1000 else sub * 1000), 'us', int)
+    v.value += sec * 1000000
+    v = v.convert(iprec, int if itype != 'double' and mode != 'double' else float)
+    v = v.convert(oprec, int if otype != 'double' else float)
+    r = c.unpack(m).as_dict()
+    if otype != 'double' and mode != 'float':
+        assert r == {'f0': v}
+    else:
+        assert r['f0'].convert(r['f0'].resolution, float).value == pytest.approx(v.convert(v.resolution, float).value, 0.001)

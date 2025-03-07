@@ -12,8 +12,9 @@
 #include "tll/lua/config.h"
 #include "tll/lua/encoder.h"
 #include "tll/lua/luat.h"
-#include "tll/lua/scheme.h"
 #include "tll/lua/reflection.h"
+#include "tll/lua/scheme.h"
+#include "tll/lua/time.h"
 
 #include <tll/channel/base.h>
 
@@ -56,26 +57,31 @@ class LuaBase : public B
 			_settings.bits_mode = Settings::Bits::Object;
 			_settings.fixed_mode = Settings::Fixed::Float;
 			_settings.decimal128_mode = Settings::Decimal128::Float;
+			_settings.time_mode = Settings::Time::Object;
 			break;
 		case Convert:
 			_settings.enum_mode = Settings::Enum::String;
 			_settings.bits_mode = Settings::Bits::Object;
 			_settings.fixed_mode = Settings::Fixed::Object;
 			_settings.decimal128_mode = Settings::Decimal128::Object;
+			_settings.time_mode = Settings::Time::Object;
 			break;
 		case ConvertFast:
 			_settings.enum_mode = Settings::Enum::Int;
 			_settings.bits_mode = Settings::Bits::Int;
 			_settings.fixed_mode = Settings::Fixed::Int;
 			_settings.decimal128_mode = Settings::Decimal128::Object;
+			_settings.time_mode = Settings::Time::Int;
 			break;
 		}
 		_settings.enum_mode = reader.getT("enum-mode", _settings.enum_mode);
 		_settings.bits_mode = reader.getT("bits-mode", _settings.bits_mode);
 		_settings.fixed_mode = reader.getT("fixed-mode", _settings.fixed_mode);
 		_settings.decimal128_mode = reader.getT("decimal128-mode", _settings.decimal128_mode);
+		_settings.time_mode = reader.getT("time-mode", _settings.time_mode);
 
 		_encoder.fixed_mode = _settings.fixed_mode;
+		_encoder.time_mode = _settings.time_mode;
 		_encoder.overflow_mode = reader.getT("overflow-mode", Encoder::Overflow::Error);
 
 		_message_mode = reader.getT("message-mode", MessageMode::Auto, {{"auto", MessageMode::Auto}, {"reflection", MessageMode::Reflection}, {"binary", MessageMode::Binary}, {"object", MessageMode::Object}});
@@ -122,6 +128,7 @@ class LuaBase : public B
 		LuaT<reflection::Decimal128>::init(lua);
 		LuaT<reflection::Fixed>::init(lua);
 		LuaT<reflection::Enum>::init(lua);
+		LuaT<tll::lua::TimePoint>::init(lua);
 
 		LuaT<scheme::Scheme>::init(lua);
 		LuaT<scheme::Message>::init(lua);
@@ -166,6 +173,9 @@ class LuaBase : public B
 
 		lua_pushcfunction(lua, MetaT<reflection::Message>::pmap_check);
 		lua_setglobal(lua, "tll_msg_pmap_check");
+
+		lua_pushcfunction(lua.get(), tll::lua::TimePoint::create);
+		lua_setglobal(lua.get(), "tll_time_point");
 
 		lua_pushlightuserdata(lua, this->channelT());
 		lua_pushcclosure(lua, _lua_callback, 1);

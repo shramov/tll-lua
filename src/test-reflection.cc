@@ -7,6 +7,7 @@
 
 #include "tll/lua/luat.h"
 #include "tll/lua/reflection.h"
+#include "tll/util/time.h"
 
 #include "gtest/gtest.h"
 
@@ -19,6 +20,7 @@
 #endif
 
 using namespace tll::lua;
+using namespace std::literals::string_view_literals;
 using nullptr_t = std::nullptr_t;
 
 static const char * SCHEME = R"(yamls://
@@ -64,6 +66,15 @@ static const char * SCHEME = R"(yamls://
   msgid: 40
   fields:
     - {name: f0, type: uint16, options.type: enum, enum: {A: 10, B: 20}}
+
+- name: Time
+  msgid: 50
+  fields:
+    - {name: ns, type: uint64, options.type: time_point, options.resolution: ns}
+    - {name: us, type: int64, options.type: time_point, options.resolution: us}
+    - {name: ms, type: int64, options.type: time_point, options.resolution: ms}
+    - {name: s, type: double, options.type: time_point, options.resolution: second}
+    - {name: day, type: uint32, options.type: time_point, options.resolution: day}
 )";
 
 namespace generated {
@@ -129,6 +140,30 @@ std::string_view lua_toany<std::string_view>(lua_State * lua, int index, std::st
 template <>
 nullptr_t lua_toany<nullptr_t>(lua_State * lua, int index, nullptr_t) { if (!lua_isnil(lua, index)) luaL_error(lua, "Non NIL value: %d", lua_type(lua, index)); return nullptr; }
 
+template <typename T>
+void luaT_pushone(lua_State * lua, const T & value)
+{
+	if constexpr (std::is_floating_point_v<T>)
+		lua_pushnumber(lua, value);
+	else if constexpr (std::is_integral_v<T>)
+		lua_pushinteger(lua, value);
+	else if constexpr (std::is_same_v<T, std::string_view> || std::is_same_v<T, std::string>)
+		luaT_pushstringview(lua, value);
+	else if constexpr (std::is_same_v<T, const char *>)
+		lua_pushstring(lua, value);
+	else // Check for CWG2518
+		luaL_error(lua, "Unknown type"); // static_assert(false, "Unknown type");
+}
+
+unsigned luaT_pushmany(lua_State * lua) { return 0; }
+
+template <typename Arg, typename... Args>
+unsigned luaT_pushmany(lua_State * lua, const Arg & arg, const Args & ... args)
+{
+	luaT_pushone(lua, arg);
+	return 1 + luaT_pushmany(lua, args...);
+}
+
 static Settings settings = { .enum_mode = Settings::Enum::Object, .decimal128_mode = Settings::Decimal128::Object };
 
 #define ASSERT_LUA_VALUE(lua, msg, v, field) do { \
@@ -146,6 +181,14 @@ static Settings settings = { .enum_mode = Settings::Enum::Object, .decimal128_mo
 
 #define ASSERT_LUA(lua, msg, field) ASSERT_LUA_VALUE(lua, msg, s.field, #field)
 
+#define ASSERT_LUA_PCALL(lua, v, function, ...) do { \
+		lua_getglobal(lua, function); \
+		auto i = luaT_pushmany(lua, __VA_ARGS__); \
+		ASSERT_EQ(lua_pcall(lua, i, 1, 0), 0) << fmt::format("Lua function {} failed: {}", function, lua_tostring(lua, -1)); \
+		ASSERT_EQ(lua_toany(lua, -1, v), v); \
+		lua_pop(lua, 1); \
+	} while(0)
+
 unique_lua_ptr_t prepare_lua()
 {
 	unique_lua_ptr_t lua(luaL_newstate(), lua_close);
@@ -157,6 +200,10 @@ unique_lua_ptr_t prepare_lua()
 	LuaT<reflection::Bits>::init(lua.get());
 	LuaT<reflection::Decimal128>::init(lua.get());
 	LuaT<reflection::Enum>::init(lua.get());
+	LuaT<tll::lua::TimePoint>::init(lua.get());
+
+	lua_pushcfunction(lua.get(), tll::lua::TimePoint::create);
+	lua_setglobal(lua.get(), "tll_time_point");
 
 	return lua;
 }
@@ -374,6 +421,75 @@ TEST(Lua, ReflectionEnum)
 
 	ASSERT_LUA_VALUE(lua, value, 11, "f0.int");
 	ASSERT_LUA_VALUE(lua, value, nullptr, "f0.string");
+}
+
+TEST(Lua, TimePoint)
+{
+	using namespace std::chrono;
+#if __cpp_lib_chrono < 201907L
+	using days = duration<int, std::ratio<86400, 1>>;
+#endif
+#pragma pack(push, 1)
+	struct Time
+	{
+		time_point<system_clock, duration<uint64_t, std::nano>> ns;
+		time_point<system_clock, duration<int64_t, std::micro>> us;
+		time_point<system_clock, duration<int64_t, std::milli>> ms;
+		time_point<system_clock, duration<double, std::ratio<1, 1>>> s;
+		time_point<system_clock, duration<uint32_t, std::ratio<86400, 1>>> day;
+	};
+#pragma pack(pop)
+
+	tll::scheme::SchemePtr scheme(tll::Scheme::load(SCHEME));
+
+	ASSERT_TRUE(scheme);
+
+	auto message = lookup(scheme.get(), "Time");
+
+	ASSERT_NE(message, nullptr);
+
+	auto lua_ptr = prepare_lua();
+	auto lua = lua_ptr.get();
+	ASSERT_NE(lua, nullptr);
+
+	Time value = {};
+	auto ts = *tll::conv::to_any<time_point<system_clock, nanoseconds>>("2000-01-02T03:04:05.012345678");
+	auto ns = ts.time_since_epoch().count();
+	value.ns = ts;
+	value.us = time_point_cast<microseconds>(ts);
+	value.ms = time_point_cast<milliseconds>(ts);
+	value.s = ts;
+	value.day = time_point_cast<days>(ts);
+
+	ASSERT_LUA_VALUE(lua, value, "2000-01-02T03:04:05.012345678"sv, "ns.string");
+	ASSERT_LUA_VALUE(lua, value, "2000-01-02T03:04:05.012345"sv, "us.string");
+	ASSERT_LUA_VALUE(lua, value, "2000-01-02T03:04:05.012"sv, "ms.string");
+	ASSERT_LUA_VALUE(lua, value, "2000-01-02T03:04:05.012345671"sv, "s.string"); // Non exact
+	ASSERT_LUA_VALUE(lua, value, "2000-01-02"sv, "day.string");
+
+	ASSERT_LUA_VALUE(lua, value, ns / 1000000000., "ns.seconds");
+	ASSERT_LUA_VALUE(lua, value, ns / 1000 / 1000000., "us.seconds");
+	ASSERT_LUA_VALUE(lua, value, ns / 1000000 / 1000., "ms.seconds");
+	ASSERT_LUA_VALUE(lua, value, ns / 1000000000., "s.seconds");
+	ASSERT_LUA_VALUE(lua, value, ns / 1000000000 / 86400 * 86400., "day.seconds");
+
+	ASSERT_LUA_VALUE(lua, value, 20000102, "ns.date");
+	ASSERT_LUA_VALUE(lua, value, 20000102, "us.date");
+	ASSERT_LUA_VALUE(lua, value, 20000102, "ms.date");
+	ASSERT_LUA_VALUE(lua, value, 20000102, "s.date");
+	ASSERT_LUA_VALUE(lua, value, 20000102, "day.date");
+
+	constexpr std::string_view code = R"(
+function ts(...)
+	return tll_time_point(...).string
+end
+)";
+	ASSERT_EQ(luaL_loadstring(lua, code.data()), 0);
+	ASSERT_EQ(lua_pcall(lua, 0, LUA_MULTRET, 0), 0);
+
+	ASSERT_LUA_PCALL(lua, "2000-01-02T03:04:05"sv, "ts", 2000, 01, 02, 03, 04, 05);
+	ASSERT_LUA_PCALL(lua, "2000-01-02T00:00:00"sv, "ts", 2000, 01, 02);
+	ASSERT_LUA_PCALL(lua, "2000-01-02T03:04:05.123456789"sv, "ts", 2000, 01, 02, 03, 04, 05, 123456789);
 }
 
 int main(int argc, char *argv[])

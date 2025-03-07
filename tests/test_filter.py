@@ -5,6 +5,7 @@ import decorator
 import pytest
 
 from tll.config import Config
+from tll.channel import Channel
 
 @decorator.decorator
 def asyncloop_run(f, asyncloop, *a, **kw):
@@ -278,3 +279,52 @@ end
     assert c.state == c.State.Active
     m = await c.recv(0.1)
     assert (m.msgid, m.seq) == (10, 1)
+
+@pytest.mark.parametrize("mode,compare,result", [
+    ('object', 'data.f0 >= tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)', [1, 2]),
+    ('object', 'data.f0 == tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)', [1]),
+    ('object', 'data.f0 >  tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)', [2]),
+    ('object', 'data.f0 <  tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)', [0]),
+    ('object', 'data.f0 <= tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)', [0, 1]),
+    ('object', 'data.f0 ~= tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)', [0, 2]),
+    ('object', 'data.f0.string == "2010-01-02T03:04:05.123456789"', [1]),
+    ('float', 'data.f0 >= 1262401445.123456789', [1, 2]),
+    ('int', 'data.f0 >= 1262401445123456789', [1, 2]),
+    ('string', 'data.f0 == "2010-01-02T03:04:05.123456789"', [1]),
+])
+@asyncloop_run
+async def test_time_point(asyncloop, mode, compare, result):
+    cfg = Config.load('''yamls://
+tll.proto: lua+yaml
+name: lua
+yaml.dump: yes
+lua.dump: yes
+autoclose: yes
+config.0: {seq: 0, name: Data, data.f0: '2000-01-02T03:04:05.123456789'}
+config.1: {seq: 1, name: Data, data.f0: '2010-01-02T03:04:05.123456789'}
+config.2: {seq: 2, name: Data, data.f0: '2020-01-02T03:04:05.123456789'}
+''')
+    cfg['lua.preset'] = 'filter'
+    cfg['lua.time-mode'] = mode
+    cfg['scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: int64, options.type: time_point, options.resolution: ns}
+'''
+
+    cfg['code'] = f'''
+function tll_filter(seq, name, data)
+    print(tostring(data.f0))
+    return {compare}
+end
+'''
+    c = asyncloop.Channel(cfg, async_mask=Channel.MsgMask.Data | Channel.MsgMask.State)
+    c.open()
+    assert c.state == c.State.Active
+    r = []
+    while c.state == c.State.Active:
+        m = await c.recv(0.1)
+        if m.type == m.Type.Data:
+            r.append(m.seq)
+    assert r == result

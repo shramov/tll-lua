@@ -15,6 +15,7 @@
 #include <tll/conv/numeric.h>
 #include <tll/scheme.h>
 #include <tll/scheme/error-stack.h>
+#include <tll/util/time.h>
 
 #include <cmath>
 #include <fmt/format.h>
@@ -26,6 +27,7 @@ struct Encoder : public tll::scheme::ErrorStack
 	tll_msg_t msg;
 	std::vector<char> buf;
 	Settings::Fixed fixed_mode = Settings::Fixed::Int;
+	Settings::Time time_mode = Settings::Time::Object;
 	enum class Overflow { Error, Trim } overflow_mode = Overflow::Error;
 
 	tll_msg_t * encode_data(lua_State * lua, tll_msg_t &msg, const tll::scheme::Message * message, int index)
@@ -424,6 +426,8 @@ struct Encoder : public tll::scheme::ErrorStack
 			if constexpr (!std::is_same_v<double, T>)
 				return encode_fixed<T>(field, view, lua);
 			break;
+		case tll::scheme::Field::TimePoint:
+			return encode_time_point<T>(field, view, lua);
 		default:
 			break;
 		}
@@ -525,6 +529,82 @@ struct Encoder : public tll::scheme::ErrorStack
 			case Field::UInt64: *view.template dataT<T>() = *obj->data.template dataT<uint64_t>() * mul / div; break;
 			default:
 				return fail(EINVAL, "Invalid type for Fixed field: {}", obj->field->type);
+			}
+		} else
+			return fail(EINVAL, "Invalid type for fixed number: {}", type);
+		return 0;
+	}
+
+	template <typename T, typename Buf>
+	int encode_time_point(const tll::scheme::Field * field, Buf view, lua_State * lua)
+	{
+		switch (field->time_resolution) {
+		case TLL_SCHEME_TIME_NS: return encode_time_point_raw<T, std::nano>(field, view.template dataT<T>(), lua);
+		case TLL_SCHEME_TIME_US: return encode_time_point_raw<T, std::micro>(field, view.template dataT<T>(), lua);
+		case TLL_SCHEME_TIME_MS: return encode_time_point_raw<T, std::milli>(field, view.template dataT<T>(), lua);
+		case TLL_SCHEME_TIME_SECOND: return encode_time_point_raw<T, std::ratio<1, 1>>(field, view.template dataT<T>(), lua);
+		case TLL_SCHEME_TIME_MINUTE: return encode_time_point_raw<T, std::ratio<60, 1>>(field, view.template dataT<T>(), lua);
+		case TLL_SCHEME_TIME_HOUR: return encode_time_point_raw<T, std::ratio<3600, 1>>(field, view.template dataT<T>(), lua);
+		case TLL_SCHEME_TIME_DAY: return encode_time_point_raw<T, std::ratio<86400, 1>>(field, view.template dataT<T>(), lua);
+		}
+		return fail(EINVAL, "Unsupported time resolution: {}", field->time_resolution);
+	}
+
+	template <typename T, typename Res>
+	int encode_time_point_raw(const tll::scheme::Field * field, T * value, lua_State * lua)
+	{
+		auto type = lua_type(lua, -1);
+		if (type == LUA_TNUMBER) {
+			if (time_mode == Settings::Time::Int) {
+				if constexpr (std::is_floating_point_v<T>) {
+					*value = lua_tonumber(lua, -1);
+				} else {
+					int result = 0;
+					auto v = lua_tointegerx(lua, -1, &result);
+					if (!result)
+						return fail(EINVAL, "Failed to convert value '{}' to integer", luaT_tostringview(lua, -1));
+					*value = v;
+				}
+			} else {
+				auto v = lua_tonumber(lua, -1);
+				*value = v * Res::den / Res::num;
+			}
+		} else if (type == LUA_TSTRING) {
+			auto s = luaT_tostringview(lua, -1);
+			auto r = tll::conv::to_any<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>(s);
+			if (!r)
+				return fail(EINVAL, "Invalid datetime string '{}': {}", s, r.error());
+			*value = std::chrono::duration_cast<std::chrono::duration<T, Res>>(r->time_since_epoch()).count();
+		} else if (type == LUA_TUSERDATA) {
+			auto obj = luaT_touserdata<tll::lua::TimePoint>(lua, -1);
+			if (!obj)
+				return fail(EINVAL, "Non-TimePoint userdata");
+			if (obj->resolution == field->time_resolution) {
+				switch (obj->type) {
+				case tll::lua::TimePoint::Signed: *value = obj->vsigned; break;
+				case tll::lua::TimePoint::Unsigned: *value = obj->vunsigned; break;
+				case tll::lua::TimePoint::Double: *value = obj->vdouble; break;
+				}
+				return 0;
+			}
+			auto [mul, div] = obj->ratio();
+			mul *= Res::den;
+			div *= Res::num;
+			if (mul >= div) {
+				mul /= div;
+				div = 1;
+			} else {
+				div /= mul;
+				mul = 1;
+			}
+			if constexpr (std::is_floating_point_v<T>) {
+				*value = obj->fvalue() * mul / div;
+			} else {
+				switch (obj->type) {
+				case tll::lua::TimePoint::Signed: *value = obj->vsigned * mul / div; break;
+				case tll::lua::TimePoint::Unsigned: *value = obj->vunsigned * mul / div; break;
+				case tll::lua::TimePoint::Double: *value = obj->vdouble * mul / div; break;
+				}
 			}
 		} else
 			return fail(EINVAL, "Invalid type for fixed number: {}", type);

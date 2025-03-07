@@ -9,6 +9,7 @@
 #define _TLL_LUA_REFLECTION_H
 
 #include "luat.h"
+#include "tll/lua/time.h"
 
 #include <tll/channel.h>
 #include <tll/conv/decimal128.h>
@@ -29,6 +30,7 @@ struct Settings
 	enum class Child { Strict, Relaxed } child_mode = Child::Strict;
 	enum class PMap { Enable, Disable } pmap_mode = PMap::Enable;
 	enum class Decimal128 { Float, Object } decimal128_mode = Decimal128::Float;
+	enum class Time { Int, Float, Object, String } time_mode = Time::Object;
 	bool deepcopy = false;
 };
 
@@ -165,6 +167,45 @@ inline constexpr unsigned long long intpow(unsigned base, unsigned pow)
 }
 
 template <typename View, typename T>
+int pushtime(lua_State * lua, const tll::scheme::Field * field, View data, T v, const Settings & settings)
+{
+	if (field->sub_type == field->TimePoint) {
+		TimePoint ts = { .resolution = field->time_resolution };
+		if constexpr (std::is_floating_point_v<T>) {
+			ts.type = TimePoint::Double;
+			ts.vdouble = v;
+		} else if constexpr (std::is_signed_v<T>) {
+			ts.type = TimePoint::Signed;
+			ts.vsigned = v;
+		} else {
+			ts.type = TimePoint::Unsigned;
+			ts.vsigned = v;
+		}
+		switch (settings.time_mode) {
+		case Settings::Time::Int:
+			if constexpr (std::is_floating_point_v<T>)
+				lua_pushnumber(lua, v);
+			else
+				lua_pushinteger(lua, v);
+			break;
+		case Settings::Time::Float: {
+			auto [mul, div] = ts.ratio();
+			lua_pushnumber(lua, ((double) v) * mul / div);
+			break;
+		}
+		case Settings::Time::Object:
+			luaT_push<TimePoint>(lua, ts);
+			break;
+		case Settings::Time::String:
+			ts.tostring(lua);
+			break;
+		}
+	} else
+		lua_pushnil(lua);
+	return 1;
+}
+
+template <typename View, typename T>
 int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v, const Settings & settings)
 {
 	if (field->sub_type == field->Bits) {
@@ -203,14 +244,18 @@ int pushnumber(lua_State * lua, const tll::scheme::Field * field, View data, T v
 			luaT_push<reflection::Fixed>(lua, { field, data });
 			break;
 		}
+	} else if (field->sub_type == field->TimePoint) {
+		return pushtime(lua, field, data, v, settings);
 	} else
 		lua_pushinteger(lua, v);
 	return 1;
 }
 
 template <typename View>
-int pushdouble(lua_State * lua, const tll::scheme::Field * field, View data, double v)
+int pushdouble(lua_State * lua, const tll::scheme::Field * field, View data, double v, const Settings &settings)
 {
+	if (field->sub_type == field->TimePoint)
+		return pushtime(lua, field, data, v, settings);
 	lua_pushnumber(lua, v);
 	return 1;
 }
@@ -231,7 +276,7 @@ int pushfield(lua_State * lua, const tll::scheme::Field * field, View data, cons
 	case Field::UInt16: return pushnumber(lua, field, data, *data.template dataT<uint16_t>(), settings);
 	case Field::UInt32: return pushnumber(lua, field, data, *data.template dataT<uint32_t>(), settings);
 	case Field::UInt64: return pushnumber(lua, field, data, *data.template dataT<uint64_t>(), settings);
-	case Field::Double: return pushdouble(lua, field, data, *data.template dataT<double>());
+	case Field::Double: return pushdouble(lua, field, data, *data.template dataT<double>(), settings);
 	case Field::Decimal128:
 		switch (settings.decimal128_mode) {
 		case Settings::Decimal128::Float:
@@ -824,6 +869,21 @@ struct tll::conv::parse<tll::lua::Settings::Decimal128>
                 return tll::conv::select(s, std::map<std::string_view, Decimal128> {
 			{"float", Decimal128::Float},
 			{"object", Decimal128::Object},
+		});
+        }
+};
+
+template <>
+struct tll::conv::parse<tll::lua::Settings::Time>
+{
+	using Time = tll::lua::Settings::Time;
+        static result_t<Time> to_any(std::string_view s)
+        {
+                return tll::conv::select(s, std::map<std::string_view, Time> {
+			{"int", Time::Int},
+			{"float", Time::Float},
+			{"object", Time::Object},
+			{"string", Time::String},
 		});
         }
 };
