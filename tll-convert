@@ -90,6 +90,7 @@ tll.logger.configure({'levels.*': args.loglevel})
 
 defaults = Config()
 defaults['lua.preset'] = 'convert'
+defaults['lua.prefix-compat'] = 'yes'
 for k,v in args.defaults:
     defaults[k] = v
 ctx = Context(defaults)
