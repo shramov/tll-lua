@@ -29,7 +29,7 @@ Compress file with lz4:
 
 ::
 
-    tll-convert -c lz4 input.dat output.dat
+    tll-convert -C lz4 input.dat output.dat
 
 Change field in the message:
 
