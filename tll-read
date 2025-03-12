@@ -12,10 +12,12 @@ import traceback
 import yaml
 
 from tll import logger
+from tll.bits import Bits
 from tll.channel import Context
 from tll.chrono import TimePoint, Duration
 from tll.config import Config, Url
 from tll.processor import Loop
+from tll.scheme import Reflection
 
 def parsepair(string):
     r = string.split('=', 1)
@@ -297,6 +299,26 @@ def hexdump(data):
         printable = "".join(chr(x) if 32 <= x < 127 else "." for x in b)
         yield f"{i:08x}:  {parts[0]:12} {parts[1]:12} {parts[2]:12} {parts[3]:12} {printable}"
 
+def ref2dict(m):
+    r = {}
+    if isinstance(m, tuple):
+        return (ref2dict(i) for i in m)
+    elif isinstance(m, list):
+        return [ref2dict(i) for i in m]
+    elif isinstance(m, Bits):
+        return {f.name: getattr(m, f.name) for f in m.BITS.values() if getattr(m, f.name)}
+    elif not isinstance(m, Reflection):
+        return m
+    for f in m.SCHEME.fields:
+        try:
+            v = getattr(m, f.name, None)
+        except Exception as e:
+            v = f'Failed to get field: {e}'
+        if v is None:
+            continue
+        r[f.name] = ref2dict(v)
+    return r
+
 def format_data(c, msg):
     global skip, count, seq_last
     if skip != 0:
@@ -318,9 +340,17 @@ def format_data(c, msg):
             else:
                 meta['data'] = msg.data.tobytes()
         else:
-            m = s.unpack(msg)
-            meta['name'] = m.SCHEME.name
-            meta['data'] = m.as_dict()
+            try:
+                m = s.unpack(msg)
+                meta['name'] = m.SCHEME.name
+                meta['data'] = m.as_dict()
+            except Exception as e:
+                if not args.ignore_errors:
+                    raise
+                m = s.reflection(msg)
+                meta['error'] = f'Failed to unpack message: {e}'
+                meta['name'] = m.SCHEME.name
+                meta['data'] = ref2dict(m)
         if args.hexdump:
             meta['hex'] = LiteralString('\n'.join(hexdump(msg.data)))
         print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
