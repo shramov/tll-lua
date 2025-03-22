@@ -49,7 +49,6 @@ class LuaBase : public B
 		auto scheme_control = reader.get("scheme-control");
 		enum Preset { Filter, Convert, ConvertFast };
 		auto preset = reader.getT("preset", Convert, {{"filter", Filter}, {"convert", Convert}, {"convert-fast", ConvertFast}});
-		_settings.child_mode = reader.getT("child-mode", Settings::Child::Strict);
 		_settings.pmap_mode = reader.getT("pmap-mode", Settings::PMap::Enable);
 		switch (preset) {
 		case Filter:
@@ -60,6 +59,7 @@ class LuaBase : public B
 			_settings.time_mode = Settings::Time::Object;
 			break;
 		case Convert:
+			_settings.child_mode = Settings::Child::Relaxed;
 			_settings.enum_mode = Settings::Enum::String;
 			_settings.bits_mode = Settings::Bits::Object;
 			_settings.fixed_mode = Settings::Fixed::Object;
@@ -67,6 +67,7 @@ class LuaBase : public B
 			_settings.time_mode = Settings::Time::Object;
 			break;
 		case ConvertFast:
+			_settings.child_mode = Settings::Child::Relaxed;
 			_settings.enum_mode = Settings::Enum::Int;
 			_settings.bits_mode = Settings::Bits::Int;
 			_settings.fixed_mode = Settings::Fixed::Int;
@@ -74,6 +75,7 @@ class LuaBase : public B
 			_settings.time_mode = Settings::Time::Int;
 			break;
 		}
+		_settings.child_mode = reader.getT("child-mode", Settings::Child::Strict);
 		_settings.enum_mode = reader.getT("enum-mode", _settings.enum_mode);
 		_settings.bits_mode = reader.getT("bits-mode", _settings.bits_mode);
 		_settings.fixed_mode = reader.getT("fixed-mode", _settings.fixed_mode);

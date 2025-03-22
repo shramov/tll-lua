@@ -75,13 +75,13 @@ This parameter changes default values for ``enum-mode``, ``bits-mode``, ``fixed-
     done without rounding errors between different field types (for example ``fixed3`` is converted
     to ``fixed6`` correctly),
     ``fixed-mode=object``, ``decimal128-mode=object``, ``bits-mode=object``, ``enum-mode=string``,
-    ``time-mode=object``;
+    ``time-mode=object``, ``child-mode=relaxed``;
 
   - ``convert-fast``: fast conversion, can only be used to modify messages when scheme is not
     changed, otherwise it can lead to incorrect results (for example ``fixed3`` to ``fixed6``
     conversion will be incorrect),
     ``fixed-mode=int``, ``decimal128-mode=object``, ``bits-mode=int``, ``enum-mode=int``,
-    ``time-mode=int``;
+    ``time-mode=int``, ``child-mode=relaxed``;
 
 ``enum-mode={string|int|object}``, default ``string`` - represent enum fields as string, raw integer
 value or Lua object with ``string`` and ``int`` fields.

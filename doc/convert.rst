@@ -48,12 +48,11 @@ Script file::
         tll_output_post(seq, name, data)
     end
 
-Translate messages to new scheme with new fields (without ``lua.child-mode=relaxed`` parameter
-script have to copy message into Lua table using ``tll_msg_copy`` or ``tll_msg_deepcopy`` function):
+Translate messages to new scheme with new fields:
 
 ::
 
-    tll-convert -L convert.lua --scheme new.yaml --defaults lua.child-mode=relaxed input.dat output.dat
+    tll-convert -L convert.lua --scheme new.yaml input.dat output.dat
 
 Script file::
 
