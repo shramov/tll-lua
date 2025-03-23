@@ -1,3 +1,22 @@
+tll-lua (0.8.0) unstable; urgency=medium
+
+  * channel: Export open function
+  * config: Export as_dict function
+  * convert:
+    Add option for context defaults
+    Use forward for lua conversion
+  * forward: Lua-enabled forwarding logic
+  * lua:
+    Register comparison functions
+    Set relaxed child mode in 'convert' preset
+    Support for time point fields
+  * prefix: Allow opening child from Lua
+  * read:
+    Dump info subtree from channel config
+    Try to workaround unpack errors
+
+ -- Pavel Shramov <shramov@mexmat.net>  Sun, 23 Mar 2025 15:09:42 +0300
+
 tll-lua (0.7.1) unstable; urgency=medium
 
   * lua: Fix invalid format (%zd) in error message

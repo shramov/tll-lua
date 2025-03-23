@@ -1,5 +1,5 @@
 project('tll-lua', 'cpp'
-	, version: '0.7.1'
+	, version: '0.8.0'
 	, license: 'MIT'
 	, default_options: ['cpp_std=c++2a', 'werror=true', 'optimization=2']
 )
