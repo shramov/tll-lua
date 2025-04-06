@@ -11,6 +11,7 @@
 #include "tll/lua/channel.h"
 #include "tll/lua/config.h"
 #include "tll/lua/encoder.h"
+#include "tll/lua/logger.h"
 #include "tll/lua/luat.h"
 #include "tll/lua/reflection.h"
 #include "tll/lua/scheme.h"
@@ -141,6 +142,7 @@ class LuaBase : public B
 
 		LuaT<tll::lua::Context>::init(lua);
 		LuaT<tll::lua::Channel>::init(lua);
+		LuaT<tll::lua::Logger>::init(lua);
 		LuaT<tll::lua::Message>::init(lua);
 
 		LuaT<tll::lua::Config>::init(lua);
@@ -182,6 +184,9 @@ class LuaBase : public B
 		lua_pushlightuserdata(lua, this->channelT());
 		lua_pushcclosure(lua, _lua_callback, 1);
 		lua_setglobal(lua, "tll_callback");
+
+		luaT_push<tll::lua::Logger>(lua, { tll_logger_copy(this->_log.ptr()) });
+		lua_setglobal(lua, "tll_logger");
 
 		_lua = std::move(lua);
 
