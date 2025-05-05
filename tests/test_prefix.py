@@ -1052,7 +1052,7 @@ end
     c.open()
     assert await c.recv_state() == c.State.Active
 
-    if mode == 'relaxed':
+    if mode != 'strict':
         m = await c.recv()
         assert c.unpack(m).as_dict() == value
     else:

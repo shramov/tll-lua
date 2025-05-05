@@ -76,7 +76,7 @@ class LuaBase : public B
 			_settings.time_mode = Settings::Time::Int;
 			break;
 		}
-		_settings.child_mode = reader.getT("child-mode", Settings::Child::Strict);
+		_settings.child_mode = reader.getT("child-mode", _settings.child_mode);
 		_settings.enum_mode = reader.getT("enum-mode", _settings.enum_mode);
 		_settings.bits_mode = reader.getT("bits-mode", _settings.bits_mode);
 		_settings.fixed_mode = reader.getT("fixed-mode", _settings.fixed_mode);
