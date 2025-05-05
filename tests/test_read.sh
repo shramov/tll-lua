@@ -122,7 +122,6 @@ end
 EOF
     ./tll-convert \
         --lua-file $BATS_TEST_TMPDIR/convert.lua \
-        --defaults lua.child-mode=relaxed \
         --scheme "yamls://[{name: Data, id: 10, fields: [{name: header, type: int32}, {name: f0, type: int32}]}]" \
         tests/read.dat "$FN"
     result=$(./tll-read -s 5:+1 "$FN")
