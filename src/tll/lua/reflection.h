@@ -16,6 +16,7 @@
 #include <tll/scheme.h>
 #include <tll/scheme/types.h>
 #include <tll/scheme/util.h>
+#include <tll/util/listiter.h>
 #include <tll/util/memoryview.h>
 
 #include <limits>
@@ -660,6 +661,21 @@ struct MetaT<reflection::Bits> : public MetaBase
 	static int band(lua_State *lua) { return bfunc(lua, [](auto lhs, auto rhs) { return lhs & rhs; }); }
 	static int bor(lua_State *lua) { return bfunc(lua, [](auto lhs, auto rhs) { return lhs | rhs; }); }
 	static int bxor(lua_State *lua) { return bfunc(lua, [](auto lhs, auto rhs) { return lhs ^ rhs; }); }
+
+	static int tostring(lua_State *lua)
+	{
+		auto & self = *luaT_touserdata<reflection::Bits>(lua, 1);
+		std::string r = "";
+		for (auto &b : tll::util::list_wrap(self.field->type_bits->values)) {
+			if (self.data.dataT<uint8_t>()[b.offset / 8] & (1 << (b.offset % 8))) {
+				if (r.size())
+					r += ", ";
+				r += b.name;
+			}
+		}
+		luaT_pushstringview(lua, std::string("{ ") + r + " }");
+		return 1;
+	}
 };
 
 template <>
