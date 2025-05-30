@@ -443,7 +443,7 @@ struct Encoder : public tll::scheme::ErrorStack
 				return fail(EINVAL, "Non-number type");
 			value = lua_tonumber(lua, -1);
 		} else {
-			if (!lua_isinteger(lua, -1))
+			if (!lua_isnumber(lua, -1))
 				return fail(EINVAL, "Non-integer type");
 			int result = 0;
 			auto v = lua_tointegerx(lua, -1, &result);
