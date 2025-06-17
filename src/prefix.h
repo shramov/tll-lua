@@ -29,7 +29,6 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 	bool _fragile = false;
 
 	tll::Config _open_cfg;
-	unsigned _state_count = 0; // Drop when state counter arrives in base TLL
 
 public:
 	static constexpr std::string_view channel_protocol() { return "lua+"; }
@@ -48,11 +47,6 @@ public:
 	int _init(const tll::Channel::Url &url, tll::Channel * master);
 	int _open(const tll::ConstConfig &props);
 
-	int _on_state(const tll_msg_t * m)
-	{
-		_state_count++;
-		return Base::_on_state(m);
-	}
 	int _on_active();
 	int _on_closed()
 	{

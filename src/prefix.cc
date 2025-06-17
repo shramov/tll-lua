@@ -87,11 +87,11 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 	luaT_push<tll::lua::Channel>(_lua, { _child.get(), &_encoder });
 	lua_setglobal(_lua, "tll_self_child");
 
-	const auto count = _state_count;
+	auto guard = state_guard();
 	if (auto r = _lua_on_open(props); r)
 		return r;
 
-	if (count != _state_count) // Already opened
+	if (guard) // Already opened
 		return 0;
 	return Base::_open(props);
 }
