@@ -160,7 +160,10 @@ start = time.time()
 loop.run_signal(1)
 dt = time.time() - start
 
-si = pathlib.Path(ui.host).stat().st_size
-so = pathlib.Path(uo.host).stat().st_size
+try:
+    si = pathlib.Path(ui.host).stat().st_size
+    so = pathlib.Path(uo.host).stat().st_size
 
-print(f'Time: {dt:.3f}s, Size ratio: {100 * so/si:.02f}%')
+    print(f'Time: {dt:.3f}s, Size ratio: {100 * so/si:.02f}%')
+except:
+    pass
