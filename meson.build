@@ -13,6 +13,12 @@ rst2man = find_program('rst2man', disabler: true, required: false)
 bats = find_program('bats', disabler: true, required: false)
 dl = meson.get_compiler('cpp').find_library('dl')
 
+cxx = meson.get_compiler('cpp')
+if cxx.get_id() == 'gcc' and cxx.version().version_compare('>= 13.0') and fmt.version().version_compare('< 10.0')
+        add_project_arguments('-Wno-array-bounds', language: 'cpp')
+	add_project_arguments('-Wno-stringop-overflow', language: 'cpp')
+endif
+
 shared_library('tll-lua'
 	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc', 'src/logic.cc', 'src/forward.cc']
 	, include_directories : include
