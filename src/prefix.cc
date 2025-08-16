@@ -139,7 +139,8 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const t
 	//luaT_push(ref, msg);
 	if (lua_pcall(ref, args, 1, 0)) {
 		auto text = fmt::format("Lua function {} failed: {}\n  on", func, lua_tostring(ref, -1));
-		tll_channel_log_msg(channel, _log.name(), tll::logger::Warning, _dump_error, msg, text.data(), text.size());
+		const auto level = _fragile ? tll::logger::Error : tll::logger::Warning;
+		tll_channel_log_msg(channel, _log.name(), level, _dump_error, msg, text.data(), text.size());
 		if (_fragile)
 			state(tll::state::Error);
 		return EINVAL;
