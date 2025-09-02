@@ -333,7 +333,15 @@ def format_data(c, msg):
     try:
         s = c.scheme
         #meta = collections.OrderedDict({'seq':msg.seq})
-        if not s:
+        blob = False
+        if s is None:
+            blob = True
+        elif args.ignore_errors:
+            try:
+                blob = msg.msgid == 0 or s.find(msg.msgid) is None
+            except:
+                blob = True
+        if blob:
             meta['msgid'] = msg.msgid
             if args.text:
                 meta['data'] = LiteralString(msg.data.tobytes().decode('utf-8'))

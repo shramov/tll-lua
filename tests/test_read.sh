@@ -54,6 +54,12 @@ Last seq: 9" ]
     [ "$result" == "$(testbody 9)" ]
 }
 
+@test "ignore errors ok" {
+    result=$(./tll-read --ignore-errors tests/read.dat -Oseq=9)
+    echo "[$result]"
+    [ "$result" == "$(testbody 9)" ]
+}
+
 @test ":count" {
     result=$(./tll-read -s :+1 tests/read.dat)
     echo "[$result]"
