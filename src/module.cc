@@ -24,9 +24,10 @@ static int luainit(struct tll_channel_module_t * m, tll_channel_context_t * ctx,
 		return log.fail(EINVAL, "Failed to get dlinfo of python library: {}", dlerror());
 
 	log.debug("Reload Lua with RTLD_GLOBAL: {}", info.dli_fname);
-	if (!dlopen(info.dli_fname, RTLD_GLOBAL | RTLD_NOLOAD | RTLD_NOW)) {
+	if (auto ptr = dlopen(info.dli_fname, RTLD_GLOBAL | RTLD_NOLOAD | RTLD_NOW); !ptr) {
 		return log.fail(EINVAL, "Failed to reload {} with RTLD_GLOBAL: {}", info.dli_fname, dlerror());
-	}
+	} else
+		dlclose(ptr);
 	return 0;
 }
 
