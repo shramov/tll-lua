@@ -34,6 +34,7 @@ public:
 	static constexpr std::string_view channel_protocol() { return "lua+"; }
 	static constexpr auto scheme_policy() { return Base::SchemePolicy::Normal; }
 	static constexpr auto lua_close_policy() { return Base::LuaClosePolicy::Skip; }
+	static constexpr auto prefix_export_policy() { return PrefixExportPolicy::Strip; }
 
 	const tll::Scheme * scheme(int type) const
 	{

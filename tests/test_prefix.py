@@ -1453,3 +1453,8 @@ end
         assert r == {'f0': v}
     else:
         assert r['f0'].convert(r['f0'].resolution, float).value == pytest.approx(v.convert(v.resolution, float).value, 0.001)
+
+def test_client(context):
+    c = context.Channel('lua+null://', name='export', code='function tll_on_active() end')
+    c.open()
+    assert c.config.get('client.init.tll.proto') == 'null'
