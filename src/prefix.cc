@@ -16,6 +16,9 @@ int LuaPrefix::_init(const tll::Channel::Url &url, tll::Channel * master)
 	if (auto r = Base::_init(url, master); r)
 		return r;
 
+	_scheme_control_init = std::move(_scheme_control);
+	_scheme_control_child.reset(tll_scheme_ref(_child->scheme(TLL_MESSAGE_CONTROL)));
+
 	auto reader = channel_props_reader(url);
 
 	_fragile = reader.getT("fragile", true);
@@ -23,16 +26,24 @@ int LuaPrefix::_init(const tll::Channel::Url &url, tll::Channel * master)
 	if (!reader)
 		return _log.fail(EINVAL, "Invalid url: {}", reader.error());
 
-	auto child = _child->scheme(TLL_MESSAGE_CONTROL);
+	if (auto r = _init_control(_scheme_control_child.get()); r)
+		return r;
+
+	return 0;
+}
+
+int LuaPrefix::_init_control(const tll::Scheme * child)
+{
 	if (child) {
 		if (_scheme_control) {
-			auto merged = tll::scheme::merge({_scheme_control.get(), child});
+			auto merged = tll::scheme::merge({_scheme_control_init.get(), child});
 			if (!merged)
 				return _log.fail(EINVAL, "Failed to merge control scheme with child: {}", merged.error());
 			_scheme_control.reset(*merged);
 		} else
 			_scheme_control.reset(tll_scheme_ref(child));
-	}
+	} else
+		_scheme_control.reset(_scheme_control_init->ref());
 
 	return 0;
 }
@@ -101,6 +112,11 @@ int LuaPrefix::_on_active()
 	_scheme_child.reset(tll_scheme_ref(_child->scheme()));
 	if (!_scheme)
 		_scheme.reset(tll_scheme_ref(_child->scheme()));
+
+	if (auto control = _child->scheme(TLL_MESSAGE_CONTROL); control != _scheme_control_child.get()) {
+		if (auto r = _init_control(control); r)
+			return _log.fail(r, "Failed to initialize control scheme");
+	}
 
 	if (_scheme) {
 		luaT_push(_lua, scheme::Scheme { _scheme.get() });

@@ -19,6 +19,8 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 	std::vector<char> _buf;
 
 	tll::scheme::ConstSchemePtr _scheme_child;
+	tll::scheme::ConstSchemePtr _scheme_control_child;
+	tll::scheme::ConstSchemePtr _scheme_control_init;
 
 	bool _with_on_post = false;
 	std::string _on_data_name;
@@ -89,6 +91,9 @@ public:
 	}
 
 	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel *, std::string_view func, bool filter = false);
+
+	/// Initialize control scheme
+	int _init_control(const tll::Scheme * child);
 };
 
 #endif//_TLL_LUA_PREFIX_H
