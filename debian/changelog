@@ -1,3 +1,17 @@
+tll-lua (0.9.0) unstable; urgency=medium
+
+  * encoder: Allow string values for integer fields
+  * lua: Decrease refcount on lua library after reloading
+  * prefix:
+    Do not export lua+ prefix to resolve
+    Failure message level depends on fragile setting
+    Update control scheme on Active if needed
+  * reflection: Add string conversion for Bits
+  * tll-convert: Guard input/output file size checks
+  * tll-read: Treat missing messages as blobs
+
+ -- Pavel Shramov <shramov@mexmat.net>  Tue, 11 Nov 2025 16:24:12 +0300
+
 tll-lua (0.8.1) unstable; urgency=medium
 
   * lua: Fix incorrect child-mode default value
