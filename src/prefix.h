@@ -70,6 +70,8 @@ public:
 	{
 		if (!_with_on_post)
 			return Base::_post(msg, flags);
+		if (msg->type != TLL_MESSAGE_DATA)
+			return Base::_post(msg, flags);
 		if (_on_msg(msg, _scheme.get(), self(), "tll_on_post"))
 			return EINVAL;
 		return 0;
