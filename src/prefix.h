@@ -23,6 +23,7 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 	tll::scheme::ConstSchemePtr _scheme_control_init;
 
 	bool _with_on_post = false;
+	bool _with_on_post_control = false;
 	std::string _on_data_name;
 
 	enum class Mode { Normal, Filter };
@@ -70,8 +71,11 @@ public:
 	{
 		if (!_with_on_post)
 			return Base::_post(msg, flags);
-		if (msg->type != TLL_MESSAGE_DATA)
+		if (msg->type != TLL_MESSAGE_DATA) {
+			if (_with_on_post_control)
+				return _on_msg(msg, _scheme_control.get(), self(), "tll_on_post_control");
 			return Base::_post(msg, flags);
+		}
 		if (_on_msg(msg, _scheme.get(), self(), "tll_on_post"))
 			return EINVAL;
 		return 0;

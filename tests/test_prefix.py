@@ -1459,7 +1459,7 @@ def test_client(context):
     c.open()
     assert c.config.get('client.init.tll.proto') == 'null'
 
-def test_post_control(context):
+def test_post_control_noop(context):
     url = Config.load('''yamls://
 tll.proto: lua+direct
 name: lua
@@ -1484,3 +1484,36 @@ end
     c.post({'type': 'lua'}, name='Block', seq=2, type=s.Type.Control)
     assert [(m.type, m.msgid, m.seq) for m in s.result] == [(s.Type.Data, 10, 1), (s.Type.Control, s.scheme_control['Block'].msgid, 2)]
     assert s.unpack(s.result[-1]).as_dict() == {'type': 'lua'}
+
+def test_post_control(context):
+    url = Config.load('''yamls://
+tll.proto: lua+direct
+name: lua
+lua.dump: yes
+direct.dump: yes
+''')
+
+    url['code'] = '''
+function tll_on_post(seq, name, data)
+    tll_child_post(seq, name, data)
+end
+
+function tll_on_post_control(seq, name, data)
+    if name == 'Block' then
+        data = {type = 'lua:' .. data.type}
+    end
+    tll_child_post({seq = seq, name = name, data = data, type = 'Control'})
+end
+'''
+    scheme = 'yamls://[{name: Data, id: 10, fields: [{name: f0, type: int32}]}]'
+    s = Accum('direct://;emulate-control=stream-server', name='server', scheme=scheme, context=context)
+    s.open()
+    c = Accum(url, context=context, master=s)
+    c.open()
+    assert c.state == c.State.Active
+    c.post({'f0': 10}, name='Data', seq=1)
+    assert [(m.type, m.msgid, m.seq) for m in s.result] == [(s.Type.Data, 10, 1)]
+    assert s.unpack(s.result[-1]).as_dict() == {'f0': 10}
+    c.post({'type': 'lua'}, name='Block', seq=2, type=s.Type.Control)
+    assert [(m.type, m.msgid, m.seq) for m in s.result] == [(s.Type.Data, 10, 1), (s.Type.Control, s.scheme_control['Block'].msgid, 2)]
+    assert s.unpack(s.result[-1]).as_dict() == {'type': 'lua:lua'}

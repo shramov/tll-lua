@@ -127,7 +127,7 @@ filled and child not ready. Params is table filled with ``lua`` subtree of open 
 
 ``tll_on_close()`` - called when channel is closed, either by user or by child channel
 
-``tll_on_post(seq, name, body, msgid, addr, time)`` - called when message is posted into the
+``tll_on_post(seq, name, body, msgid, addr, time)`` - called when Data message is posted into the
 channel:
 
   ``seq`` - sequence number of the message, ``msg->seq``
@@ -137,6 +137,9 @@ channel:
   ``msgid`` - message id, integer
   ``addr`` - message address, signed integer (``i64`` of ``tll_addr_t``)
   ``time`` - message time in nanoseconds, signed integer
+
+``tll_on_post_control(...)`` - called when Control message is posted into the channel, arguments are
+same as in ``tll_on_post`` function.
 
 ``tll_on_data(...)`` - called when child produces message (which is unpacked using child scheme),
 arguments as in ``tll_on_post``

@@ -67,6 +67,10 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 	_with_on_post = lua_isfunction(_lua, -1);
 	lua_pop(_lua, 1);
 
+	lua_getglobal(_lua, "tll_on_post_control");
+	_with_on_post_control = lua_isfunction(_lua, -1);
+	lua_pop(_lua, 1);
+
 	lua_getglobal(_lua, "tll_filter");
 	auto with_filter = lua_isfunction(_lua, -1);
 	lua_pop(_lua, 1);
