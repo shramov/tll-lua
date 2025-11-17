@@ -40,6 +40,10 @@ Logic supports all init parameters as ``lua+`` prefix described in ``tll-channel
 ``prefix-compat=<bool>``, default ``false``: register ``tll_callback`` function as an alias for
 ``tll_output_post`` so scripts for ``lua+`` prefix are compatible with forwarding logic.
 
+``stream-forward=<bool>``, default ``false``: create ``info.stream-open`` subtree with open
+parameters for stream client. If output has not data (``info.seq`` is -1) then it equals to ``{mode:
+initial}``, otherwise - ``{mode: seq-data, seq: seq-from-output-channel}``.
+
 Lua API
 ~~~~~~~
 

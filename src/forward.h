@@ -31,6 +31,13 @@ class Forward : public tll::lua::LuaBase<Forward, tll::channel::Tagged<Forward, 
 	int _init(const tll::Channel::Url &, tll::Channel *master);
 	int _open(const tll::ConstConfig &cfg);
 
+	void _free()
+	{
+		config_info().remove("info.stream-open.mode");
+		config_info().remove("info.stream-open.seq");
+		Base::_free();
+	}
+
 	int callback_tag(TaggedChannel<Input> * c, const tll_msg_t *msg);
 	int callback_tag(TaggedChannel<Output> * c, const tll_msg_t *msg) { return 0; }
 
@@ -47,6 +54,27 @@ class Forward : public tll::lua::LuaBase<Forward, tll::channel::Tagged<Forward, 
 			return 0;
 		}
 		return luaL_error(lua, "Non-userdata value in upvalue");
+	}
+
+	static char * _stream_mode(int * len, void * data)
+	{
+		auto self = static_cast<const Forward *>(data);
+		auto seq = self->_output->config().get("info.seq");
+		std::string_view r = "initial";
+		if (seq && *seq != "-1")
+			r = "seq-data";
+		*len = r.size();
+		return tll_config_value_dup(r.data(), r.size());
+	}
+
+	static char * _stream_seq(int * len, void * data)
+	{
+		auto self = static_cast<const Forward *>(data);
+		auto seq = self->_output->config().get("info.seq");
+		if (!seq)
+			return nullptr;
+		*len = seq->size();
+		return (char *) seq.release();
 	}
 };
 

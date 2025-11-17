@@ -4,6 +4,7 @@ int Forward::_init(const tll::Channel::Url &url, tll::Channel *master)
 {
 	auto reader = channel_props_reader(url);
 	_prefix_compat = reader.getT("prefix-compat", false);
+	auto sfwd = reader.getT("stream-forward", false);
 	if (!reader)
 		return _log.fail(EINVAL, "Invalid url: {}", reader.error());
 
@@ -14,6 +15,12 @@ int Forward::_init(const tll::Channel::Url &url, tll::Channel *master)
 
 	_output = _channels.get<Output>().front().first;
 	_input = _channels.get<Input>().front().first;
+
+	if (sfwd) {
+		auto info = config_info();
+		info.set("stream-open.mode", _stream_mode, this);
+		info.set("stream-open.seq", _stream_seq, this);
+	}
 	return Base::_init(url, master);
 }
 

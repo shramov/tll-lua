@@ -153,3 +153,35 @@ end
 
     mock.io('input').post({'f0': -1}, name='Data')
     assert mock.channel.state == mock.channel.State.Error
+
+@asyncloop_run
+async def test_forward_stream(asyncloop, tmp_path):
+    cfg = Config.load(f'''yamls://
+mock:
+  input.url: direct://
+  output.url: stream+null://;storage=file://{tmp_path}/file.dat;request=null://;mode=server
+channel:
+  tll.proto: lua-forward
+  tll.channel:
+    input: input
+    output: output
+  stream-forward: yes
+  name: forward
+''')
+    cfg['channel.code'] = '''
+function tll_on_data(seq, name, data)
+    tll_output_post(seq, name, data)
+end
+'''
+    mock = Mock(asyncloop, cfg)
+    mock.open()
+
+    assert mock.channel.config.sub('info.stream-open').as_dict() == {'mode': 'initial', 'seq': '-1'}
+
+    mock.io('input').post(b'xxx', seq=10)
+
+    assert mock.channel.config.sub('info.stream-open').as_dict() == {'mode': 'seq-data', 'seq': '10'}
+
+    mock.io('input').post(b'yyy', seq=20)
+
+    assert mock.channel.config.sub('info.stream-open').as_dict() == {'mode': 'seq-data', 'seq': '20'}
