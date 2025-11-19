@@ -1,3 +1,12 @@
+tll-lua (0.9.1) unstable; urgency=medium
+
+  * forward: Export open parameters for stream client
+  * prefix:
+    Add tll_on_post_control hook for Control messages
+    Do not pass non-data messages to tll_on_post
+
+ -- Pavel Shramov <shramov@mexmat.net>  Wed, 19 Nov 2025 15:52:45 +0300
+
 tll-lua (0.9.0) unstable; urgency=medium
 
   * encoder: Allow string values for integer fields
