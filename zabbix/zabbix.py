@@ -42,13 +42,13 @@ class Zabbix(Logic):
 
         for f in m.fields:
             if f.value.type == 'ivalue':
-                value = f.value.value.value
+                value = f.value.ivalue.value
             elif f.value.type == 'fvalue':
-                value = f.value.value.value
+                value = f.value.fvalue.value
             elif f.value.type == 'igroup':
-                value = f.value.avg
+                value = f.value.igroup.avg
             elif f.value.type == 'fgroup':
-                value = f.value.avg
+                value = f.value.fgroup.avg
             else:
                 continue
             key = f'{m.name}.{f.name}'
@@ -63,7 +63,6 @@ class Zabbix(Logic):
         if msg.type == msg.Type.State:
             state = channel.State(msg.msgid)
             if state == channel.State.Active:
-                print(self._pending)
                 data = {'request': 'sender data', 'data': self._pending}
                 self._pending = []
                 self._uplink.post(json.dumps(data).encode('utf-8'))
