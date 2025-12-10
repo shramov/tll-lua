@@ -24,6 +24,7 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 
 	bool _with_on_post = false;
 	bool _with_on_post_control = false;
+	bool _with_on_control = false;
 	std::string _on_data_name;
 
 	enum class Mode { Normal, Filter };
@@ -65,6 +66,15 @@ public:
 			return Base::_on_data(msg);
 		_on_msg(msg, _scheme_child.get(), _child.get(), _on_data_name, _mode == Mode::Filter);
 		return 0;
+	}
+
+	int _on_other(const tll_msg_t *msg)
+	{
+		if (msg->type == TLL_MESSAGE_CONTROL && _with_on_control) {
+			_on_msg(msg, _child->scheme(TLL_MESSAGE_CONTROL), _child.get(), "tll_on_control");
+			return 0;
+		}
+		return Base::_on_other(msg);
 	}
 
 	int _post(const tll_msg_t *msg, int flags)

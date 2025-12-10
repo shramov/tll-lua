@@ -1517,3 +1517,30 @@ end
     c.post({'type': 'lua'}, name='Block', seq=2, type=s.Type.Control)
     assert [(m.type, m.msgid, m.seq) for m in s.result] == [(s.Type.Data, 10, 1), (s.Type.Control, s.scheme_control['Block'].msgid, 2)]
     assert s.unpack(s.result[-1]).as_dict() == {'type': 'lua:lua'}
+
+def test_on_control(context):
+    url = Config.load('''yamls://
+tll.proto: lua+direct
+name: lua
+lua.dump: yes
+direct.dump: yes
+''')
+
+    url['code'] = '''
+function tll_on_control(seq, name, data)
+    if name == 'Block' then
+        tll_callback(100, nil, 'block')
+    end
+    tll_callback({seq = seq, name = name, data = data, type = 'Control'})
+end
+'''
+    scheme = 'yamls://[{name: Data, id: 10, fields: [{name: f0, type: int32}]}]'
+    s = Accum('direct://;emulate-control=stream-server', name='server', scheme=scheme, context=context)
+    s.open()
+    c = Accum(url, context=context, master=s)
+    c.open()
+    assert c.state == c.State.Active
+    s.post({'type': 'lua'}, name='Block', seq=2, type=s.Type.Control)
+    assert [(m.type, m.msgid, m.seq) for m in c.result] == [(s.Type.Data, 0, 100), (s.Type.Control, c.scheme_control['Block'].msgid, 2)]
+    assert c.result[0].data.tobytes() == b'block'
+    assert c.unpack(c.result[-1]).as_dict() == {'type': 'lua'}

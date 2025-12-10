@@ -63,6 +63,10 @@ int LuaPrefix::_open(const tll::ConstConfig &props)
 		_on_data_name = "tll_on_data";
 	lua_pop(_lua, 1);
 
+	lua_getglobal(_lua, "tll_on_control");
+	_with_on_control = lua_isfunction(_lua, -1);
+	lua_pop(_lua, 1);
+
 	lua_getglobal(_lua, "tll_on_post");
 	_with_on_post = lua_isfunction(_lua, -1);
 	lua_pop(_lua, 1);

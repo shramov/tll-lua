@@ -144,6 +144,9 @@ same as in ``tll_on_post`` function.
 ``tll_on_data(...)`` - called when child produces message (which is unpacked using child scheme),
 arguments as in ``tll_on_post``
 
+``tll_on_control(...)`` - called when child produces Control message (which is unpacked using child
+scheme), arguments as in ``tll_on_post``
+
 ``tll_filter(...)`` - special form of message callback used for filtering, replaced ``tll_on_data``.
 If this function is defined then prefix is working in filtering mode (if not overriden by
 ``tll_prefix_mode``). Returns boolean value: true if message should be forwarded, false if it should
