@@ -97,6 +97,15 @@ Count all such messages without printing them (script file that should be used w
         return false
     end
 
+Binary grep
+~~~~~~~~~~~
+
+Sometimes different messages contain unique string that can be used to filter them without
+unpacking, something like ``grep`` command. To achieve this message mode should be set to ``binary``
+and ``string.find`` Lua function should be used for matching::
+
+  tll-read 'example.dat;lua.message-mode=binary' --filter 'string.find(data, "JVc") ~= nil'
+
 See also
 --------
 
