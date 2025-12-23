@@ -371,7 +371,7 @@ def format_data(c, msg):
                 meta['hex'] = LiteralString('\n'.join(hexdump(msg.data)))
             print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
         else:
-            print("Failed to process message")
+            print(f"Failed to process message {msg.seq}")
             traceback.print_exc()
             loop.stop = 1
 
