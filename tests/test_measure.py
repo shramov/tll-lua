@@ -50,7 +50,7 @@ function tll_on_data(seq, name, data)
     if name == 'Activate' then
         return 'active', -1
     elseif name == 'Done' then
-        return 'close', -1
+        return 'close'
     elseif name == 'Data' then
         return data.seq
     end

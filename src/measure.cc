@@ -47,11 +47,12 @@ int LuaMeasure::_open(const tll::ConstConfig &props)
 	if (lua_isfunction(_lua, -1)) {
 		if (lua_pcall(_lua, 0, 0, 0))
 			return _log.fail(EINVAL, "Lua open (tll_on_open) failed: {}", lua_tostring(_lua, -1));
-	}
+	} else
+		lua_pop(_lua, 1);
 
 	if (auto r = Base::_open(props); r)
 		return r;
-	
+
 	if (!_manual_open)
 		state(tll::state::Active);
 	return 0;
@@ -75,7 +76,9 @@ int LuaMeasure::callback_tag(TaggedChannel<Input> * c, const tll_msg_t *msg)
 	if (msg->type != TLL_MESSAGE_DATA)
 		return 0;
 
-	tll::scheme::Message * message = nullptr;
+	auto ref = _lua.copy();
+	auto guard = StackGuard(ref);
+
 	lua_getglobal(_lua, "tll_on_data");
 	lua_pushinteger(_lua, msg->seq);
 	auto scheme = c->scheme();
@@ -92,34 +95,27 @@ int LuaMeasure::callback_tag(TaggedChannel<Input> * c, const tll_msg_t *msg)
 	lua_pushinteger(_lua, msg->msgid);
 	lua_pushinteger(_lua, msg->addr.i64);
 	lua_pushinteger(_lua, msg->time);
-	if (lua_pcall(_lua, 6, 1, 0)) {
-		_log.warning("Lua filter failed for {}:{}: {}", message ? message->name : "", msg->seq, lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
-		return EINVAL;
-	}
-	
+	if (lua_pcall(_lua, 6, 1, 0))
+		return _log.fail(EINVAL, "Lua filter failed: {}", lua_tostring(_lua, -1));
+
 	if (!lua_isinteger(_lua, -1)) {
-		if (!lua_isstring(_lua, -1)) {
-			lua_pop(_lua, 1);
+		if (!lua_isstring(_lua, -1))
 			return _log.fail(EINVAL, "Invalid return value from lua: not integer and not string");
-		}
 		auto r = luaT_tostringview(_lua, -1);
 		if (r == "active") {
 			if (state() == tll::state::Opening)
 				state(tll::state::Active);
 		} else if (r == "close") {
 			if (state() != tll::state::Closing) {
-				lua_pop(_lua, 1);
 				close();
 				return 0;
 			}
 		} else
 			_log.info("Lua code reported message: {}", r);
-		lua_pop(_lua, 1);
+		return 0;
 	}
 
 	auto seq = lua_tointeger(_lua, -1);
-	lua_pop(_lua, 1);
 
 	_log.debug("Lua reported seq {}, time {}ns", seq, msg->time);
 
