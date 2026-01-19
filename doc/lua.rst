@@ -107,7 +107,7 @@ integer mantissa.
 ``overflow-mode={error|trim}``, default ``error`` - overflow policy, fail or trim values when
 encoding.
 
-``child-mode={strict|relaxed}``, default ``strict`` - child policy, raise error if unknown field is
+``child-mode={strict|relaxed}``, default ``relaxed`` - child policy, raise error if unknown field is
 requested from Message or Bits object or return ``nil``.
 
 ``pmap-mode={enable|disable}``, default ``enable`` - pmap policy, if disabled - return value as if

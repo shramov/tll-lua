@@ -60,7 +60,6 @@ class LuaBase : public B
 			_settings.time_mode = Settings::Time::Object;
 			break;
 		case Convert:
-			_settings.child_mode = Settings::Child::Relaxed;
 			_settings.enum_mode = Settings::Enum::String;
 			_settings.bits_mode = Settings::Bits::Object;
 			_settings.fixed_mode = Settings::Fixed::Object;
@@ -68,7 +67,6 @@ class LuaBase : public B
 			_settings.time_mode = Settings::Time::Object;
 			break;
 		case ConvertFast:
-			_settings.child_mode = Settings::Child::Relaxed;
 			_settings.enum_mode = Settings::Enum::Int;
 			_settings.bits_mode = Settings::Bits::Int;
 			_settings.fixed_mode = Settings::Fixed::Int;

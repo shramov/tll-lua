@@ -28,7 +28,7 @@ struct Settings
 	enum class Enum { Int, String, Object } enum_mode = Enum::Int;
 	enum class Bits { Int, Object } bits_mode = Bits::Object;
 	enum class Fixed { Int, Float, Object } fixed_mode = Fixed::Float;
-	enum class Child { Strict, Relaxed } child_mode = Child::Strict;
+	enum class Child { Strict, Relaxed } child_mode = Child::Relaxed;
 	enum class PMap { Enable, Disable } pmap_mode = PMap::Enable;
 	enum class Decimal128 { Float, Object } decimal128_mode = Decimal128::Float;
 	enum class Time { Int, Float, Object, String } time_mode = Time::Object;
