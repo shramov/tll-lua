@@ -496,7 +496,7 @@ function tll_on_open(cfg)
 
     assert(cfg.f0 == "10", "Invalid f0 param: " .. tostring(cfg.f0))
     assert(tll_self.config["open.lua.f0"] == "10", "Invalid f0 param: " .. tostring(tll_self.config["open.lua.f0"]))
-    assert(tll_self.config["url.autoclose"] == "yes", "Invalid url autoclose param: " .. tostring(tll_self.config["url.autoclose"]))
+    assert(tll_self.config["init.autoclose"] == "yes", "Invalid url autoclose param: " .. tostring(tll_self.config["init.autoclose"]))
 end
 function tll_on_data(seq, name, data)
     tll_callback(seq + 100, "msg", {f0 = gf0, f1 = gf1})
@@ -897,7 +897,7 @@ function tll_on_active()
         print(k, v)
     end
     assert(cfg.state == "Active", "Invalid child state: " .. tostring(cfg.state))
-    assert(cfg["url.tll.proto"] == "null", "Invalid child proto: " .. tostring(cfg["url.tll.proto"]))
+    assert(cfg["init.tll.proto"] == "null", "Invalid child proto: " .. tostring(cfg["init.tll.proto"]))
 end
 '''
     c = context.Channel(url)
