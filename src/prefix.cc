@@ -35,7 +35,7 @@ int LuaPrefix::_init(const tll::Channel::Url &url, tll::Channel * master)
 int LuaPrefix::_init_control(const tll::Scheme * child)
 {
 	if (child) {
-		if (_scheme_control) {
+		if (_scheme_control_init) {
 			auto merged = tll::scheme::merge({_scheme_control_init.get(), child});
 			if (!merged)
 				return _log.fail(EINVAL, "Failed to merge control scheme with child: {}", merged.error());

@@ -1544,3 +1544,19 @@ end
     assert [(m.type, m.msgid, m.seq) for m in c.result] == [(s.Type.Data, 0, 100), (s.Type.Control, c.scheme_control['Block'].msgid, 2)]
     assert c.result[0].data.tobytes() == b'block'
     assert c.unpack(c.result[-1]).as_dict() == {'type': 'lua'}
+
+def test_control_merge(context):
+    cfg = Config.load('''yamls://
+tll.proto: lua+direct
+name: lua
+lua.dump: yes
+direct.emulate-control: stream-server
+lua.scheme-control: 'yamls://[{name: Extra, id: 1000}]'
+code: 'function tll_on_active() tll_callback({type="Control", name="Extra", seq=100}) end'
+''')
+
+    c = Accum(cfg, context=context)
+    assert [m.name for m in c.scheme_control.messages] == ['Extra', 'Block']
+    c.open()
+    assert [m.name for m in c.scheme_control.messages] == ['Extra', 'Block']
+    assert [(m.msgid, m.seq) for m in c.result] == [(1000, 100)]
