@@ -1,3 +1,15 @@
+tll-lua (0.10.0) unstable; urgency=medium
+
+  * lua: Change child mode default to Relaxed
+  * measure: Use only one return value from lua function
+  * prefix:
+    Fix incorrect merging of control schemas
+    Handle Control messages from the child
+  * tll-read: Print message seq on error
+  * zabbix: Use correct scheme and add tests
+
+ -- Pavel Shramov <shramov@mexmat.net>  Wed, 21 Jan 2026 12:43:43 +0300
+
 tll-lua (0.9.1) unstable; urgency=medium
 
   * forward: Export open parameters for stream client
