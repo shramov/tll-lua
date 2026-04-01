@@ -31,6 +31,9 @@ Print hex dump for all messages
 ``--text``
 Print text representation instead of binary
 
+``--with-size``
+Print message size
+
 ``--dump-seq``
 dump first and last seq of the channel and exit
 

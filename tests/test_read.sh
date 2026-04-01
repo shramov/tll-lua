@@ -34,6 +34,18 @@ testbody()
 Last seq: 9" ]
 }
 
+@test "with size" {
+    result=$(./tll-read tests/read.dat -Oseq=9 --with-size)
+    echo "[$result]"
+    body="- seq: 9
+  size: 4
+  name: Data
+  data:
+    f0: 9"
+    [ "$result" == "$body" ]
+}
+
+
 @test "init params" {
     result=$(./tll-read --dump-seq 'tests/read.dat;io=mmap')
     echo "[$result]"

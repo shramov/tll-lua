@@ -42,6 +42,8 @@ parser.add_argument('--hex', dest='hexdump', action='store_true', default=False,
                     help="Print hex dump for all messages")
 parser.add_argument('--text', dest='text', action='store_true', default=False,
                     help="Print text representation instead of binary")
+parser.add_argument('--with-size', action='store_true', default=False,
+                    help="Print message size")
 parser.add_argument('--dump-seq', dest='dump_seq', action='store_true', default=False,
                     help='dump first and last seq of the channel and exit')
 parser.add_argument('--dump-info', dest='dump_info', action='store_true', default=False,
@@ -330,6 +332,8 @@ def format_data(c, msg):
     count -= 1
 
     meta = {'seq':msg.seq}
+    if args.with_size:
+        meta['size'] = len(msg.data)
     try:
         s = c.scheme
         #meta = collections.OrderedDict({'seq':msg.seq})
