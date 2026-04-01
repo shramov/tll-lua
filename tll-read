@@ -299,7 +299,10 @@ def hexdump(data):
         b = data[i : i + 16]
         parts = ["".join(f"{x:02x} " for x in b[4 * j:4 * j + 4]) for j in range(4)]
         printable = "".join(chr(x) if 32 <= x < 127 else "." for x in b)
-        yield f"{i:08x}:  {parts[0]:12} {parts[1]:12} {parts[2]:12} {parts[3]:12} {printable}"
+        r = f"{i:08x}:  {parts[0]:12} {parts[1]:12} {parts[2]:12} {parts[3]:12} {printable}"
+        if r[-1] == ' ':
+            r = r[:-1] + '.'
+        yield r
 
 def ref2dict(m):
     r = {}
