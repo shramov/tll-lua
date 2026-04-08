@@ -14,7 +14,7 @@ setup()
 
 teardown()
 {
-    if [ "$TEMPIR_CLEANUP" == "yes" && ! -z "$BATS_TEST_TMPDIR" ]; then
+    if [ "$TEMPIR_CLEANUP" = "yes" -a ! -z "$BATS_TEST_TMPDIR" ]; then
         rm -rf "$BATS_TEST_TMPDIR"
     fi
 }
