@@ -124,6 +124,7 @@ int LuaPrefix::_on_active()
 	if (auto control = _child->scheme(TLL_MESSAGE_CONTROL); control != _scheme_control_child.get()) {
 		if (auto r = _init_control(control); r)
 			return _log.fail(r, "Failed to initialize control scheme");
+		_scheme_control.reset(control->ref());
 	}
 
 	if (_scheme) {
