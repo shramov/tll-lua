@@ -28,6 +28,9 @@ IO type: posix or mmap, passed to input and output channels as file.io parameter
 ``-S`` ``--scheme``
 output scheme, by default input scheme is copied into output
 
+``--no-scheme``
+do not set output scheme, have priority over --scheme flag
+
 ``--loglevel``
 logging level
 

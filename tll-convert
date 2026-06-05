@@ -30,6 +30,7 @@ parser.add_argument('-C', dest='compression', default=None,
 parser.add_argument('--io', dest='io', default=None,
                     help='IO type: posix or mmap, passed to input and output channels as file.io parameter')
 parser.add_argument('-S', '--scheme', help='output scheme, by default input scheme is copied into output')
+parser.add_argument('--no-scheme', help='do not set output scheme, have priority over --scheme flag', action='store_true')
 parser.add_argument('--loglevel', default='warning',
                     help='logging level', choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'])
 parser.add_argument('-L', '--lua-file', dest='lua_file', metavar='FILE',
@@ -120,7 +121,8 @@ ui['autoclose'] = 'yes'
 uo = Url.parse(uo)
 uo['name'] = 'output'
 uo['dir'] = 'w'
-uo['scheme'] = args.scheme or 'channel://input'
+if not args.no_scheme:
+    uo['scheme'] = args.scheme or 'channel://input'
 if args.compression:
     uo['compression'] = args.compression
 
