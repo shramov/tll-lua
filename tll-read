@@ -368,7 +368,7 @@ def format_data(c, msg):
                 meta['data'] = ref2dict(m)
         if args.hexdump:
             meta['hex'] = LiteralString('\n'.join(hexdump(msg.data)))
-        print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
+        print(yaml.dump([meta], sort_keys=False, allow_unicode=True), flush=True)
     except Exception as e:
         if args.ignore_errors:
             meta['msgid'] = msg.msgid
@@ -376,7 +376,7 @@ def format_data(c, msg):
             meta['data'] = msg.data.tobytes()
             if args.hexdump:
                 meta['hex'] = LiteralString('\n'.join(hexdump(msg.data)))
-            print(yaml.dump([meta], sort_keys=False, allow_unicode=True))
+            print(yaml.dump([meta], sort_keys=False, allow_unicode=True), flush=True)
         else:
             print(f"Failed to process message {msg.seq}")
             traceback.print_exc()
