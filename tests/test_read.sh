@@ -122,7 +122,7 @@ Last seq: 9" ]
 
 @test "convert scheme rename" {
     FN=$BATS_TEST_TMPDIR/copy.dat
-    ./tll-convert --scheme "yamls://[{name: New, id: 10, fields: [{name: f1, type: int32}]}]" tests/read.dat "$FN"
+    ./tll-convert --no-auto-convert --scheme "yamls://[{name: New, id: 10, fields: [{name: f1, type: int32}]}]" tests/read.dat "$FN"
     result=$(./tll-read -s 5:+1 "$FN")
     echo "[$result]"
     [ "$result" == "- seq: 5
@@ -140,6 +140,20 @@ end
 EOF
     ./tll-convert \
         --lua-file $BATS_TEST_TMPDIR/convert.lua \
+        --scheme "yamls://[{name: Data, id: 10, fields: [{name: header, type: int32}, {name: f0, type: int32}]}]" \
+        tests/read.dat "$FN"
+    result=$(./tll-read -s 5:+1 "$FN")
+    echo "[$result]"
+    [ "$result" == "- seq: 5
+  name: Data
+  data:
+    header: 0
+    f0: 5" ]
+}
+
+@test "convert new scheme auto" {
+    FN=$BATS_TEST_TMPDIR/copy.dat
+    ./tll-convert \
         --scheme "yamls://[{name: Data, id: 10, fields: [{name: header, type: int32}, {name: f0, type: int32}]}]" \
         tests/read.dat "$FN"
     result=$(./tll-read -s 5:+1 "$FN")

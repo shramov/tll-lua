@@ -26,10 +26,14 @@ compression type: none or lz4, passed to output channel as compression parameter
 IO type: posix or mmap, passed to input and output channels as file.io parameter
 
 ``-S`` ``--scheme``
-output scheme, by default input scheme is copied into output
+output scheme, by default input scheme is copied into output,
+if set and no lua script is given - add ``convert+`` prefix to convert data
 
 ``--no-scheme``
 do not set output scheme, have priority over --scheme flag
+
+``--no-auto-convert``
+do not add convert+ prefix when output scheme is specified
 
 ``--loglevel``
 logging level
