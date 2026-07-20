@@ -9,6 +9,7 @@ import logging
 import signal
 import sys
 import traceback
+import typing
 import yaml
 
 from tll import logger
@@ -19,7 +20,7 @@ from tll.config import Config, Url
 from tll.processor import Loop
 from tll.scheme import Reflection
 
-def parsepair(string):
+def parsepair(string: str):
     r = string.split('=', 1)
     if len(r) != 2:
         raise ValueError("Invalid key=value pair")
@@ -79,16 +80,17 @@ filtering.add_argument('--message', dest='messages', action='append',
 filtering.add_argument('--dump-code', dest='dump_code', action='store_true', default=False,
                     help='dump generated lua filter code and exit, can be used to create skeleton file with empty functions')
 
-class SeqType(enum.Enum):
-    Nothing = 0
-    Seq = 1
-    Count = 2
-    Reverse = 3
+class Seq(typing.NamedTuple):
+    class Type(enum.Enum):
+        Nothing = 0
+        Seq = 1
+        Count = 2
+        Reverse = 3
 
-Seq = collections.namedtuple('Seq', ['type', 'value'])
-Seq.Type = SeqType
+    type: Type
+    value: int
 
-def parseone(string):
+def parseone(string: str):
     if string == '':
         return Seq(Seq.Type.Nothing, 0)
     elif string.startswith('+'):
@@ -97,7 +99,7 @@ def parseone(string):
         return Seq(Seq.Type.Reverse, int(string[1:]))
     return Seq(Seq.Type.Seq, int(string))
 
-def parseseq(string):
+def parseseq(string: str):
     r = string.split(':')
     if len(r) == 1:
         return (parseone(r[0]), Seq(Seq.Type.Count, 1))
@@ -293,7 +295,7 @@ yaml.add_representer(LiteralString, literal_representer)
 # Don't generate aliases
 yaml.Dumper.ignore_aliases = lambda *args: True
 
-def hexdump(data):
+def hexdump(data: bytes):
     r = []
     for i in range(0, len(data), 16):
         b = data[i : i + 16]
