@@ -44,6 +44,8 @@ parser.add_argument('-E', '--extra-channel', dest='extra_channels', action='appe
                     help='extra channels, can be given several times', metavar='CHANNEL')
 parser.add_argument('-O', '--open', dest='open', metavar='KEY=VALUE',
                     help='open parameters, can be specified multiple times', action='append', default=[], type=parsepair)
+parser.add_argument('--resolve', dest='resolve', metavar='ADDRESS',
+                    help='address of resolve server to use in resolve:// channels')
 parser.add_argument('--defaults', metavar='KEY=VALUE',
                     help='default parameters, can be specified multiple times', action='append', default=[], type=parsepair)
 parser.add_argument('--poll', action='store_true', default=False,
@@ -94,6 +96,9 @@ tll.logger.configure({'levels.*': args.loglevel})
 defaults = Config()
 defaults['lua.preset'] = 'convert'
 defaults['lua.prefix-compat'] = 'yes'
+if args.resolve:
+    proto = 'tcp://' if '://' not in args.resolve else ''
+    defaults['resolve.request'] = f'{proto}{args.resolve}'
 for k,v in args.defaults:
     defaults[k] = v
 ctx = Context(defaults)

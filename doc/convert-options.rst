@@ -50,6 +50,9 @@ extra channels, can be given several times
 ``-O KEY=VALUE`` ``--open KEY=VALUE``
 open parameters, can be specified multiple times
 
+``--resolve ADDRESS``
+address of resolve server to use in resolve:// channels
+
 ``--defaults KEY=VALUE``
 default parameters, can be specified multiple times
 
