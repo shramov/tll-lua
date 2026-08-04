@@ -173,7 +173,7 @@ yaml.dump: yes
 lua.dump: yes
 lua.enum-mode: {mode}
 autoclose: yes
-config.0: {{seq: 0, name: msg, data: {{}}}}
+config.0: {{seq: 0, name: msg, data.f0: B}}
 config.1: {{seq: 1, name: msg, data.f0: A}}
 ''')
     url['scheme'] = '''yamls://
