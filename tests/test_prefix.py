@@ -1361,6 +1361,8 @@ end
     ('int', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
     ('float', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
     ('object', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
+    ('object', TimePoint(0, 'ns'), 'tll_time_point()'),
+    ('object', TimePoint(0, 'ns'), 'tll_time_point(1970)'),
     ('string', TimePoint(1262401445123456789, 'ns'), 'tll_time_point(2010, 01, 02, 03, 04, 05, 123456789)'),
 ])
 def test_time_point(context, mode, outer, inner):

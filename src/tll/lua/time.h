@@ -128,7 +128,7 @@ struct TimePoint
 	static int create(lua_State * lua)
 	{
 		const auto args = lua_gettop(lua);
-		struct tm v = {};
+		struct tm v = { .tm_mday = 1, .tm_year = 1970 - 1900 };
 		long long ns = 0;
 		if (args > 0) v.tm_year = lua_tonumber(lua, 1) - 1900;
 		if (args > 1) v.tm_mon = lua_tonumber(lua, 2) - 1;
