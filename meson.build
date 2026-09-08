@@ -20,7 +20,15 @@ if cxx.get_id() == 'gcc' and cxx.version().version_compare('>= 13.0') and fmt.ve
 endif
 
 shared_library('tll-lua'
-	, ['src/module.cc', 'src/measure.cc', 'src/prefix.cc', 'src/tcp.cc', 'src/logic.cc', 'src/forward.cc']
+	, [
+          'src/forward.cc',
+          'src/logic.cc',
+          'src/measure.cc',
+          'src/module.cc',
+          'src/prefix.cc',
+          'src/probe.cc',
+          'src/tcp.cc',
+          ]
 	, include_directories : include
 	, dependencies : [fmt, lua, tll, dl]
 	, install : true
