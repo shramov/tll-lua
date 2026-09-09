@@ -186,6 +186,15 @@ class LuaBase : public B
 		luaT_push<tll::lua::Logger>(lua, { tll_logger_copy(this->_log.ptr()) });
 		lua_setglobal(lua, "tll_logger");
 
+		lua_pushinteger(lua, TLL_MESSAGE_DATA);
+		lua_setglobal(lua, "TLL_MESSAGE_DATA");
+
+		lua_pushinteger(lua, TLL_MESSAGE_CONTROL);
+		lua_setglobal(lua, "TLL_MESSAGE_CONTROL");
+
+		lua_pushinteger(lua, TLL_MESSAGE_STATE);
+		lua_setglobal(lua, "TLL_MESSAGE_STATE");
+
 		_lua = std::move(lua);
 
 		return 0;
