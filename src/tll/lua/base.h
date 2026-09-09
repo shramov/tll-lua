@@ -36,7 +36,7 @@ class LuaBase : public B
 
 	tll::lua::Encoder _encoder;
 	tll::lua::Settings _settings;
-	enum class MessageMode { Auto, Reflection, Binary, Object } _message_mode = MessageMode::Auto;
+	enum class MessageMode { Auto, Reflection, Binary, Object, State } _message_mode = MessageMode::Auto;
  public:
 	/// Close policy: perform cleanup in close or leave it to user
 	enum class LuaClosePolicy { Cleanup, Skip };
@@ -263,14 +263,15 @@ class LuaBase : public B
 			lua_pushinteger(_lua, msg->type);
 		lua_pushinteger(_lua, msg->seq);
 
-		if (msg->type != TLL_MESSAGE_DATA)
+		auto mode = _message_mode;
+		if (msg->type == TLL_MESSAGE_STATE)
+			mode = MessageMode::State;
+		else if (msg->type != TLL_MESSAGE_DATA)
 			scheme = channel->scheme(msg->type);
 		auto message = scheme ? scheme->lookup(msg->msgid) : nullptr;
 
-		auto mode = _message_mode;
 		if (mode == MessageMode::Auto && !scheme)
 			mode = MessageMode::Binary;
-
 		switch (mode) {
 		case MessageMode::Object:
 			if (message)
@@ -294,6 +295,10 @@ class LuaBase : public B
 			else
 				lua_pushnil(_lua);
 			lua_pushlstring(_lua, (const char *) msg->data, msg->size);
+			break;
+		case MessageMode::State:
+			luaT_pushstringview(_lua, tll_state_str((tll_state_t) msg->msgid));
+			lua_pushnil(_lua);
 			break;
 		}
 
