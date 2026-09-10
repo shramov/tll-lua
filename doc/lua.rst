@@ -390,7 +390,8 @@ Channel object has following properties and functions:
 
 ``scheme`` - channel scheme object, ``nil`` if not present.
 
-``config`` - channel config object, behaves like table with indexing and iteration.
+``config`` - channel config object, behaves like table with indexing and iteration. Has
+``browse(mask)`` method, ``mask`` is passed to ``tll_config_browse`` function.
 
 ``context`` - channel context object.
 

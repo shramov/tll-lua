@@ -29,10 +29,10 @@ struct Config
 		return 0;
 	}
 
-	int push_table(lua_State *lua)
+	int push_table(lua_State *lua, std::string_view mask = "**")
 	{
 		lua_newtable(lua);
-		tll_config_browse(ptr, "**", -1, browse_push, lua);
+		tll_config_browse(ptr, mask.data(), mask.size(), browse_push, lua);
 		return 1;
 	}
 };
@@ -51,6 +51,8 @@ struct MetaT<Config> : public MetaBase
 			lua_pushcfunction(lua, get);
 		else if (key == "as_dict")
 			lua_pushcfunction(lua, as_dict);
+		else if (key == "browse")
+			lua_pushcfunction(lua, browse);
 		else if (auto v = tll_config_get_copy(self.ptr, key.data(), key.size(), &len); v) {
 			luaT_pushstringview(lua, { v, (size_t) len });
 			tll_config_value_free(v);
@@ -83,6 +85,13 @@ struct MetaT<Config> : public MetaBase
 	{
 		auto & self = luaT_checkuserdata<Config>(lua, 1);
 		return self.push_table(lua);
+	}
+
+	static int browse(lua_State* lua)
+	{
+		auto & self = luaT_checkuserdata<Config>(lua, 1);
+		auto mask = luaT_checkstringview(lua, 2);
+		return self.push_table(lua, mask);
 	}
 
 	static int pairs(lua_State* lua)
