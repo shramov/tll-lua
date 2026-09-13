@@ -223,16 +223,19 @@ def loop_stop(c, m):
     if c.State(m.msgid) in (c.State.Closed, c.State.Error):
         loop.stop = 1
 
+nofd = {}
+if not args.poll:
+    nofd = {'fd': 'no'}
 extra = []
 for url in args.extra_channels:
-    c = ctx.Channel(url)
+    c = ctx.Channel(url, **nofd)
     c.callback_add(loop_stop, mask=c.MsgMask.State)
     loop.add(c)
     extra += [c]
 
 master = None
 if args.master:
-    master = ctx.Channel(args.master, name='master')
+    master = ctx.Channel(args.master, name='master', **nofd)
     master.callback_add(loop_stop, mask=master.MsgMask.State)
     loop.add(master)
 
@@ -244,6 +247,8 @@ if args.scheme:
     url['scheme'] = args.scheme
 if 'name' not in url:
     url['name'] = 'data'
+if 'fd' not in url and not args.poll:
+    url['fd'] = 'no'
 if 'autoclose' not in url and args.autoclose:
     url['autoclose'] = 'yes'
 
