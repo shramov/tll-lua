@@ -244,6 +244,10 @@ should be replaced with ``tll_self_child.scheme``.
 
 ``tll_self_child`` - channel object for child (see `Channel API`_)
 
+``tll_time_now`` - return floating point number of seconds since epoch
+
+``tll_time_now_ns`` - return number of nanoseconds since epoch
+
 Reflection
 ~~~~~~~~~~
 

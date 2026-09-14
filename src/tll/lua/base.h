@@ -186,6 +186,12 @@ class LuaBase : public B
 		luaT_push<tll::lua::Logger>(lua, { tll_logger_copy(this->_log.ptr()) });
 		lua_setglobal(lua, "tll_logger");
 
+		lua_pushcfunction(lua, tll::lua::time_now);
+		lua_setglobal(lua, "tll_time_now");
+
+		lua_pushcfunction(lua, tll::lua::time_now_ns);
+		lua_setglobal(lua, "tll_time_now_ns");
+
 		lua_pushinteger(lua, TLL_MESSAGE_DATA);
 		lua_setglobal(lua, "TLL_MESSAGE_DATA");
 

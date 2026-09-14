@@ -5,10 +5,23 @@
 #define _TLL_LUA_TIME_H
 
 #include <tll/scheme.h>
+#include <tll/util/time.h>
 
 #include "tll/lua/luat.h"
 
 namespace tll::lua {
+
+inline int time_now(lua_State *lua)
+{
+	lua_pushnumber(lua, tll_time_now() / 1000000000.);
+	return 1;
+}
+
+inline int time_now_ns(lua_State *lua)
+{
+	lua_pushinteger(lua, tll_time_now());
+	return 1;
+}
 
 struct TimePoint
 {

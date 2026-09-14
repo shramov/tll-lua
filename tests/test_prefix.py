@@ -5,6 +5,7 @@ import decimal
 import decorator
 import enum
 import pytest
+import time
 
 from tll.chrono import TimePoint
 from tll.config import Config, Url
@@ -1562,3 +1563,32 @@ code: 'function tll_on_active() tll_callback({type="Control", name="Extra", seq=
     c.open()
     assert [m.name for m in c.scheme_control.messages] == ['Extra', 'Block']
     assert [(m.msgid, m.seq) for m in c.result] == [(1000, 100)]
+
+def test_time_now(context):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+dump: yes
+''')
+
+    url['scheme'] = '''yamls://
+- name: Time
+  id: 10
+  fields:
+   - {name: now, type: double}
+   - {name: ns, type: int64}
+'''
+    url['code'] = '''
+function tll_on_active()
+    tll_callback(100, "Time", { now = tll_time_now(), ns = tll_time_now_ns() })
+end
+'''
+    before = time.time()
+    c = Accum(url, context=context)
+    c.open()
+    after = time.time()
+    assert c.state == c.State.Active
+    assert [m.seq for m in c.result] == [100]
+    m = c.unpack(c.result[-1])
+    assert before < m.now < after
+    assert before < m.ns / 1000000000 < after
