@@ -239,10 +239,14 @@ if args.master:
     master.callback_add(loop_stop, mask=master.MsgMask.State)
     loop.add(master)
 
-if '://' not in args.channel:
+if isinstance(args.channel, str) and '://' not in args.channel:
     args.channel = 'file://' + args.channel
 
-url = Url.parse(args.channel)
+if isinstance(args.channel, dict):
+    url = Config.from_dict(args.channel)
+else:
+    url = Url.parse(args.channel)
+
 if args.scheme:
     url['scheme'] = args.scheme
 if 'name' not in url:
