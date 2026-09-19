@@ -6,7 +6,7 @@ function Probe.new(init, open)
 	local self = setmetatable({}, Probe)
 	self.init = init
 	self.open = open
-	self.metric = nil
+	self._metric = nil
 	return self
 end
 
@@ -22,12 +22,12 @@ function tll_probe_generate(cfg)
 	return r
 end
 
-function tll_probe_select(list)
+function _tll_probe_select(list)
 	local r = nil
 	for i,p in pairs(list) do
 		if r == nil then r = p end
-		print("Check", p.index, p.metric)
-		if p.metric > r.metric then r = p end
+		print("Check", p.index, p._metric)
+		if p._metric > r._metric then r = p end
 	end
 	if r == nil then
 		error("No suitable probes")
@@ -44,6 +44,8 @@ end
 
 function Probe:on_login(type, seq, name, data)
 	print("On login", self.index, data)
-	self.metric = tonumber(data)
+	self._metric = tonumber(data)
 	return "done"
 end
+
+return Probe

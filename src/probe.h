@@ -22,6 +22,7 @@ class Probe : public tll::lua::LuaBase<Probe, tll::channel::Prefix<Probe>>
 		Probe * parent = nullptr;
 		std::string stage = "active";
 		tll_state_t state = tll::state::Opening;
+		double metric = 0;
 
 		int callback(const tll::Channel *, const tll_msg_t *m)
 		{
