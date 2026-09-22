@@ -34,6 +34,8 @@ class LuaPrefix : public tll::lua::LuaBase<LuaPrefix, tll::channel::Prefix<LuaPr
 
 	tll::Config _open_cfg;
 
+	enum Flags { Zero = 0, Filter = 0x1, Return = 0x2 };
+
 public:
 	static constexpr std::string_view channel_protocol() { return "lua+"; }
 	static constexpr auto scheme_policy() { return Base::SchemePolicy::Normal; }
@@ -64,7 +66,7 @@ public:
 	{
 		if (_on_data_name.empty())
 			return Base::_on_data(msg);
-		_on_msg(msg, _scheme_child.get(), _child.get(), _on_data_name, _mode == Mode::Filter);
+		_on_msg(msg, _scheme_child.get(), _child.get(), _on_data_name, _mode == Mode::Filter ? Flags::Filter : Flags::Zero);
 		return 0;
 	}
 
@@ -83,12 +85,10 @@ public:
 			return Base::_post(msg, flags);
 		if (msg->type != TLL_MESSAGE_DATA) {
 			if (_with_on_post_control)
-				return _on_msg(msg, _scheme_control.get(), self(), "tll_on_post_control");
+				return _on_msg(msg, _scheme_control.get(), self(), "tll_on_post_control", Flags::Return);
 			return Base::_post(msg, flags);
 		}
-		if (_on_msg(msg, _scheme.get(), self(), "tll_on_post"))
-			return EINVAL;
-		return 0;
+		return _on_msg(msg, _scheme.get(), self(), "tll_on_post", Flags::Return);
 	}
 
 	static int _lua_post(lua_State * lua)
@@ -106,7 +106,7 @@ public:
 		return luaL_error(lua, "Non-userdata value in upvalue");
 	}
 
-	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel *, std::string_view func, bool filter = false);
+	int _on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel *, std::string_view func, Flags flags = Flags::Zero);
 
 	/// Initialize control scheme
 	int _init_control(const tll::Scheme * child);

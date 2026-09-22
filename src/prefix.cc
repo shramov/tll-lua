@@ -149,7 +149,7 @@ int LuaPrefix::_on_active()
 	return Base::_on_active();
 }
 
-int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel * channel, std::string_view func, bool filter)
+int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const tll::Channel * channel, std::string_view func, LuaPrefix::Flags flags)
 {
 	auto ref = _lua.copy();
 	auto guard = StackGuard(ref);
@@ -171,10 +171,13 @@ int LuaPrefix::_on_msg(const tll_msg_t *msg, const tll::Scheme * scheme, const t
 		return EINVAL;
 	}
 
-	if (filter) {
+	if (flags & Flags::Filter) {
 		auto r = lua_toboolean(ref, -1);
 		if (r)
 			_callback_data(msg);
 	}
+
+	if (flags & Flags::Return && lua_type(ref, -1) == LUA_TNUMBER)
+		return lua_tointeger(ref, -1);
 	return 0;
 }

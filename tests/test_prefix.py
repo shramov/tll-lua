@@ -1592,3 +1592,29 @@ end
     m = c.unpack(c.result[-1])
     assert before < m.now < after
     assert before < m.ns / 1000000000 < after
+
+def test_post_return(context):
+    url = Config.load('''yamls://
+tll.proto: lua+null
+name: lua
+dump: yes
+''')
+
+    url['code'] = '''
+function tll_on_post(seq, name, data)
+    if seq > 10 then
+        error("Break channel")
+    end
+    return seq
+end
+'''
+    c = context.Channel(url)
+    c.open()
+
+    c.post(b'xxx', seq=0)
+    c.post(b'yyy', seq=0)
+    with pytest.raises(TLLError): c.post(b'zzz', seq=10)
+    assert c.state == c.State.Active
+
+    with pytest.raises(TLLError): c.post(b'zzz', seq=20)
+    assert c.state == c.State.Error
