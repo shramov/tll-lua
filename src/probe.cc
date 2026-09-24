@@ -219,7 +219,6 @@ int Probe::_process()
 			return _log.fail(EINVAL, "Invalid select result: {}", s ? s : "nil");
 		}
 		auto index = lua_tointeger(_lua, -1);
-		_log.info("Selected probe {}", index);
 		probe = std::find_if(_channels.begin(), _channels.end(), [index](auto &c) { return c.index == index; });
 		if (probe == _channels.end())
 			return _log.fail(EINVAL, "Probe {} not found", index);
@@ -260,6 +259,7 @@ int Probe::_process()
 		if (probe == _channels.end())
 			return _log.fail(EINVAL, "No probe selected");
 	}
+	_log.info("Selected probe {}, metric {}", probe->index, probe->metric);
 	_child = std::move(probe->channel);
 	_child->callback_del<Channel, &Channel::callback>(&*probe, TLL_MESSAGE_MASK_ALL);
 	_child->callback_add(this, TLL_MESSAGE_MASK_ALL);
