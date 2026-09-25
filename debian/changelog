@@ -1,3 +1,19 @@
+tll-lua (0.11.0) unstable; urgency=medium
+
+  * lua:
+    Add Config browse, tll_time_now and tll_time_now_ns functions
+    Push Data, Control and State types constants
+    Return value from post
+    Set default year and day in time struct to sane values
+  * probe: Probe channel
+  * tll-convert: Enable auto input data conversion and  Support resolve:// channels
+  * tll-read:
+    Allow subtree channel in config
+    Disable fd when poll is not enabled
+    Force flush when printing messages
+
+ -- Pavel Shramov <shramov@mexmat.net>  Fri, 25 Sep 2026 14:55:57 +0300
+
 tll-lua (0.10.0) unstable; urgency=medium
 
   * lua: Change child mode default to Relaxed
