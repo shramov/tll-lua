@@ -256,6 +256,8 @@ filled with fields by name. If message has presence map (``pmap``) then accessin
 missing returns ``nil`` value, otherwise zeroed value is returned. If user tries to get field that
 is not in the message then error is generated.
 
+Object also exposes ``__len`` metamethod which returns size of underlaying buffer.
+
 Field types are handled as following:
 
  - integer types that are not handled according to their sub type are pushed as integers
@@ -426,6 +428,8 @@ store this object for later use since it's data can be invalidated. Has followin
 ``reflection`` - message reflection (see ``Reflection``), available only if there is valid scheme,
 otherwise raises error on access
 
+``__len`` metamethod returns size of the message
+
 Examples
 --------
 
@@ -570,6 +574,18 @@ open, lua.a: open-prefixed}`` will print ``open-prefix``, ``init`` and ``open``:
     print(cfg.a)
     print(tll_self.config['init.a'])
     print(tll_self.config['open.a'])
+  end
+
+Checking message size
+~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes message size is needed, all message modes have ``__len`` method support so hooks can just
+use ``#data`` syntax that can be combined with other checks:
+
+.. code-block:: lua
+
+  function tll_filter(seq, name, data)
+    return name == "Data" and #data < 100 and data.field == 10 then
   end
 
 See also

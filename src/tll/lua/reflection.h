@@ -425,6 +425,13 @@ struct MetaT<Message> : public MetaBase
 			return luaL_error(lua, "Invalid Channel attribute '%s'", key.data());
 		return 1;
 	}
+
+	static int len(lua_State* lua)
+	{
+		auto & self = luaT_checkuserdata<Message>(lua, 1);
+		lua_pushinteger(lua, self.ptr->size);
+		return 1;
+	}
 };
 
 template <>
@@ -454,6 +461,13 @@ struct MetaT<reflection::Message> : public MetaBase
 			}
 		}
 		return pushfield(lua, field, r.data.view(field->offset), r.settings);
+	}
+
+	static int len(lua_State* lua)
+	{
+		auto & r = *luaT_touserdata<reflection::Message>(lua, 1);
+		lua_pushinteger(lua, r.data.size());
+		return 1;
 	}
 
 	static int pairs(lua_State* lua)

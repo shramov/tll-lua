@@ -1618,3 +1618,31 @@ end
 
     with pytest.raises(TLLError): c.post(b'zzz', seq=20)
     assert c.state == c.State.Error
+
+@pytest.mark.parametrize("mode", ['auto', 'reflection', 'object', 'binary'])
+def test_message_len(context, mode):
+    cfg = Config.load(f'''yamls://
+tll.proto: lua+null
+name: lua
+dump: yes
+lua.message-mode: {mode}
+''')
+    cfg['scheme'] = '''yamls://
+- name: Data
+  id: 10
+  fields:
+    - {name: f0, type: string}
+- name: Size
+  id: 20
+'''
+
+    cfg['code'] = f'''
+function tll_on_post(seq, name, data)
+    return tll_callback(#data, 'Size', '')
+end
+'''
+    c = Accum(cfg, context=context)
+    c.open()
+    data = c.scheme['Data'](f0 = 'x' * 10)
+    c.post(data)
+    assert [m.seq for m in c.result] == [len(data.pack())]
