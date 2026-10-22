@@ -81,13 +81,13 @@ public:
 
 	int _post(const tll_msg_t *msg, int flags)
 	{
-		if (!_with_on_post)
-			return Base::_post(msg, flags);
 		if (msg->type != TLL_MESSAGE_DATA) {
 			if (_with_on_post_control)
 				return _on_msg(msg, _scheme_control.get(), self(), "tll_on_post_control", Flags::Return);
 			return Base::_post(msg, flags);
 		}
+		if (!_with_on_post)
+			return Base::_post(msg, flags);
 		return _on_msg(msg, _scheme.get(), self(), "tll_on_post", Flags::Return);
 	}
 

@@ -1497,10 +1497,6 @@ direct.dump: yes
 ''')
 
     url['code'] = '''
-function tll_on_post(seq, name, data)
-    tll_child_post(seq, name, data)
-end
-
 function tll_on_post_control(seq, name, data)
     if name == 'Block' then
         data = {type = 'lua:' .. data.type}
